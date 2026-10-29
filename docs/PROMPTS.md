@@ -23,3 +23,11 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** Proyecto Next.js con pnpm y Node 22, Tailwind, capas vacías con barrera `server-only`, un test de Vitest y uno de Playwright en verde.
 
 **Lección:** Andamiar en un directorio temporal y copiar de forma selectiva evita pisar `README.md`, `docs/` y `.env.example`. Conviene contrastar las configuraciones con la documentación instalada, porque las versiones actuales cambian opciones (p. ej. Vite ya resuelve `tsconfig paths` sin plugin).
+
+### 2026-10-29 · Paso 1.2 · modelo de dominio
+
+**Prompt:** `/gentle-sdd-new title-domain` — Modela el dominio de títulos: película o serie (con temporadas vistas), nota de María y nota de Ignacio (0-10, admitiendo medios puntos y cuartos), media calculada solo con las notas que existan, estado, fecha vista (puede ser desconocida), año, actores y observaciones. Reglas como funciones puras con tests.
+
+**Resultado:** Dominio puro en `src/domain/` (resultado, nota, media, estado, fecha vista, título y barril) con 129 tests en verde y un test que impide importaciones externas. Solo el nombre y el tipo son obligatorios; el resto de campos toma valores por defecto.
+
+**Lección:** Conviene decidir desde el principio qué campos son obligatorios: la regla «solo nombre y tipo» apareció tarde y obligó a rehacer specs y diseño. Las tablas de tests hacen crecer el diff más de lo previsto (834 líneas frente a 800).
