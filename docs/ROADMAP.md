@@ -162,7 +162,7 @@ repetir `/gentle-sdd-init` para activar Strict TDD ahora que existen Vitest y Pl
 
 ---
 
-## [ ] 1.2 · Modelo de dominio
+## [x] 1.2 · Modelo de dominio
 
 **Objetivo.** Tipos y reglas puras del dominio, sin base de datos ni UI.
 
@@ -182,7 +182,15 @@ observaciones. Reglas como funciones puras con tests.
 **Revisar.** Que la media nunca da error con notas vacías y que los estados cubren los del
 Excel.
 
-**Notas:**
+**Notas:** 2026-10-29 · Cambio SDD `title-domain`, con Strict TDD activo. Módulos puros en
+`src/domain/`: `result` (`Result`, `ok`, `err`), `score` (`Score` con marca, rejilla de 0,25 en
+[0, 10], se rechaza sin redondear), `average` (media bruta, `null` sin notas), `watch-state` (seis
+estados con id en inglés y etiqueta exacta de la leyenda), `watch-date` (fecha real o
+desconocida), `title` (`Movie | Series`, `createTitle(input: unknown)` y `titleAverage`) y el
+barrel `index.ts` (se importa como `@/domain`). Solo `name` y `kind` son obligatorios; el resto
+toma valor por defecto (`pending`, `null`, `[]`, fecha desconocida). Los valores se conservan tal
+como llegan y los errores se acumulan sin lanzar excepciones. Un test (`purity.test.ts`) vigila
+que el dominio solo importe rutas relativas. Decisiones cerradas: D-15 a D-20.
 
 ---
 
@@ -361,3 +369,4 @@ propio ciclo SDD.
 | 2026-10-29 | 1.1 | Se omite `vite-tsconfig-paths`; Vitest usa `resolve.tsconfigPaths: true` | Vite lo soporta de forma nativa y el plugin avisa de que ya no hace falta |
 | 2026-10-29 | 1.1 | `@types/node` subido a `^22` y `typecheck` ejecuta `next typegen` antes de `tsc --noEmit` | La plantilla traía `@types/node` 20; sin `typegen` el tipo global `LayoutProps` no existe en un clon limpio |
 | 2026-10-29 | 1.1 | `next dev` regenera `AGENTS.md` en la raíz | Lo escribe Next.js 16.4; no se adopta porque el repositorio usa `CLAUDE.md`. Se ignora en `.gitignore` (`/AGENTS.md`) |
+| 2026-10-29 | 1.2 | Strict TDD activado tras repetir `sdd-init` (existe `pnpm test`) | Resuelve la desviación del paso 0.2 |

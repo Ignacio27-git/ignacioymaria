@@ -22,6 +22,12 @@ Registro ligero de las decisiones ya tomadas y de las que siguen abiertas. Fuent
 | D-12 | Node 22 LTS fijado con `.nvmrc` y `engines.node` (`>=22 <23`) | Entorno reproducible; paso 1.1 | 2026-10-29 |
 | D-13 | Tailwind instalado desde el paso 1.1 | Viene con la plantilla; el diseño visual sigue en D.1 y D.2 | 2026-10-29 |
 | D-14 | Capas finales bajo `src/` (`app`, `domain`, `server`, `lib/supabase`) y `tests/e2e`, con `server-only` como barrera en `src/server` | El build falla si el cliente importa código de servidor; ver `docs/ARCHITECTURE.md` | 2026-10-29 |
+| D-15 | "Urgente de ver" es un estado propio; hay seis estados con id en inglés y la etiqueta exacta de la leyenda del Excel | Cierra la decisión abierta del paso 1.2; los ids se guardan y las etiquetas solo se muestran | 2026-10-29 |
+| D-16 | El modelo solo tiene los campos del Excel (sin géneros, plataforma ni quién propone) | Cierra la decisión abierta del paso 1.2 | 2026-10-29 |
+| D-17 | Solo `name` y `kind` son obligatorios; el resto es opcional con valor por defecto (`pending`, `null`, `[]`, fecha desconocida) | Las filas del Excel son dispersas; un valor presente pero inválido sigue rechazándose | 2026-10-29 |
+| D-18 | Nota de 0 a 10 en rejilla de 0,25, con marca de tipo; se rechaza lo que no encaja, nunca se redondea | Evita guardar notas alteradas en silencio | 2026-10-29 |
+| D-19 | La media es la media aritmética bruta de las notas existentes, calculada y no almacenada; `null` si no hay notas | Regla del proyecto: la media nunca da error | 2026-10-29 |
+| D-20 | `Title` es la unión `Movie \| Series` (solo `Series` lleva `seasonsWatched`); las funciones devuelven `Result` y nunca lanzan; los valores se conservan tal como llegan | Datos no fiables en la importación (paso 1.7); sin normalización implícita | 2026-10-29 |
 
 ## Abiertas
 
@@ -29,8 +35,6 @@ Sin resultado decidido. Cada una se resuelve en el paso indicado.
 
 | Tema | Se decide en |
 |---|---|
-| Modelado de "Urgente" (tal como lo recoge la leyenda del Excel) | Paso 1.2 |
-| Campos nuevos para los títulos | Paso 1.2 |
 | Observaciones que no son notas de la película | Paso 1.7 |
 | Mecanismo de la lista permitida | Pasos 1.3 y 1.4 |
 | Esquema de base de datos | Paso 1.3 |

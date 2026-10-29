@@ -12,7 +12,7 @@ Las dependencias apuntan hacia dentro. Estas reglas son vinculantes.
 | Servidor | Casos de uso, acceso a datos, clientes de Supabase y TMDB | Dominio | Código de UI |
 | UI | Páginas y componentes | Dominio (solo tipos); Servidor mediante los mecanismos de Next.js | Clientes de servidor, claves secretas |
 
-El dominio se prueba con Vitest sin simular servicios.
+El dominio se prueba con Vitest sin simular servicios. La regla "nada externo" la vigila `src/domain/purity.test.ts`, que falla si algún módulo del dominio importa una ruta no relativa.
 
 ## Quién puede llamar a servicios externos
 
@@ -49,7 +49,7 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | Ruta | Contenido |
 |---|---|
 | `src/app/` | Rutas y UI (App Router) |
-| `src/domain/` | Dominio puro |
+| `src/domain/` | Dominio puro: `result`, `score`, `average`, `watch-state`, `watch-date`, `title` e `index.ts` (barrel, se importa como `@/domain`) |
 | `src/server/` | Servidor e integraciones |
 | `src/lib/supabase/` | Clientes de Supabase (navegador: solo Auth) |
 | `supabase/migrations/` | Migraciones versionadas (pendiente, paso 1.3) |
