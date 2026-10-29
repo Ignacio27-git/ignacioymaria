@@ -29,7 +29,9 @@ Regla: solo el código de servidor llama a servicios externos. Ningún código d
 - El navegador usa la clave anon únicamente para Auth y sesión.
 - Toda lectura o escritura de datos pasa por el código de servidor.
 - RLS limita el acceso a usuarios autenticados de la lista permitida.
-- Las migraciones están versionadas en el repositorio (paso 1.3).
+- Las migraciones están versionadas en el repositorio (paso 1.3). `pnpm db:start` levanta el stack local con Docker, `pnpm db:reset` reaplica todas las migraciones desde cero y `pnpm test:db` ejecuta los tests pgTAP.
+- La lista permitida vive en `allowed_emails`, sin acceso para los roles de cliente; las políticas de `titles` llaman a `public.is_allowed()` (D-21). `anon` no tiene privilegios en ninguna tabla.
+- Aún no hay clientes `supabase-js` ni claves en el repositorio (paso 1.4).
 
 ## TMDB
 
@@ -52,7 +54,9 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | `src/domain/` | Dominio puro: `result`, `score`, `average`, `watch-state`, `watch-date`, `title` e `index.ts` (barrel, se importa como `@/domain`) |
 | `src/server/` | Servidor e integraciones |
 | `src/lib/supabase/` | Clientes de Supabase (navegador: solo Auth) |
-| `supabase/migrations/` | Migraciones versionadas (pendiente, paso 1.3) |
+| `supabase/migrations/` | Migraciones versionadas (paso 1.3): `allowlist` (tabla `allowed_emails` y `is_allowed()`) y `titles` (tabla, trigger y políticas RLS) |
+| `supabase/tests/database/` | Tests pgTAP (`pnpm test:db`): `titles_constraints` y `access_control`; solo en local |
+| `supabase/config.toml` | Configuración de la CLI de Supabase (proyecto `ignacioymaria`, sin semilla) |
 | `tests/e2e/` | Pruebas E2E (Playwright) |
 | `vitest.config.mts` | Configuración de Vitest (jsdom, solo `src/**/*.test.{ts,tsx}`) |
 | `playwright.config.ts` | Configuración de Playwright (chromium, arranca `pnpm dev`) |
@@ -67,7 +71,5 @@ Nada de esto está decidido. No se adelanta en ningún documento.
 |---|---|
 | Server Actions o Route Handlers como mecanismo UI a servidor | Paso 1.x que lo necesite |
 | Mecanismo de caché de TMDB | Paso 1.5 |
-| Mecanismo de la lista permitida de las dos cuentas | Pasos 1.3 y 1.4 |
-| Esquema de base de datos | Paso 1.3 |
 
 Ver también `docs/DECISIONS.md`.

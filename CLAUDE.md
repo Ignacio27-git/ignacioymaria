@@ -34,6 +34,10 @@ Next.js (App Router) + React + TypeScript estricto · Supabase (Postgres y Auth,
 | `pnpm typecheck` | disponible |
 | `pnpm test` | disponible |
 | `pnpm test:e2e` | disponible |
+| `pnpm db:start` | disponible (requiere Docker) |
+| `pnpm db:stop` | disponible |
+| `pnpm db:reset` | disponible (reaplica las migraciones desde cero) |
+| `pnpm test:db` | disponible (pgTAP, requiere `pnpm db:start`) |
 
 ## Registro obligatorio
 

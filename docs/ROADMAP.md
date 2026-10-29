@@ -194,7 +194,7 @@ que el dominio solo importe rutas relativas. Decisiones cerradas: D-15 a D-20.
 
 ---
 
-## [ ] 1.3 · Base de datos
+## [x] 1.3 · Base de datos
 
 **Objetivo.** Esquema en Supabase, migraciones versionadas y políticas de acceso (RLS).
 
@@ -207,7 +207,7 @@ y políticas RLS que solo permitan acceso a usuarios autenticados de la lista pe
 
 **Revisar.** Que las migraciones se aplican desde cero y que un usuario anónimo no lee nada.
 
-**Notas:**
+**Notas:** 2026-10-29 · Cambio SDD `database-schema`, con Strict TDD activo (pgTAP primero, SQL después). La CLI de Supabase entra como `devDependency` con `allowBuilds.supabase` en `pnpm-workspace.yaml` y los scripts `db:start`, `db:stop`, `db:reset` y `test:db`. Dos migraciones en `supabase/migrations/`: `allowlist` (tabla `allowed_emails` con el correo en minúsculas y no vacío, RLS sin políticas, sin privilegios para `anon` ni `authenticated`, y la función `public.is_allowed()` con `security definer` y `search_path` vacío) y `titles` (tabla compartida sin propietario, restricciones espejo de `src/domain`, trigger de `updated_at` con `clock_timestamp()` y cuatro políticas RLS para `authenticated` que llaman a `(select public.is_allowed())`). Las notas son `numeric` sin precisión para no redondear (D-18); el estado y el tipo son `text` con `check`. Sin semilla (`[db.seed] enabled = false`): los correos reales no entran en git y en Supabase alojado se cargan a mano (ver `docs/DECISIONS.md`). Tests pgTAP en `supabase/tests/database/` (`titles_constraints` y `access_control`, 131 comprobaciones), solo en local. Pendiente de los pasos siguientes: clientes `supabase-js` (1.4), columnas de TMDB (1.5) y CI (Fase 2). Decisiones cerradas: D-21 a D-27. Escaneo TS-9.2: sin correos reales ni claves en migraciones, `config.toml` ni documentos; el único correo no ficticio es el marcador `admin@email.com` de un comentario de plantilla de `config.toml`. Verificado con `pnpm db:reset` y `pnpm test:db`.
 
 ---
 
@@ -370,3 +370,6 @@ propio ciclo SDD.
 | 2026-10-29 | 1.1 | `@types/node` subido a `^22` y `typecheck` ejecuta `next typegen` antes de `tsc --noEmit` | La plantilla traía `@types/node` 20; sin `typegen` el tipo global `LayoutProps` no existe en un clon limpio |
 | 2026-10-29 | 1.1 | `next dev` regenera `AGENTS.md` en la raíz | Lo escribe Next.js 16.4; no se adopta porque el repositorio usa `CLAUDE.md`. Se ignora en `.gitignore` (`/AGENTS.md`) |
 | 2026-10-29 | 1.2 | Strict TDD activado tras repetir `sdd-init` (existe `pnpm test`) | Resuelve la desviación del paso 0.2 |
+| 2026-10-29 | 1.3 | El diseño asumía el comportamiento de la CLI sin poder consultarlo: `supabase test db` descubre `supabase/tests/**/*.test.sql` y la clave `[db.seed] enabled` existe, tal como asumía el diseño (Context7 no estaba disponible, se comprobó contra la CLI 2.122.0 y la configuración generada) | Resuelve la pregunta abierta del diseño |
+| 2026-10-29 | 1.3 | La comprobación de nombre en blanco usa `name ~ '\S'` en lugar de `btrim(name) <> ''` | `btrim` solo quita espacios y dejaría pasar tabuladores y saltos de línea |
+| 2026-10-29 | 1.3 | `seasons_watched` en una película lo rechaza la base de datos, aunque `createTitle` lo ignora | La base de datos es más estricta que el dominio a propósito |

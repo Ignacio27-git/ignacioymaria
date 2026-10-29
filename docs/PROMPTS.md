@@ -31,3 +31,11 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** Dominio puro en `src/domain/` (resultado, nota, media, estado, fecha vista, título y barril) con 129 tests en verde y un test que impide importaciones externas. Solo el nombre y el tipo son obligatorios; el resto de campos toma valores por defecto.
 
 **Lección:** Conviene decidir desde el principio qué campos son obligatorios: la regla «solo nombre y tipo» apareció tarde y obligó a rehacer specs y diseño. Las tablas de tests hacen crecer el diff más de lo previsto (834 líneas frente a 800).
+
+### 2026-10-29 · Paso 1.3 · esquema de base de datos
+
+**Prompt:** `/gentle-sdd-new database-schema` — Traduce el modelo de dominio a un esquema de Supabase con migraciones en el repositorio y políticas RLS que solo permitan acceso a usuarios autenticados de la lista permitida.
+
+**Resultado:** Dos migraciones (`allowlist` y `titles`), RLS con `is_allowed()` y 131 comprobaciones pgTAP en local. Los correos reales quedan fuera de git.
+
+**Lección:** Un `order by` sobre una columna con el mismo nombre que un alias de salida (`score_maria::text`) ordena por el alias, no por la columna; conviene cualificarla. Los esquemas de seguridad se prueban mejor simulando roles (`set local role` y `request.jwt.claims`) que mirando solo el catálogo.
