@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(32);
+select plan(58);
 
 -- AC-1.2: no rows come from migrations (fresh reset leaves the table empty).
 select is_empty(
@@ -168,6 +168,177 @@ select is(
   false,
   'AC-4.1 authenticated holds no table privilege'
 );
+
+-- ---------------------------------------------------------------------------
+-- Part B: RLS on titles. ana and ben are allowlisted, eve is an outsider.
+-- ---------------------------------------------------------------------------
+
+insert into public.titles (id, name, kind)
+values ('00000000-0000-0000-0000-0000000000a1', 'Existing', 'movie');
+
+-- AC-3.6: catalog state.
+select is(
+  (select relrowsecurity from pg_class where oid = 'public.titles'::regclass),
+  true,
+  'AC-3.6 titles has RLS enabled'
+);
+select results_eq(
+  $$select cmd from pg_policies
+    where schemaname = 'public' and tablename = 'titles' order by cmd$$,
+  $$values ('DELETE'::text), ('INSERT'::text), ('SELECT'::text), ('UPDATE'::text)$$,
+  'AC-3.6 one policy per operation'
+);
+select is_empty(
+  $$select * from pg_policies
+    where schemaname = 'public' and tablename = 'titles'
+      and ('anon' = any (roles) or 'public' = any (roles))$$,
+  'AC-3.6 no policy targets anon or public'
+);
+select is(
+  has_table_privilege('anon', 'public.titles', 'select,insert,update,delete'),
+  false,
+  'AC-3.1 anon holds no privilege on titles'
+);
+
+-- AC-3.1: anon is denied everything and nothing changes.
+set local role anon;
+select throws_ok(
+  'select * from public.titles', '42501', null,
+  'AC-3.1 anon cannot select titles'
+);
+select throws_ok(
+  $$insert into public.titles (name, kind) values ('Anon', 'movie')$$,
+  '42501', null, 'AC-3.1 anon cannot insert titles'
+);
+select throws_ok(
+  $$update public.titles set name = 'Hacked'$$, '42501', null,
+  'AC-3.1 anon cannot update titles'
+);
+select throws_ok(
+  'delete from public.titles', '42501', null,
+  'AC-3.1 anon cannot delete titles'
+);
+reset role;
+
+-- AC-3.2: outsider sees nothing and changes nothing.
+set local role authenticated;
+select set_config('request.jwt.claims',
+  '{"role":"authenticated","email":"eve@example.test"}', true);
+select is_empty(
+  'select * from public.titles',
+  'AC-3.2 outsider selects zero rows'
+);
+select throws_ok(
+  $$insert into public.titles (name, kind) values ('Eve', 'movie')$$,
+  '42501', null, 'AC-3.2 outsider cannot insert'
+);
+select is_empty(
+  $$with u as (update public.titles set name = 'Hacked' returning id) select * from u$$,
+  'AC-3.2 outsider update affects 0 rows'
+);
+select is_empty(
+  $$with d as (delete from public.titles returning id) select * from d$$,
+  'AC-3.2 outsider delete affects 0 rows'
+);
+
+-- AC-3.5: authenticated without an email claim behaves as an outsider.
+select set_config('request.jwt.claims', '{"role":"authenticated"}', true);
+select is_empty(
+  'select * from public.titles',
+  'AC-3.5 no-email JWT selects zero rows'
+);
+select throws_ok(
+  $$insert into public.titles (name, kind) values ('NoEmail', 'movie')$$,
+  '42501', null, 'AC-3.5 no-email JWT cannot insert'
+);
+reset role;
+
+select results_eq(
+  'select name from public.titles order by name',
+  $$values ('Existing'::text)$$,
+  'AC-3.1/3.2/3.5 titles unchanged after denied access'
+);
+
+-- AC-3.3: allowlisted user has full CRUD.
+set local role authenticated;
+select set_config('request.jwt.claims',
+  '{"role":"authenticated","email":"Ana@Example.test"}', true);
+select lives_ok(
+  $$insert into public.titles (id, name, kind)
+    values ('00000000-0000-0000-0000-0000000000b1', 'Ana film', 'movie')$$,
+  'AC-3.3 allowlisted user inserts'
+);
+select results_eq(
+  $$select name from public.titles order by name$$,
+  $$values ('Ana film'::text), ('Existing'::text)$$,
+  'AC-3.3 allowlisted user selects every row'
+);
+select results_eq(
+  $$with u as (
+      update public.titles set name = 'Ana film 2'
+      where id = '00000000-0000-0000-0000-0000000000b1' returning name
+    ) select name from u$$,
+  $$values ('Ana film 2'::text)$$,
+  'AC-3.3 allowlisted user updates'
+);
+select results_eq(
+  $$with d as (
+      delete from public.titles
+      where id = '00000000-0000-0000-0000-0000000000b1' returning name
+    ) select name from d$$,
+  $$values ('Ana film 2'::text)$$,
+  'AC-3.3 allowlisted user deletes'
+);
+select results_eq(
+  'select name from public.titles',
+  $$values ('Existing'::text)$$,
+  'AC-3.3 reads reflect the delete'
+);
+
+-- AC-3.4: rows are shared between the two allowlisted users.
+select lives_ok(
+  $$insert into public.titles (id, name, kind)
+    values ('00000000-0000-0000-0000-0000000000c1', 'Shared', 'movie')$$,
+  'AC-3.4 ana inserts a row'
+);
+select set_config('request.jwt.claims',
+  '{"role":"authenticated","email":"ben@example.test"}', true);
+select results_eq(
+  $$select name from public.titles where id = '00000000-0000-0000-0000-0000000000c1'$$,
+  $$values ('Shared'::text)$$,
+  'AC-3.4 ben sees the row created by ana'
+);
+select results_eq(
+  $$with u as (
+      update public.titles set name = 'Shared by Ben'
+      where id = '00000000-0000-0000-0000-0000000000c1' returning name
+    ) select name from u$$,
+  $$values ('Shared by Ben'::text)$$,
+  'AC-3.4 ben updates the row created by ana'
+);
+reset role;
+
+-- AC-3.7: removing an email revokes access immediately.
+delete from public.allowed_emails where email = 'ana@example.test';
+set local role authenticated;
+select set_config('request.jwt.claims',
+  '{"role":"authenticated","email":"ana@example.test"}', true);
+select is_empty(
+  'select * from public.titles',
+  'AC-3.7 removed email selects zero rows'
+);
+select throws_ok(
+  $$insert into public.titles (name, kind) values ('After removal', 'movie')$$,
+  '42501', null, 'AC-3.7 removed email cannot insert'
+);
+select set_config('request.jwt.claims',
+  '{"role":"authenticated","email":"ben@example.test"}', true);
+select is(
+  (select count(*)::integer from public.titles),
+  2,
+  'AC-3.7 remaining allowlisted user still sees the rows'
+);
+reset role;
 
 select * from finish();
 rollback;
