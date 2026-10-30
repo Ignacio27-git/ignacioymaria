@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Archivo } from "next/font/google";
-import { cookies } from "next/headers";
 import { Suspense } from "react";
+
+import { themeAttribute } from "@/lib/theme/preference";
+import { readThemePreference } from "@/server/theme/read-preference";
+
 import "./globals.css";
 
 const archivo = Archivo({
@@ -16,12 +19,10 @@ export const metadata: Metadata = {
   description: "Películas y series de Ignacio y María",
 };
 
-// Spike (D-50): the theme cookie is read on the server so the initial HTML
-// already carries data-theme. "system" (or anything else) omits the attribute.
+// D-50: the theme cookie is read on the server so the initial HTML already
+// carries data-theme. "system" (or anything invalid) omits the attribute.
 async function ThemedDocument({ children }: { children: React.ReactNode }) {
-  const store = await cookies();
-  const theme = store.get("theme")?.value;
-  const dataTheme = theme === "dark" || theme === "light" ? theme : undefined;
+  const dataTheme = themeAttribute(await readThemePreference());
 
   return (
     <html
