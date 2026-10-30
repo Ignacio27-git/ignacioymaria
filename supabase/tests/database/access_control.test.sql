@@ -14,19 +14,19 @@ select is_empty(
 
 -- AC-1.1: the check rejects uppercase and blank values, accepts lowercase.
 select throws_ok(
-  $$insert into public.allowed_emails (email) values ('Foo@X.example.test')$$,
+  $$insert into public.allowed_emails (email, person) values ('Foo@X.example.test', 'ignacio')$$,
   '23514', null, 'AC-1.1 uppercase email rejected'
 );
 select throws_ok(
-  $$insert into public.allowed_emails (email) values ('   ')$$,
+  $$insert into public.allowed_emails (email, person) values ('   ', 'ignacio')$$,
   '23514', null, 'AC-1.1 spaces-only email rejected'
 );
 select throws_ok(
-  $$insert into public.allowed_emails (email) values (E'\t\n')$$,
+  $$insert into public.allowed_emails (email, person) values (E'\t\n', 'ignacio')$$,
   '23514', null, 'AC-1.1 tab/newline-only email rejected'
 );
 select throws_ok(
-  $$insert into public.allowed_emails (email) values ('')$$,
+  $$insert into public.allowed_emails (email, person) values ('', 'ignacio')$$,
   '23514', null, 'AC-1.1 empty email rejected'
 );
 
@@ -61,7 +61,8 @@ reset role;
 
 -- Fixture rows (as owner).
 select lives_ok(
-  $$insert into public.allowed_emails (email) values ('ana@example.test'), ('ben@example.test')$$,
+  $$insert into public.allowed_emails (email, person)
+    values ('ana@example.test', 'ignacio'), ('ben@example.test', 'maria')$$,
   'AC-1.1 lowercase emails accepted'
 );
 
@@ -146,15 +147,17 @@ select results_eq(
   'AC-4.2 allowed_emails unchanged after denied writes'
 );
 
--- AC-4.3: RLS enabled, no client policies.
+-- AC-4.3: RLS enabled; the only policy serves the auth admin (signup hook).
 select is(
   (select relrowsecurity from pg_class where oid = 'public.allowed_emails'::regclass),
   true,
   'AC-4.3 allowed_emails has RLS enabled'
 );
-select is_empty(
-  $$select * from pg_policies where schemaname = 'public' and tablename = 'allowed_emails'$$,
-  'AC-4.3 allowed_emails has no policies'
+select is(
+  (select format('%s %s %s', policyname, cmd, roles) from pg_policies
+    where schemaname = 'public' and tablename = 'allowed_emails'),
+  'allowed_emails_auth_admin_select SELECT {supabase_auth_admin}',
+  'AC-4.3 allowed_emails has only the auth-admin select policy'
 );
 
 -- Grants: neither client role holds any privilege.
