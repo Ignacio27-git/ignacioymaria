@@ -1,0 +1,120 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { expect, test, vi } from "vitest";
+
+import { expectNoAxeViolations } from "@/test/axe";
+
+import { SortControl } from "./sort-control";
+
+const OPTIONS = [
+  { key: "score", direction: "desc", label: "Nota, de mayor a menor" },
+  { key: "score", direction: "asc", label: "Nota, de menor a mayor" },
+  { key: "date", direction: "desc", label: "Fecha, la más reciente primero" },
+] as const;
+
+test("is a select labelled Ordenar with the direction in every option", () => {
+  render(<SortControl label="Ordenar" name="orden" options={OPTIONS} />);
+
+  const select = screen.getByLabelText("Ordenar");
+  expect(select.tagName).toBe("SELECT");
+  expect(select).toHaveAttribute("name", "orden");
+  expect(
+    screen.getAllByRole("option").map((option) => option.textContent),
+  ).toEqual([
+    "Nota, de mayor a menor",
+    "Nota, de menor a mayor",
+    "Fecha, la más reciente primero",
+  ]);
+});
+
+test("defaultValue selects the matching option", () => {
+  render(
+    <SortControl
+      label="Ordenar"
+      name="orden"
+      options={OPTIONS}
+      defaultValue="score:asc"
+    />,
+  );
+
+  expect(screen.getByLabelText("Ordenar")).toHaveValue("score:asc");
+  expect(
+    screen.getByRole("option", { name: "Nota, de menor a mayor" }),
+  ).toHaveProperty("selected", true);
+});
+
+test("onChange reports key and direction of the chosen option", () => {
+  const onChange = vi.fn();
+  render(
+    <SortControl
+      label="Ordenar"
+      name="orden"
+      options={OPTIONS}
+      defaultValue="score:desc"
+      onChange={onChange}
+    />,
+  );
+
+  fireEvent.change(screen.getByLabelText("Ordenar"), {
+    target: { value: "date:desc" },
+  });
+  expect(onChange).toHaveBeenLastCalledWith({ key: "date", direction: "desc" });
+
+  fireEvent.change(screen.getByLabelText("Ordenar"), {
+    target: { value: "score:asc" },
+  });
+  expect(onChange).toHaveBeenLastCalledWith({ key: "score", direction: "asc" });
+  expect(onChange).toHaveBeenCalledTimes(2);
+});
+
+test("a controlled value shows the current selection", () => {
+  const { rerender } = render(
+    <SortControl
+      label="Ordenar"
+      name="orden"
+      options={OPTIONS}
+      value="date:desc"
+    />,
+  );
+  expect(screen.getByLabelText("Ordenar")).toHaveValue("date:desc");
+
+  rerender(
+    <SortControl
+      label="Ordenar"
+      name="orden"
+      options={OPTIONS}
+      value="score:desc"
+    />,
+  );
+  expect(screen.getByLabelText("Ordenar")).toHaveValue("score:desc");
+});
+
+test("changing without a handler does not throw", () => {
+  render(<SortControl label="Ordenar" name="orden" options={OPTIONS} />);
+
+  expect(() =>
+    fireEvent.change(screen.getByLabelText("Ordenar"), {
+      target: { value: "date:desc" },
+    }),
+  ).not.toThrow();
+});
+
+test("forwards className to the wrapper", () => {
+  render(
+    <SortControl
+      label="Ordenar"
+      name="orden"
+      options={OPTIONS}
+      className="extra"
+    />,
+  );
+
+  expect(screen.getByLabelText("Ordenar").parentElement).toHaveClass("extra");
+});
+
+test("has no accessibility violations", async () => {
+  const { container } = render(
+    <SortControl label="Ordenar" name="orden" options={OPTIONS} />,
+  );
+
+  await expectNoAxeViolations(container);
+});
