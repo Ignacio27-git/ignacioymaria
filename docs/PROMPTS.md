@@ -55,3 +55,13 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** Migración `tmdb_fields`, tres campos opcionales en el dominio, módulo `src/server/tmdb/` (cliente inyectable, mapeadores puros y casos de uso con comprobación de identidad), dos Server Actions finas y ayudante de URL de póster. 324 tests de Vitest y 222 comprobaciones pgTAP, sin llamadas reales a TMDB.
 
 **Lección:** La especificación asumía un resultado «unauthorized» que no existía y el diseño tuvo que crearlo; conviene contrastar con el código las suposiciones sobre contratos existentes antes de cerrar la especificación. La caché de `fetch` de Next evita cachear fallos sin lanzar excepciones, a diferencia de `use cache` y `unstable_cache`.
+
+---
+
+### 2026-10-30 · 1.6 (pausado) y D.1
+
+**Prompt:** `/gentle-sdd-new title-management` (el del paso 1.6), y después «hazlos ahora, son parte del 1.6».
+
+**Resultado:** La exploración de `title-management` encontró el bloqueo de la regla 9 (D.1 y D.2 sin hacer) y el cambio quedó en pausa. D.1 se hizo con `impeccable`: `PRODUCT.md` y la dirección «Tabla de críticos», con su contrato en `.impeccable/surfaces/`. D.2 se hará como cambio SDD `design-system`.
+
+**Lección:** Antes de lanzar un paso con requisitos previos, comprobar que están hechos. La exploración lo detectó, pero el prompt del paso no lo recordaba.
