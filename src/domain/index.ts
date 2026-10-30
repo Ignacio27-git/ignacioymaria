@@ -22,3 +22,7 @@ export {
 export type { WatchState } from "./watch-state";
 export { isPerson, PEOPLE, PERSON_LABELS } from "./person";
 export type { Person } from "./person";
+export { escapeLike, foldSearch } from "./search";
+export { sortTitles } from "./title-order";
+export type { SortableTitle, TitleList, TitleOrder } from "./title-order";
+export { todayIso } from "./today";

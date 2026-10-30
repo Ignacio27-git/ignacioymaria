@@ -1,14 +1,17 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { isPerson, type Person } from "@/domain";
 import { createClient } from "@/lib/supabase/server";
 
 /**
  * The person for the current session, resolved by the database
  * (public.current_person()). Null when unmapped, removed from the allowlist,
- * or on any error.
+ * or on any error. Cached per request so the layout and the use cases share
+ * one RPC.
  */
-export async function getCurrentPerson(): Promise<Person | null> {
+export const getCurrentPerson = cache(async (): Promise<Person | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("current_person");
   if (error) {
@@ -16,7 +19,7 @@ export async function getCurrentPerson(): Promise<Person | null> {
     return null;
   }
   return isPerson(data) ? data : null;
-}
+});
 
 /** The only score column a person may write (the database enforces it too). */
 export function scoreColumnFor(person: Person): "score_ignacio" | "score_maria" {

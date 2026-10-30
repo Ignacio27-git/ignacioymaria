@@ -6,6 +6,15 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentPerson, scoreColumnFor } from "./current-person";
 
 vi.mock("server-only", () => ({}));
+// Recorded at import time: mock call counts are cleared before each test.
+const cachedFunctions = vi.hoisted(() => [] as unknown[]);
+vi.mock("react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react")>()),
+  cache: <T,>(fn: T) => {
+    cachedFunctions.push(fn);
+    return fn;
+  },
+}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
 const rpc = vi.fn();
@@ -20,6 +29,12 @@ afterEach(() => {
 });
 
 describe("getCurrentPerson", () => {
+  // Layout and use cases share one RPC per request through React cache().
+  test("is wrapped in React cache()", () => {
+    expect(cachedFunctions).toHaveLength(1);
+    expect(cachedFunctions[0]).toBeTypeOf("function");
+  });
+
   test.each(["ignacio", "maria"])("returns %s from the database", async (p) => {
     rpc.mockResolvedValue({ data: p, error: null });
 
