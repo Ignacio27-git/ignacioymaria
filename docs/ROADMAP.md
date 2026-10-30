@@ -229,7 +229,7 @@ ha iniciado sesión.
 
 ---
 
-## [ ] 1.5 · Integración con TMDB
+## [x] 1.5 · Integración con TMDB
 
 **Objetivo.** Buscar títulos en TMDB al añadir y guardar póster, año, reparto y tipo.
 
@@ -244,7 +244,7 @@ límites de la API y cachea las respuestas.
 **Revisar.** Que funciona con títulos en español y que hay alternativa manual si TMDB no
 encuentra el título.
 
-**Notas:**
+**Notas:** 2026-10-30 · Cambio SDD `tmdb-integration`, con Strict TDD activo (pgTAP y Vitest primero). Migración `tmdb_fields`: `tmdb_id`, `poster_path` y `seasons_total`, aditivas y nulas, con las mismas reglas que el dominio (D-43). Dominio: `Title` gana `tmdbId`, `posterPath` y `seasonsTotal` (solo series; en una película se rechaza con `not_allowed_for_kind`). Servidor: `src/server/tmdb/` (`env`, `client`, `mappers`, `lookup`, `types`), `posterUrl` en `src/lib/tmdb/`, Server Actions `searchTmdbAction` y `getTmdbDetailsAction` y `images.remotePatterns` para `image.tmdb.org`. Caché con la Data Cache de `fetch` (búsquedas 1 h, detalles 7 días, D-38); un 429 reintenta una vez y el resto de fallos son `unavailable` (D-41). Decisiones D-38 a D-46. Resultados: 28 comprobaciones pgTAP nuevas (`tmdb_fields`) y 222 en total, 324 tests de Vitest (todos con `fetch` simulado, sin red), `typecheck`, `lint` y `build` en verde. Pendiente de la persona: añadir `TMDB_READ_ACCESS_TOKEN=` (solo el nombre) a `.env.example`, el token real a `.env.local` y la variable en Vercel; el agente no puede editar archivos `.env*`. En Supabase alojado hay que aplicar la migración `tmdb_fields`. La interfaz y la alternativa manual cuando TMDB no encuentra el título (`not_found`, `unavailable`) llegan en 1.6, junto con la atribución a TMDB. Abiertas para 1.6: si `(kind, tmdb_id)` debe ser único y si los pósters van `unoptimized`. Entregado en un único PR con excepción de tamaño aceptada (forecast ~850-950 líneas frente al presupuesto de 800).
 
 ---
 
@@ -379,3 +379,8 @@ propio ciclo SDD.
 | 2026-10-30 | 1.4 | pgTAP no puede hacer `set role supabase_auth_admin` (`postgres` no es superusuario); el hook se prueba como propietario y los privilegios desde el catálogo | Resuelve la pregunta abierta del diseño; el camino real lo cubre E2E |
 | 2026-10-30 | 1.4 | Las redirecciones de `/auth/confirm` y del proxy usan `SITE_URL` en lugar de `request.url`, y `PersonGate` llama a `connection()` antes de leer la sesión | E2E mostró que Next reescribe `127.0.0.1` a `localhost` y que `Date.now()` rompía el prerenderizado en desarrollo; se corrigió en un commit aparte |
 | 2026-10-30 | 1.4 | `.env.example` no se actualizó con `SITE_URL`, `MAILPIT_URL` y `SUPABASE_DB_URL`, ni se creó `.env.local` | Los permisos del agente bloquean los archivos `.env*`; los nombres quedan documentados en `docs/DECISIONS.md` y la persona los añadió a mano en el commit `5334984` |
+| 2026-10-30 | 1.5 | `unauthorized` es una variante nueva de fallo (`not_found`, `unavailable`, `invalid_input`, `unauthorized`) | La especificación asumía un resultado «unauthorized» existente, pero `getCurrentPerson` devuelve `null` y las acciones de acceso devuelven `SignInState` (D-40) |
+| 2026-10-30 | 1.5 | El campo del DTO es `name`, no `title` como decía la especificación | Coincide con la columna y con `Title.name`; 1.6 prerrellena sin reasignar (D-46) |
+| 2026-10-30 | 1.5 | Una consulta en blanco devuelve `not_found` sin llamar a TMDB; solo más de 100 caracteres o un valor que no es texto es `invalid_input` | Cumple R-TL-9 y S-TL-17 (D-45) |
+| 2026-10-30 | 1.5 | Fase 0 (variable `TMDB_READ_ACCESS_TOKEN` en `.env.example` y `.env.local`) queda a cargo de la persona | Los permisos del agente bloquean los archivos `.env*` |
+| 2026-10-30 | 1.5 | Un único PR con excepción de tamaño aceptada; el diff real supera el forecast | Los tests son cerca de la mitad del diff; el usuario aceptó no dividir |

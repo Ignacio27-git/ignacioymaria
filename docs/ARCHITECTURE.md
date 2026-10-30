@@ -41,6 +41,10 @@ Regla: solo el código de servidor llama a servicios externos. Ningún código d
 - La clave y las llamadas viven solo en el servidor; la clave nunca llega al paquete del cliente.
 - Se respetan los límites de la API y se cachean las respuestas.
 - Si TMDB no encuentra el título, hay alternativa manual (paso 1.5).
+- Módulo `src/server/tmdb/` (paso 1.5, `server-only`): `env.ts` (único lugar que lee `TMDB_READ_ACCESS_TOKEN`, D-42), `client.ts` (cliente inyectable con `fetch`, cabecera Bearer, reintento acotado de 429 y tiempo máximo de 5 s, D-39 y D-41), `mappers.ts` (JSON de TMDB a DTO, puro), `lookup.ts` (casos de uso `searchTmdb` y `getTmdbDetails`: identidad, validación, token y TMDB, en ese orden, D-45) y `types.ts`.
+- Flujo: Server Action (`src/app/_actions/tmdb.ts`, envoltorio fino) -> `lookup` -> `client` -> API v3 de TMDB (`es-ES`) -> `mappers` -> `Result<DTO, TmdbFailure>`. Nada lanza (D-20); los fallos son `not_found`, `unavailable`, `invalid_input` y `unauthorized` (D-40).
+- Caché: la Data Cache de `fetch` con `next: { revalidate }` (búsquedas 1 h, detalles 7 días, D-38). Persiste entre despliegues, solo guarda respuestas 200 y el token forma parte de la clave.
+- Pósters: solo se guarda `poster_path`. `posterUrl` (`src/lib/tmdb/poster-url.ts`, segura para el cliente) construye la URL `w342` al renderizar, y `next.config.ts` solo admite `https://image.tmdb.org/t/p/w342/**` (D-44).
 
 ## Secretos
 
@@ -58,11 +62,13 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | `src/server/` | Servidor e integraciones |
 | `src/lib/supabase/` | Cliente de servidor, helper del proxy, variables de entorno y rutas públicas (sin cliente de navegador) |
 | `src/server/auth/` | Casos de uso de acceso: `sendMagicLink`, `signOut`, `getCurrentPerson` y `scoreColumnFor` |
-| `src/app/_actions/` | Server Actions de la interfaz (`requestMagicLinkAction`, `signOutAction`), envoltorios finos |
+| `src/server/tmdb/` | Integración con TMDB: `env`, `client`, `mappers`, `lookup` y `types` (paso 1.5) |
+| `src/lib/tmdb/` | `posterUrl`: construye la URL del póster; pura y segura para el cliente |
+| `src/app/_actions/` | Server Actions de la interfaz (`requestMagicLinkAction`, `signOutAction`, `searchTmdbAction`, `getTmdbDetailsAction`), envoltorios finos |
 | `src/proxy.ts` | Proxy de Next.js: refresca la sesión y protege las rutas |
-| `supabase/migrations/` | Migraciones versionadas: `allowlist` y `titles` (paso 1.3) y `couple_auth` (paso 1.4: `person`, `current_person()`, hook de registro y trigger de notas) |
+| `supabase/migrations/` | Migraciones versionadas: `allowlist` y `titles` (paso 1.3) y `couple_auth` (paso 1.4: `person`, `current_person()`, hook de registro y trigger de notas) y `tmdb_fields` (paso 1.5: `tmdb_id`, `poster_path` y `seasons_total`) |
 | `supabase/templates/` | Plantilla del correo de acceso (`sign-in.html`) |
-| `supabase/tests/database/` | Tests pgTAP (`pnpm test:db`): `titles_constraints`, `access_control` y `couple_auth`; solo en local |
+| `supabase/tests/database/` | Tests pgTAP (`pnpm test:db`): `titles_constraints`, `access_control`, `couple_auth` y `tmdb_fields`; solo en local |
 | `supabase/config.toml` | Configuración de la CLI de Supabase (proyecto `ignacioymaria`, sin semilla) |
 | `tests/e2e/` | Pruebas E2E (Playwright): `auth.spec.ts` con ayudantes de Mailpit y `pg`; `globalSetup` inserta las dos cuentas de prueba |
 | `vitest.config.mts` | Configuración de Vitest (jsdom, solo `src/**/*.test.{ts,tsx}`) |

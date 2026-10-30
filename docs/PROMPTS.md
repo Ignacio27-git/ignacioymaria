@@ -47,3 +47,11 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** Hook `before_user_created` que rechaza correos ajenos antes de crear usuario, mapeo correo-persona en la base de datos, trigger que impide escribir la nota de la otra persona, login por Server Action, ruta `/auth/confirm`, proxy con `getClaims()` y pruebas E2E con Mailpit. 195 comprobaciones pgTAP, 210 tests de Vitest y 7 de Playwright.
 
 **Lección:** Probar el flujo real con E2E destapó dos fallos que los tests unitarios no veían: Next reescribe `127.0.0.1` a `localhost` en `request.url` (las redirecciones deben usar una URL de sitio fija) y el prerenderizado en desarrollo rechaza `Date.now()` salvo tras `connection()`. Conviene decidir pronto los textos en español de la interfaz y no depender de los de los artefactos de diseño. El usuario de pruebas de pgTAP no es superusuario, así que no puede asumir roles reservados de Supabase.
+
+### 2026-10-30 · Paso 1.5 · integración con TMDB
+
+**Prompt:** `/gentle-sdd-new tmdb-integration` — Integra TMDB en el servidor: búsqueda de películas y series, y obtención de póster, año, reparto principal y número de temporadas. La clave nunca llega al cliente. Respeta los límites de la API y cachea las respuestas.
+
+**Resultado:** Migración `tmdb_fields`, tres campos opcionales en el dominio, módulo `src/server/tmdb/` (cliente inyectable, mapeadores puros y casos de uso con comprobación de identidad), dos Server Actions finas y ayudante de URL de póster. 324 tests de Vitest y 222 comprobaciones pgTAP, sin llamadas reales a TMDB.
+
+**Lección:** La especificación asumía un resultado «unauthorized» que no existía y el diseño tuvo que crearlo; conviene contrastar con el código las suposiciones sobre contratos existentes antes de cerrar la especificación. La caché de `fetch` de Next evita cachear fallos sin lanzar excepciones, a diferencia de `use cache` y `unstable_cache`.
