@@ -21,14 +21,17 @@ function capturedSetAll(): SetAll {
 }
 
 const request = (path: string, cookie?: string) =>
-  new NextRequest(`http://127.0.0.1:3000${path}`, {
+  new NextRequest(`http://internal.test:3000${path}`, {
     headers: cookie ? { cookie } : undefined,
   });
 
+// The request host is deliberately different from SITE_URL: redirects must
+// stay on the configured site (Next normalizes 127.0.0.1 to localhost).
 const loginRedirect = (response: Response) =>
-  new URL(response.headers.get("location") ?? "").pathname;
+  new URL(response.headers.get("location") ?? "").href;
 
 beforeEach(() => {
+  vi.stubEnv("SITE_URL", "http://127.0.0.1:3000");
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://127.0.0.1:54321");
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_x");
   vi.mocked(createServerClient).mockReturnValue({
@@ -48,7 +51,7 @@ describe("unauthenticated requests", () => {
     const response = await updateSession(request("/"));
 
     expect(response.status).toBe(307);
-    expect(loginRedirect(response)).toBe("/login");
+    expect(loginRedirect(response)).toBe("http://127.0.0.1:3000/login");
   });
 
   test("treat a tampered or unverifiable session as unauthenticated", async () => {
@@ -60,7 +63,7 @@ describe("unauthenticated requests", () => {
     const response = await updateSession(request("/titles", "sb-x=garbage"));
 
     expect(response.status).toBe(307);
-    expect(loginRedirect(response)).toBe("/login");
+    expect(loginRedirect(response)).toBe("http://127.0.0.1:3000/login");
   });
 
   test.each(["/login", "/auth/confirm"])("let %s through", async (path) => {

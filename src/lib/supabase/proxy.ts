@@ -3,7 +3,7 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getPublicSupabaseEnv } from "./env";
+import { getPublicSupabaseEnv, siteUrl } from "./env";
 import { isPublicPath } from "./public-paths";
 
 /**
@@ -35,7 +35,7 @@ export async function updateSession(request: NextRequest) {
   const isAuthenticated = Boolean(data?.claims);
 
   if (!isAuthenticated && !isPublicPath(request.nextUrl.pathname)) {
-    const redirect = NextResponse.redirect(new URL("/login", request.url));
+    const redirect = NextResponse.redirect(siteUrl("/login"));
     for (const cookie of response.cookies.getAll()) {
       redirect.cookies.set(cookie);
     }

@@ -27,3 +27,8 @@ export function getPublicSupabaseEnv(): {
 export function getSiteUrl(): string {
   return required("SITE_URL", process.env.SITE_URL).replace(/\/+$/, "");
 }
+
+/** Absolute URL on the configured site, for redirects. */
+export function siteUrl(path: string): URL {
+  return new URL(path, getSiteUrl());
+}

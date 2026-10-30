@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { getPublicSupabaseEnv, getSiteUrl } from "./env";
+import { getPublicSupabaseEnv, getSiteUrl, siteUrl } from "./env";
 
 vi.mock("server-only", () => ({}));
 
@@ -56,5 +56,14 @@ describe("getSiteUrl", () => {
     vi.stubEnv("SITE_URL", "");
 
     expect(() => getSiteUrl()).toThrow("SITE_URL");
+  });
+});
+
+describe("siteUrl", () => {
+  test("builds an absolute URL on the configured site", () => {
+    vi.stubEnv("SITE_URL", "http://127.0.0.1:3000/");
+
+    expect(siteUrl("/login").href).toBe("http://127.0.0.1:3000/login");
+    expect(siteUrl("/").href).toBe("http://127.0.0.1:3000/");
   });
 });

@@ -16,15 +16,17 @@ const call = (query: string) =>
 
 const target = (response: Response) => {
   const url = new URL(response.headers.get("location") ?? "");
-  return `${url.pathname}${url.search}`;
+  return `${url.origin}${url.pathname}${url.search}`;
 };
 
 beforeEach(() => {
+  vi.stubEnv("SITE_URL", "http://127.0.0.1:3000");
   vi.mocked(createClient).mockResolvedValue({ auth: { verifyOtp } } as never);
   verifyOtp.mockResolvedValue({ data: {}, error: null });
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   vi.clearAllMocks();
 });
@@ -35,7 +37,7 @@ describe("a valid link", () => {
 
     expect(verifyOtp).toHaveBeenCalledWith({ type: "email", token_hash: "abc" });
     expect(response.status).toBe(302);
-    expect(target(response)).toBe("/");
+    expect(target(response)).toBe("http://127.0.0.1:3000/");
   });
 
   test("ignores a next parameter (no open redirect)", async () => {
@@ -44,7 +46,7 @@ describe("a valid link", () => {
         `?token_hash=abc&type=email&next=${encodeURIComponent(next)}`,
       );
 
-      expect(target(response)).toBe("/");
+      expect(target(response)).toBe("http://127.0.0.1:3000/");
     }
   });
 });
@@ -61,7 +63,7 @@ describe("an invalid link redirects to /login without a query", () => {
 
     expect(verifyOtp).not.toHaveBeenCalled();
     expect(response.status).toBe(302);
-    expect(target(response)).toBe("/login");
+    expect(target(response)).toBe("http://127.0.0.1:3000/login");
   });
 
   test("when verification fails (expired, used or garbage)", async () => {
@@ -74,7 +76,7 @@ describe("an invalid link redirects to /login without a query", () => {
     const response = await call("?token_hash=abc&type=email");
 
     expect(verifyOtp).toHaveBeenCalledTimes(1);
-    expect(target(response)).toBe("/login");
+    expect(target(response)).toBe("http://127.0.0.1:3000/login");
   });
 
   test("when verification throws", async () => {
@@ -83,6 +85,6 @@ describe("an invalid link redirects to /login without a query", () => {
 
     const response = await call("?token_hash=abc&type=email");
 
-    expect(target(response)).toBe("/login");
+    expect(target(response)).toBe("http://127.0.0.1:3000/login");
   });
 });

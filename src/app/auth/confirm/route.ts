@@ -2,10 +2,13 @@ import "server-only";
 
 import { NextResponse, type NextRequest } from "next/server";
 
+import { siteUrl } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
 /**
  * Magic-link landing. Only `type=email` with a `token_hash` is accepted.
+ * Redirects use the configured SITE_URL: Next rewrites 127.0.0.1 to localhost
+ * in request.url, which would drop the session cookie host.
  * Success goes to the root; anything else goes to /login with no query. There
  * is deliberately no `next` parameter, so there is no open redirect.
  */
@@ -14,10 +17,10 @@ export async function GET(request: NextRequest) {
   const type = request.nextUrl.searchParams.get("type");
 
   if (tokenHash && type === "email" && (await verify(tokenHash))) {
-    return NextResponse.redirect(new URL("/", request.url), 302);
+    return NextResponse.redirect(siteUrl("/"), 302);
   }
 
-  return NextResponse.redirect(new URL("/login", request.url), 302);
+  return NextResponse.redirect(siteUrl("/login"), 302);
 }
 
 async function verify(tokenHash: string): Promise<boolean> {

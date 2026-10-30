@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import { getCurrentPerson } from "@/server/auth/current-person";
@@ -8,6 +9,7 @@ import { PersonGate } from "./person-gate";
 
 vi.mock("server-only", () => ({}));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
+vi.mock("next/server", () => ({ connection: vi.fn() }));
 vi.mock("@/server/auth/current-person", () => ({ getCurrentPerson: vi.fn() }));
 
 class RedirectSignal extends Error {}
@@ -36,4 +38,19 @@ test("sends a session without a person back to /login", async () => {
 
   await expect(PersonGate()).rejects.toBeInstanceOf(RedirectSignal);
   expect(redirect).toHaveBeenCalledWith("/login");
+});
+
+test("opts into request-time rendering before reading the session", async () => {
+  const order: string[] = [];
+  vi.mocked(connection).mockImplementation(async () => {
+    order.push("connection");
+  });
+  vi.mocked(getCurrentPerson).mockImplementation(async () => {
+    order.push("getCurrentPerson");
+    return "ignacio";
+  });
+
+  await PersonGate();
+
+  expect(order).toEqual(["connection", "getCurrentPerson"]);
 });
