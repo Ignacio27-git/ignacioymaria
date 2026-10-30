@@ -48,23 +48,36 @@ export function CriticsTableHeader({
       role="row"
       className={cx(
         ROW_BASE,
-        "min-h-10 border-rule-strong bg-paper text-sm font-medium text-ink-muted",
+        "min-h-10 border-t-2 border-b-rule-strong border-t-ink bg-paper text-sm font-medium text-ink-muted",
         showDate ? COLUMNS_WITH_DATE : COLUMNS,
         sticky && "sticky top-0 z-10",
       )}
     >
-      <div role="columnheader" className="min-w-0">
-        Título
+      <div
+        role="columnheader"
+        className="flex min-w-0 items-baseline justify-between gap-2"
+      >
+        <span>Título</span>
         {guideWords && (
-          <span aria-hidden="true" className="ml-2 font-normal">
+          // The range in view: small, condensed and set apart, so it is not read as part of "Título".
+          <span
+            aria-hidden="true"
+            className="min-w-0 truncate border-l border-rule-strong pl-2 font-condensed text-xs font-normal"
+          >
             {guideWords}
           </span>
         )}
       </div>
-      <div role="columnheader" className="text-center">
+      <div
+        role="columnheader"
+        className="text-center font-condensed text-base font-bold text-ink"
+      >
         {PERSON_LABELS.maria}
       </div>
-      <div role="columnheader" className="text-center">
+      <div
+        role="columnheader"
+        className="text-center font-condensed text-base font-bold text-ink"
+      >
         {PERSON_LABELS.ignacio}
       </div>
       <div role="columnheader" className="text-center">

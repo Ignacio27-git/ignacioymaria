@@ -108,19 +108,19 @@ function pair(
 
 /** Every foreground/background combination the components rely on (R2). */
 export const CONTRAST_PAIRS: readonly ContrastPair[] = [
-  pair("body text", "ink", "paper", "text"),
-  pair("body text on hover surface", "ink", "surface", "text"),
-  pair("muted text", "inkMuted", "paper", "text"),
-  pair("muted text on hover surface", "inkMuted", "surface", "text"),
-  pair("average figure", "inverseInk", "inverseBg", "large-text"),
-  pair("masthead", "ink", "paper", "large-text"),
-  pair("focus ring", "focus", "paper", "non-text"),
-  pair("strong rule and pending outline", "ruleStrong", "paper", "non-text"),
-  pair("urgent swatch", "stateUrgent", "paper", "non-text"),
-  pair("watched swatch", "stateWatched", "paper", "non-text"),
-  pair("rewatch swatch", "stateRewatch", "paper", "non-text"),
-  pair("no-rewatch swatch", "stateNoRewatch", "paper", "non-text"),
-  pair("awful swatch", "stateAwful", "paper", "non-text"),
+  pair("Texto principal", "ink", "paper", "text"),
+  pair("Texto principal al pasar", "ink", "surface", "text"),
+  pair("Texto atenuado", "inkMuted", "paper", "text"),
+  pair("Texto atenuado al pasar", "inkMuted", "surface", "text"),
+  pair("Cifra de la media", "inverseInk", "inverseBg", "large-text"),
+  pair("Cabecera", "ink", "paper", "large-text"),
+  pair("Anillo de foco", "focus", "paper", "non-text"),
+  pair("Filete marcado y contorno de pendiente", "ruleStrong", "paper", "non-text"),
+  pair("Cuadro de urgente", "stateUrgent", "paper", "non-text"),
+  pair("Cuadro de vista", "stateWatched", "paper", "non-text"),
+  pair("Cuadro de repetir", "stateRewatch", "paper", "non-text"),
+  pair("Cuadro de no repetir", "stateNoRewatch", "paper", "non-text"),
+  pair("Cuadro de horrible", "stateAwful", "paper", "non-text"),
 ];
 
 /** True when a source file references the inverted-ground utilities. */

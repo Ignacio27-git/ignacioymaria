@@ -96,3 +96,16 @@ test("has no accessibility violations", async () => {
 
   await expectNoAxeViolations(container);
 });
+
+test("only the selected option carries the decorative check", () => {
+  const { container, rerender } = render(<ThemeToggle value="light" />);
+
+  const checked = screen.getByRole("radio", { name: "Claro" }).closest("label");
+  expect(checked?.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+  expect(container.querySelectorAll("svg")).toHaveLength(1);
+
+  rerender(<ThemeToggle value="dark" />);
+  const dark = screen.getByRole("radio", { name: "Oscuro" }).closest("label");
+  expect(dark?.querySelector("svg")).not.toBeNull();
+  expect(container.querySelectorAll("svg")).toHaveLength(1);
+});

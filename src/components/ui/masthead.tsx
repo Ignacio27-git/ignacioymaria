@@ -12,7 +12,7 @@ export function Masthead({
   className?: string;
 }) {
   return (
-    <div className={cx("flex items-baseline gap-3", className)}>
+    <div className={cx("flex items-baseline gap-3 border-b-2 border-ink pb-2", className)}>
       <Heading className="font-condensed text-masthead tracking-tight">
         {title}
       </Heading>

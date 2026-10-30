@@ -108,7 +108,7 @@ test("forwards className to the wrapper", () => {
     />,
   );
 
-  expect(screen.getByLabelText("Ordenar").parentElement).toHaveClass("extra");
+  expect(screen.getByLabelText("Ordenar").parentElement?.parentElement).toHaveClass("extra");
 });
 
 test("has no accessibility violations", async () => {
@@ -117,4 +117,16 @@ test("has no accessibility violations", async () => {
   );
 
   await expectNoAxeViolations(container);
+});
+
+test("draws its own chevron: decorative, after the select, outside the tab order", () => {
+  const { container } = render(
+    <SortControl label="Ordenar" name="orden" options={OPTIONS} />,
+  );
+
+  const select = screen.getByLabelText("Ordenar");
+  const chevron = select.parentElement?.querySelector("svg");
+  expect(chevron).toHaveAttribute("aria-hidden", "true");
+  expect(chevron).toHaveAttribute("focusable", "false");
+  expect(container.querySelectorAll("svg")).toHaveLength(1);
 });

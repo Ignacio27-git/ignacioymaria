@@ -112,3 +112,27 @@ test("has no accessibility violations", async () => {
 
   await expectNoAxeViolations(container);
 });
+
+test("a pressed chip carries a decorative check; an unpressed one does not", () => {
+  const { container, rerender } = render(
+    <FilterChip pressed>Vista</FilterChip>,
+  );
+  const mark = container.querySelector("svg");
+  expect(mark).toHaveAttribute("aria-hidden", "true");
+  expect(screen.getByRole("button", { name: "Vista" })).toBeInTheDocument();
+
+  rerender(<FilterChip pressed={false}>Vista</FilterChip>);
+  expect(container.querySelector("svg")).toBeNull();
+});
+
+test("the chip row stays a labelled group", () => {
+  render(
+    <FilterChipRow label="Filtrar por estado">
+      <FilterChip pressed={false}>Vista</FilterChip>
+    </FilterChipRow>,
+  );
+
+  expect(
+    screen.getByRole("group", { name: "Filtrar por estado" }),
+  ).toBeInTheDocument();
+});

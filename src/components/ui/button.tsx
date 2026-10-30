@@ -12,7 +12,8 @@ export type ButtonProps = ComponentProps<"button"> & {
 
 // No variant inverts the ground: the average box is the only inverted element.
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: "border-2 border-ink font-semibold",
+  // A heavier bottom rule marks the action; selection and error look different.
+  primary: "border-2 border-b-4 border-ink font-semibold",
   secondary: "border border-rule-strong",
   ghost: "border border-transparent underline underline-offset-4",
 };

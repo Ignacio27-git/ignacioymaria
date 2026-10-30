@@ -50,6 +50,27 @@ test("links hint and error through aria-describedby", () => {
   expect(input).toHaveAttribute("aria-invalid", "true");
 });
 
+test("the error message is worded as an error, not only coloured", () => {
+  render(<TextField label="Nota" error="Introduce una nota entre 0 y 10." />);
+
+  const input = screen.getByLabelText("Nota");
+  const message = document.getElementById(
+    input.getAttribute("aria-describedby") ?? "",
+  );
+  expect(message).toHaveTextContent("Error: Introduce una nota entre 0 y 10.");
+  expect(input).toHaveAccessibleDescription(
+    "Error: Introduce una nota entre 0 y 10.",
+  );
+});
+
+test("a hint stays free of the error wording", () => {
+  render(<TextField label="Nombre" hint="Tal como aparece." />);
+
+  expect(screen.getByLabelText("Nombre")).toHaveAccessibleDescription(
+    "Tal como aparece.",
+  );
+});
+
 test("without hint or error it is valid and has no description", () => {
   render(<TextField label="Título" />);
 

@@ -110,6 +110,9 @@ describe("the nine components", () => {
     expect(within(section).getByText("7,25")).toBeInTheDocument();
     expect(within(section).getByRole("img", { name: "Media 7,13" })).toBeInTheDocument();
     expect(within(section).getByRole("img", { name: "Sin media" })).toBeInTheDocument();
+    // The empty example is captioned; the only other box is "Media 7,13".
+    expect(within(section).getByText("Sin media")).toBeVisible();
+    expect(within(section).getAllByRole("img")).toHaveLength(2);
     expect(within(section).getByText("Sin nota")).toBeInTheDocument();
   });
 
@@ -135,6 +138,14 @@ describe("the nine components", () => {
   });
 });
 
+describe("add action", () => {
+  test("offers a single Añadir link for the whole page", async () => {
+    await renderPage();
+
+    expect(screen.getAllByRole("link", { name: "Añadir" })).toHaveLength(1);
+  });
+});
+
 describe("color specimen", () => {
   test("lists every contrast pair with its ratio in both themes", async () => {
     await renderPage();
@@ -143,6 +154,10 @@ describe("color specimen", () => {
     for (const pair of CONTRAST_PAIRS) {
       expect(within(section).getByText(pair.id)).toBeInTheDocument();
     }
+    // Labels are Spanish, like the rest of the page.
+    expect(within(section).getByText("Texto principal")).toBeInTheDocument();
+    expect(within(section).queryByText("body text")).not.toBeInTheDocument();
+    expect(within(section).queryByText("average figure")).not.toBeInTheDocument();
     // Ratios come from the token module, formatted in Spanish: "15,9:1".
     expect(within(section).getAllByText(/\d+,\d:1/).length).toBeGreaterThanOrEqual(
       CONTRAST_PAIRS.length * 2,

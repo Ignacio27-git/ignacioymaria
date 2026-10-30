@@ -9,6 +9,7 @@ import {
 } from "@/lib/theme/preference";
 
 import { cx } from "./cx";
+import { CheckMark } from "./icons";
 
 const OPTION_LABELS: Record<ThemePreference, string> = {
   system: "Sistema",
@@ -46,12 +47,12 @@ export function ThemeToggle({
         <label
           key={preference}
           className={cx(
-            "inline-flex min-h-11 cursor-pointer items-center border bg-paper px-4 text-sm text-ink",
-            "transition-colors duration-150 hover:bg-surface motion-reduce:transition-none",
+            "inline-flex min-h-11 cursor-pointer items-center gap-2 border px-4 text-sm text-ink",
+            "transition-colors duration-150 motion-reduce:transition-none",
             "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus",
             selected === preference
-              ? "border-2 border-ink font-semibold"
-              : "border-rule-strong",
+              ? "border-ink bg-surface font-semibold"
+              : "border-rule-strong bg-paper hover:bg-surface",
           )}
         >
           <input
@@ -62,6 +63,7 @@ export function ThemeToggle({
             onChange={() => choose(preference)}
             className="sr-only"
           />
+          {selected === preference && <CheckMark />}
           {OPTION_LABELS[preference]}
         </label>
       ))}

@@ -44,7 +44,7 @@ export function TextField({
         className={cx(
           "min-h-11 w-full border border-rule-strong bg-paper px-3 text-base text-ink",
           "placeholder:text-ink-muted",
-          "aria-invalid:border-2 aria-invalid:border-ink",
+          "aria-invalid:border-2 aria-invalid:border-state-urgent",
         )}
       />
       {hint && (
@@ -53,8 +53,8 @@ export function TextField({
         </p>
       )}
       {error && (
-        <p id={errorId} className="text-sm font-medium">
-          {error}
+        <p id={errorId} className="text-sm text-ink">
+          <span className="font-semibold">Error:</span> {error}
         </p>
       )}
     </div>

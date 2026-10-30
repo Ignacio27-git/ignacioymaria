@@ -1,4 +1,10 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Browser,
+  type Locator,
+  type Page,
+} from "@playwright/test";
 import { mkdirSync } from "node:fs";
 
 import { TOKENS, type Theme } from "../../src/lib/design/tokens";
@@ -320,6 +326,222 @@ test.describe("theme preference", () => {
     // Leave the shared device state as found.
     await themeOption(page, "Sistema").click();
     await expect(page.locator("html")).not.toHaveAttribute("data-theme");
+    await context.close();
+  });
+});
+
+/** Computed look that tells one meaning apart from another. */
+async function look(locator: Locator) {
+  return locator.evaluate((el) => {
+    const style = getComputedStyle(el);
+    return {
+      borderTop: style.borderTopWidth,
+      borderBottom: style.borderBottomWidth,
+      borderColor: style.borderTopColor,
+      background: style.backgroundColor,
+      weight: style.fontWeight,
+    };
+  });
+}
+
+test.describe("finish review fixes", () => {
+  test("primary action, selected state and error each have their own look", async ({
+    browser,
+  }) => {
+    const context = await openContext(browser, {
+      viewport: DESKTOP,
+      colorScheme: "light",
+    });
+    const page = await context.newPage();
+    await page.goto("/sistema");
+
+    const primary = await look(
+      page.getByRole("button", { name: "Guardar", exact: true }).first(),
+    );
+    const chip = await look(
+      page.getByRole("button", { name: "Todas", pressed: true }),
+    );
+    const toggle = await look(
+      page.getByRole("radio", { checked: true }).locator("xpath=.."),
+    );
+    const error = await look(page.locator('input[aria-invalid="true"]'));
+
+    expect(JSON.stringify(primary)).not.toBe(JSON.stringify(chip));
+    expect(JSON.stringify(primary)).not.toBe(JSON.stringify(error));
+    expect(JSON.stringify(chip)).not.toBe(JSON.stringify(error));
+    // Selected reads the same in the chips and in the theme toggle.
+    expect(toggle.background).toBe(chip.background);
+    expect(toggle.borderTop).toBe(chip.borderTop);
+    // The error is painted in the urgent state colour, not in ink.
+    expect(error.borderColor).toBe(rgb(TOKENS.light.stateUrgent));
+    expect(primary.borderColor).toBe(rgb(TOKENS.light.ink));
+    // Nothing but the average box is inverted.
+    expect(primary.background).toBe(rgb(TOKENS.light.paper));
+    expect(chip.background).not.toBe(rgb(TOKENS.light.ink));
+    await context.close();
+  });
+
+  test("the empty average is an outlined cell, not an inverted one", async ({
+    browser,
+  }) => {
+    const context = await openContext(browser, {
+      viewport: DESKTOP,
+      colorScheme: "light",
+    });
+    const page = await context.newPage();
+    await page.goto("/sistema");
+
+    const section = page.locator('section[aria-labelledby="notas"]');
+    const filled = await look(
+      section.getByRole("img", { name: "Media 7,13" }),
+    );
+    const empty = await look(section.getByRole("img", { name: "Sin media" }));
+    expect(filled.background).toBe(rgb(TOKENS.light.ink));
+    expect(empty.background).not.toBe(rgb(TOKENS.light.ink));
+    expect(empty.borderTop).not.toBe("0px");
+    await expect(section.getByRole("img")).toHaveCount(2);
+    await expect(
+      section.getByText("Sin media", { exact: true }),
+    ).toBeVisible();
+    await context.close();
+  });
+
+  test("at 1440px all seven chips show inside the 760px column", async ({
+    browser,
+  }) => {
+    const context = await openContext(browser, {
+      viewport: { width: 1440, height: 900 },
+    });
+    const page = await context.newPage();
+    await page.goto("/sistema");
+
+    const row = page.getByRole("group", { name: "Filtrar por estado" });
+    const chips = row.getByRole("button");
+    await expect(chips).toHaveCount(7);
+    const main = (await page.getByRole("main").boundingBox())!;
+    for (let index = 0; index < 7; index += 1) {
+      const box = (await chips.nth(index).boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(main.x);
+      expect(box.x + box.width).toBeLessThanOrEqual(main.x + main.width);
+    }
+    expect(await row.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+      true,
+    );
+    await context.close();
+  });
+
+  for (const { name, size } of VIEWPORTS) {
+    test(`at ${name} the first chip lines up with the text margin`, async ({
+      browser,
+    }) => {
+      const context = await openContext(browser, { viewport: size });
+      const page = await context.newPage();
+      await page.goto("/sistema");
+
+      const heading = (await page
+        .getByRole("heading", { level: 2, name: "Filtros y orden" })
+        .boundingBox())!;
+      const chip = (await page
+        .getByRole("group", { name: "Filtrar por estado" })
+        .getByRole("button")
+        .first()
+        .boundingBox())!;
+      expect(Math.abs(chip.x - heading.x)).toBeLessThanOrEqual(1);
+      await context.close();
+    });
+  }
+
+  test("at 390px Añadir sits bottom right and never covers the last content", async ({
+    browser,
+  }) => {
+    const context = await openContext(browser, { viewport: MOBILE });
+    const page = await context.newPage();
+    await page.goto("/sistema");
+
+    const add = page.getByRole("link", { name: "Añadir" });
+    await expect(add).toBeVisible();
+    const box = (await add.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    expect(box.x + box.width).toBeGreaterThan(MOBILE.width - 40);
+    expect(box.x + box.width).toBeLessThanOrEqual(MOBILE.width);
+    expect(box.y + box.height).toBeGreaterThan(MOBILE.height - 40);
+    expect(box.y + box.height).toBeLessThanOrEqual(MOBILE.height);
+
+    await page.evaluate(() =>
+      window.scrollTo(0, document.documentElement.scrollHeight),
+    );
+    const last = (await page.getByRole("group", { name: "Tema" }).boundingBox())!;
+    const fixed = (await add.boundingBox())!;
+    expect(fixed.y + fixed.height).toBeLessThanOrEqual(MOBILE.height);
+    expect(last.y + last.height).toBeLessThanOrEqual(fixed.y);
+    await context.close();
+  });
+
+  test("the guide words read as a range at the right of the title cell", async ({
+    browser,
+  }) => {
+    const context = await openContext(browser, { viewport: MOBILE });
+    const page = await context.newPage();
+    await page.goto("/sistema");
+
+    const cell = page
+      .getByRole("table", { name: "Películas de muestra" })
+      .getByRole("columnheader", { name: "Título" });
+    const guide = cell.locator('[aria-hidden="true"]');
+    const cellBox = (await cell.boundingBox())!;
+    const guideBox = (await guide.boundingBox())!;
+    expect(guideBox.x + guideBox.width).toBeGreaterThan(
+      cellBox.x + cellBox.width - 2,
+    );
+    const style = await guide.evaluate((el) => {
+      const computed = getComputedStyle(el);
+      return {
+        size: parseFloat(computed.fontSize),
+        stretch: computed.fontStretch,
+      };
+    });
+    expect(style.size).toBeLessThanOrEqual(12.5);
+    expect(style.stretch).toBe("75%");
+    await context.close();
+  });
+
+  test("rules and critic heads form a hierarchy", async ({ browser }) => {
+    const context = await openContext(browser, { viewport: DESKTOP });
+    const page = await context.newPage();
+    await page.goto("/sistema");
+
+    const table = page.getByRole("table", { name: "Películas de muestra" });
+    const header = await look(table.getByRole("row").first());
+    expect(header.borderTop).toBe("2px");
+    const masthead = await look(
+      page.getByRole("heading", { level: 1 }).locator("xpath=.."),
+    );
+    expect(masthead.borderBottom).toBe("2px");
+
+    for (const critic of ["María", "Ignacio"]) {
+      const head = table.getByRole("columnheader", { name: critic });
+      const weight = await head.evaluate((el) =>
+        Number(getComputedStyle(el).fontWeight),
+      );
+      const stretch = await head.evaluate(
+        (el) => getComputedStyle(el).fontStretch,
+      );
+      expect(weight).toBeGreaterThanOrEqual(700);
+      expect(stretch).toBe("75%");
+    }
+    await context.close();
+  });
+
+  test("the sort select draws its own chevron", async ({ browser }) => {
+    const context = await openContext(browser, { viewport: DESKTOP });
+    const page = await context.newPage();
+    await page.goto("/sistema");
+
+    const select = page.getByLabel("Ordenar");
+    expect(await select.evaluate((el) => getComputedStyle(el).appearance)).toBe(
+      "none",
+    );
+    await expect(select.locator("xpath=..").locator("svg")).toBeVisible();
     await context.close();
   });
 });

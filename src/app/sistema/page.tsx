@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { AddAction } from "@/components/ui/add-action";
 import { AverageBox } from "@/components/ui/average-box";
 import { Button } from "@/components/ui/button";
 import {
@@ -146,7 +147,7 @@ export default async function SistemaPage() {
   const themePreference = await readThemePreference();
 
   return (
-    <main className="mx-auto w-full max-w-table px-4 pb-24 pt-8 sm:px-6">
+    <main className="mx-auto w-full max-w-table px-4 pb-28 pt-8 sm:px-6">
       <Masthead title="Sistema" as="h1" />
       <p className="mt-3 font-semibold">{SAMPLE_LABEL}</p>
       <p className="mt-1 text-ink-muted">
@@ -241,7 +242,7 @@ export default async function SistemaPage() {
       </Section>
 
       <Section id="filtros" title="Filtros y orden" note={SAMPLE_LABEL}>
-        <FilterChipRow label="Filtrar por estado" className="-mx-1">
+        <FilterChipRow label="Filtrar por estado">
           <FilterChip pressed>Todas</FilterChip>
           {WATCH_STATES.map((state) => (
             <FilterChip key={state} state={state} pressed={false}>
@@ -283,6 +284,9 @@ export default async function SistemaPage() {
           <div className="flex items-center gap-3">
             <span className="text-sm text-ink-muted">Media</span>
             <AverageBox value={SAMPLE_FIGURES.average} />
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-ink-muted">Sin media</span>
             <AverageBox value={null} />
           </div>
         </div>
@@ -310,6 +314,8 @@ export default async function SistemaPage() {
       <Section id="tema" title="Tema">
         <ThemeToggle value={themePreference} />
       </Section>
+
+      <AddAction href="/sistema" />
     </main>
   );
 }
