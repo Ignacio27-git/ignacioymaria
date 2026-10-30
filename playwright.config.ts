@@ -34,6 +34,8 @@ export default defineConfig({
     command: "pnpm dev",
     url: baseURL,
     reuseExistingServer: !process.env.CI,
+    // A4: TMDB is replaced by a deterministic server-side double (never in production).
+    env: { TMDB_TEST_DOUBLE: "1" },
     timeout: 120_000,
   },
 });

@@ -31,8 +31,8 @@ export type TitleFailure =
   | { kind: "forbidden" }
   | { kind: "unavailable" };
 
+/** The failure branch of a `Result`, for actions that redirect on success. */
+export type Failure<E> = Extract<Result<never, E>, { ok: false }>;
+
 /** State returned by the manual-add form action (`useActionState`). */
-export type ManualAddState = Extract<
-  Result<never, TitleFailure>,
-  { ok: false }
-> | null;
+export type ManualAddState = Failure<TitleFailure> | null;

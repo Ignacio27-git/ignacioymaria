@@ -5,9 +5,13 @@ import { getCurrentPerson } from "@/server/auth/current-person";
 
 import { createTmdbClient, type TmdbClient } from "./client";
 import { getTmdbReadAccessToken } from "./env";
+import { resolveTmdbTestDouble } from "./test-double";
 import type { TmdbCandidate, TmdbDetails, TmdbFailure } from "./types";
 
 const MAX_QUERY_LENGTH = 100;
+
+// Fail at startup, not on the first request, if the double leaks into production.
+resolveTmdbTestDouble();
 
 /**
  * Identity first (the Server Actions are public endpoints), then input, then
@@ -22,6 +26,9 @@ async function prepare(
   }
   const invalid = validate();
   if (invalid) return { failure: invalid };
+  // E2E only (A4): a deterministic stand-in, no token and no network.
+  const double = resolveTmdbTestDouble();
+  if (double) return { client: double };
   const token = getTmdbReadAccessToken();
   if (token === null) {
     console.error("tmdb lookup failed", "missing_token");
