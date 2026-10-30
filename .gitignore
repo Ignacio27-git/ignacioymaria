@@ -50,3 +50,7 @@ coverage/
 
 # gentle-ai local agent state (machine-specific paths)
 /.atl/
+
+# Local tool output
+.playwright-mcp/
+.impeccable/questions/
