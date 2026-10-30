@@ -35,17 +35,74 @@ Registro ligero de las decisiones ya tomadas y de las que siguen abiertas. Fuent
 | D-25 | `updated_at` lo mantiene un trigger propio con `clock_timestamp()` | `now()` es constante dentro de una transacción; sin dependencia de la extensión `moddatetime` | 2026-10-29 |
 | D-26 | Nombre en blanco se rechaza con `name ~ '\S'` | `btrim` solo quita espacios y dejaría pasar tabuladores y saltos de línea | 2026-10-29 |
 | D-27 | Los tests de base de datos son pgTAP (`pnpm test:db`) y se ejecutan solo en local; la CI llega en la Fase 2. `anon` no tiene privilegios y las políticas llaman a `(select public.is_allowed())` | No existe `.github/` todavía; defensa en profundidad además de RLS | 2026-10-29 |
+| D-28 | Sustituye a D-07: el navegador no crea ningún cliente de Supabase. Login y logout son Server Actions, el enlace mágico aterriza en un Route Handler (`/auth/confirm`) y `src/proxy.ts` refresca la sesión y protege todas las rutas salvo `/login` y `/auth/*` | Con Server Actions no hace falta clave en el cliente; solo existe `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` y se usa en el servidor. Cierra la decisión abierta de mecanismo UI a servidor para Auth | 2026-10-30 |
+| D-29 | `allowed_emails.person` (`ignacio` o `maria`, `not null`, `unique`, sin inserciones en la migración) y `public.current_person()` (`security definer`, `search_path` vacío, solo `authenticated`) | Misma técnica que D-21; quitar la fila revoca el acceso al instante. La base de datos es la única fuente del mapeo correo-persona | 2026-10-30 |
+| D-30 | El filtro de registro es el hook `before_user_created` (`public.before_user_created_hook`, `security invoker`) que devuelve `{}` o un error 403; `supabase_auth_admin` solo tiene `select` en `allowed_emails` mediante la política `allowed_emails_auth_admin_select` | Ningún correo ajeno llega a crear fila en `auth.users` ni a recibir correo; los roles de cliente siguen sin privilegios. Comprobado de extremo a extremo con GoTrue | 2026-10-30 |
+| D-31 | Trigger `titles_enforce_score_ownership`: quien inicia sesión como `ignacio` no puede dar valor distinto a `score_maria` y viceversa (error `42501`). Solo actúa con `current_user = 'authenticated'` y persona conocida | RLS no compara columnas por usuario. Las migraciones y el importador del paso 1.7 deben ejecutarse como `postgres`, que no queda restringido | 2026-10-30 |
+| D-32 | El formulario de acceso muestra el mismo mensaje para cualquier resultado tras validar el formato; los errores solo se registran por `code`, nunca por texto del proveedor | Evita enumerar qué correos están permitidos. Observado: el rechazo del hook llega como `AuthApiError` 403 con `code: "unknown"` y el mensaje del hook | 2026-10-30 |
+| D-33 | `/auth/confirm` acepta solo `type=email` con `token_hash`, llama a `verifyOtp` y redirige a `/` o a `/login` sin parámetros. No existe `next`. Las redirecciones se construyen con `SITE_URL` (variable solo de servidor) | Sin redirección abierta. Next reescribe `127.0.0.1` a `localhost` en `request.url`, lo que enviaba la sesión a otro host de cookies; se descubrió en E2E | 2026-10-30 |
+| D-34 | Una sola plantilla (`supabase/templates/sign-in.html`) para `magic_link` y `confirmation`, con enlace `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`. `site_url` y Playwright usan `127.0.0.1:3000` y `next.config.ts` declara `allowedDevOrigins: ["127.0.0.1"]` | El primer acceso de una cuenta nueva recibe el correo de confirmación. El host del enlace debe coincidir con el de la cookie. Sin `allowedDevOrigins`, Next bloquea `/_next/hmr` desde `127.0.0.1` (los tests pasan, pero el desarrollo pierde HMR) | 2026-10-30 |
+| D-35 | La sesión se valida con `getClaims()` (nunca `getSession()` en el servidor) y `/` resuelve la persona en `PersonGate` dentro de `Suspense`, tras `connection()`. Una sesión sin persona vuelve a `/login`, que no redirige de vuelta | Sin `connection()`, Next avisaba de `Date.now()` durante el prerenderizado en desarrollo. Evita bucles con una cuenta retirada de la lista | 2026-10-30 |
+| D-36 | Los datos de E2E (`e2e-ignacio@example.test`, `e2e-maria@example.test`) los inserta `globalSetup` de Playwright con `pg`; el correo se lee de la API de Mailpit | Una semilla rompería D-22 y AC-1.2 | 2026-10-30 |
+| D-37 | Los textos de la interfaz del acceso están en español neutro («Si este correo puede entrar, te llegará un enlace.», «Introduce un correo válido», «Sesión iniciada como …», «Salir») | La aplicación es `lang="es"`; el diseño proponía textos en inglés y se sustituyeron por indicación del encargo de aplicación | 2026-10-30 |
 
 ## Carga manual de la lista permitida
 
-Las migraciones dejan `allowed_emails` vacía. En un proyecto de Supabase alojado, las dos cuentas se insertan una vez a mano desde el editor SQL del panel (nunca en un archivo del repositorio). Los correos van en minúsculas; la base de datos rechaza mayúsculas.
+Las migraciones dejan `allowed_emails` vacía. En un proyecto de Supabase alojado, las dos cuentas se insertan una vez a mano desde el editor SQL del panel (nunca en un archivo del repositorio). Los correos van en minúsculas y cada uno lleva su `person` (`ignacio` o `maria`, sin repetir); la base de datos rechaza mayúsculas.
 
 ```sql
-insert into public.allowed_emails (email)
-values ('name@example.com'), ('other@example.com');
+insert into public.allowed_emails (email, person)
+values ('name@example.com', 'ignacio'), ('other@example.com', 'maria');
 ```
 
-Sustituir los marcadores por los correos reales. En local no hace falta: Inbucket acepta cualquier dirección y los tests usan `*.example.test`. Para retirar un acceso basta con borrar la fila (`delete from public.allowed_emails where email = '...'`); el efecto es inmediato.
+Sustituir los marcadores por los correos reales. En local no hace falta cargar nada a mano: los correos salen por Mailpit (`http://127.0.0.1:54324`) y los tests usan `*.example.test`; para entrar en la aplicación local hay que insertar antes la fila de tu correo con su `person`. Para retirar un acceso basta con borrar la fila (`delete from public.allowed_emails where email = '...'`); el efecto es inmediato.
+
+## Configuración manual en Supabase alojado (paso 1.4)
+
+El hook y las plantillas de `supabase/config.toml` solo aplican en local. En el proyecto alojado, en este orden:
+
+1. Si `allowed_emails` ya tiene filas, borrarlas antes de `db push`: la migración añade `person` como `not null` y falla de forma atómica con filas previas.
+2. Aplicar las migraciones (`supabase db push`).
+3. Insertar las dos cuentas con su persona (ver «Carga manual de la lista permitida»).
+4. Panel > Authentication > Hooks: crear el hook «Before User Created» de tipo Postgres con la función `public.before_user_created_hook`.
+5. Panel > Authentication > Email Templates: pegar el contenido de `supabase/templates/sign-in.html` en «Magic Link» y en «Confirm signup».
+6. Panel > Authentication > URL Configuration: `Site URL` con el dominio de producción y, en Redirect URLs, `<dominio>/auth/confirm`.
+7. Vercel: definir `SITE_URL` (dominio de producción, sin barra final), `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. No se usa ninguna clave `service_role`.
+
+Local: `SITE_URL=http://127.0.0.1:3000`, `MAILPIT_URL=http://127.0.0.1:54324` y `SUPABASE_DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres` (solo E2E) van en `.env.local`, que no se versiona. Los valores salen de `pnpm exec supabase status -o env`.
+
+## Reversión de couple-auth
+
+Revertir el paso 1.4 deja intactos los datos del paso 1.3. Ejecutar como `postgres`, en este orden:
+
+```sql
+drop trigger titles_enforce_score_ownership on public.titles;
+drop function public.enforce_score_ownership();
+drop function public.before_user_created_hook(jsonb);
+drop policy allowed_emails_auth_admin_select on public.allowed_emails;
+revoke select on public.allowed_emails from supabase_auth_admin;
+drop function public.current_person();
+alter table public.allowed_emails drop column person;
+```
+
+Después:
+
+1. Desactivar el hook: en `supabase/config.toml` poner `enabled = false` en `[auth.hook.before_user_created]` (y reiniciar con `pnpm db:stop && pnpm db:start`), o desactivarlo en Panel > Authentication > Hooks. Sin la función, un hook activo rechazaría todos los accesos.
+2. Restaurar las plantillas `magic_link` y `confirmation` (quitar las secciones de `config.toml` y volver a las plantillas por defecto del panel).
+3. Revertir el PR de couple-auth.
+
+Verificación (cada consulta debe devolver 0 filas):
+
+```sql
+select proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public' and proname in ('current_person', 'before_user_created_hook', 'enforce_score_ownership');
+select tgname from pg_trigger where tgname = 'titles_enforce_score_ownership' and not tgisinternal;
+select column_name from information_schema.columns
+ where table_schema = 'public' and table_name = 'allowed_emails' and column_name = 'person';
+select policyname from pg_policies where tablename = 'allowed_emails';
+```
+
+Comprobado el 2026-10-30 en local, con una fila en `titles` (notas 7 y 8) y dos filas en `allowed_emails`: primero dentro de `begin; ... rollback;` y después confirmado en una base descartable; en ambos casos los objetos desaparecieron y las filas de `allowed_emails` y `titles` siguieron intactas. Después se restauró con `pnpm db:reset`.
 
 ## Abiertas
 
@@ -55,6 +112,6 @@ Sin resultado decidido. Cada una se resuelve en el paso indicado.
 |---|---|
 | Observaciones que no son notas de la película | Paso 1.7 |
 | Caché de TMDB | Paso 1.5 |
-| Mecanismo UI a servidor | Paso 1.x |
+| Mecanismo UI a servidor para datos (Auth ya usa Server Actions y un Route Handler, D-28) | Paso 1.x |
 | Detalles de producción y alojamiento | Fase 2 |
 | Prioridad y diseño de la Fase 3 | Tras el lanzamiento |

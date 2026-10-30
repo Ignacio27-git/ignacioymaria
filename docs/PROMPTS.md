@@ -39,3 +39,11 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** Dos migraciones (`allowlist` y `titles`), RLS con `is_allowed()` y 131 comprobaciones pgTAP en local. Los correos reales quedan fuera de git.
 
 **Lección:** Un `order by` sobre una columna con el mismo nombre que un alias de salida (`score_maria::text`) ordena por el alias, no por la columna; conviene cualificarla. Los esquemas de seguridad se prueban mejor simulando roles (`set local role` y `request.jwt.claims`) que mirando solo el catálogo.
+
+### 2026-10-30 · Paso 1.4 · acceso solo para vosotros dos
+
+**Prompt:** `/gentle-sdd-new couple-auth` — Implementa el acceso con Supabase Auth (enlace mágico por email) limitado a una lista permitida de dos cuentas. Cualquier otra cuenta se rechaza. Cada nota se asocia a quien ha iniciado sesión.
+
+**Resultado:** Hook `before_user_created` que rechaza correos ajenos antes de crear usuario, mapeo correo-persona en la base de datos, trigger que impide escribir la nota de la otra persona, login por Server Action, ruta `/auth/confirm`, proxy con `getClaims()` y pruebas E2E con Mailpit. 195 comprobaciones pgTAP, 210 tests de Vitest y 7 de Playwright.
+
+**Lección:** Probar el flujo real con E2E destapó dos fallos que los tests unitarios no veían: Next reescribe `127.0.0.1` a `localhost` en `request.url` (las redirecciones deben usar una URL de sitio fija) y el prerenderizado en desarrollo rechaza `Date.now()` salvo tras `connection()`. Conviene decidir pronto los textos en español de la interfaz y no depender de los de los artefactos de diseño. El usuario de pruebas de pgTAP no es superusuario, así que no puede asumir roles reservados de Supabase.
