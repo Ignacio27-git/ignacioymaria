@@ -1,1 +1,129 @@
 @import "tailwindcss";
+
+/*
+ * Color tokens (D-47). The hex values mirror src/lib/design/tokens.ts, which is
+ * the single source; css-sync.test.ts keeps both in step.
+ * Light is the default. Dark applies through data-theme="dark" or, when no
+ * explicit choice is made, through the system setting.
+ */
+:root {
+  --paper: #f4f4f1;
+  --ink: #131313;
+  --ink-muted: #5c5b57;
+  --rule: #d6d5cf;
+  --rule-strong: #858480;
+  --surface: #eaeae5;
+  --focus: #131313;
+  --inverse-bg: #131313;
+  --inverse-ink: #f4f4f1;
+  --state-urgent: #c8352b;
+  --state-watched: #2f7d4a;
+  --state-rewatch: #b07a10;
+  --state-no-rewatch: #8a6bbf;
+  --state-awful: #2f5fb3;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --paper: #111214;
+  --ink: #ebe9e4;
+  --ink-muted: #96948f;
+  --rule: #2a2b2e;
+  --rule-strong: #6b6c70;
+  --surface: #1b1c1f;
+  --focus: #ebe9e4;
+  --inverse-bg: #ebe9e4;
+  --inverse-ink: #111214;
+  --state-urgent: #e5594d;
+  --state-watched: #4fae6f;
+  --state-rewatch: #d9a23a;
+  --state-no-rewatch: #b29be0;
+  --state-awful: #5b8fe0;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111214;
+    --ink: #ebe9e4;
+    --ink-muted: #96948f;
+    --rule: #2a2b2e;
+    --rule-strong: #6b6c70;
+    --surface: #1b1c1f;
+    --focus: #ebe9e4;
+    --inverse-bg: #ebe9e4;
+    --inverse-ink: #111214;
+    --state-urgent: #e5594d;
+    --state-watched: #4fae6f;
+    --state-rewatch: #d9a23a;
+    --state-no-rewatch: #b29be0;
+    --state-awful: #5b8fe0;
+    color-scheme: dark;
+  }
+}
+
+/* The dark: variant follows the same rules as the tokens above. */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    &:where(:not([data-theme="light"], [data-theme="light"] *)) {
+      @slot;
+    }
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-surface: var(--surface);
+  --color-focus: var(--focus);
+  --color-inverse-bg: var(--inverse-bg);
+  --color-inverse-ink: var(--inverse-ink);
+  --color-state-urgent: var(--state-urgent);
+  --color-state-watched: var(--state-watched);
+  --color-state-rewatch: var(--state-rewatch);
+  --color-state-no-rewatch: var(--state-no-rewatch);
+  --color-state-awful: var(--state-awful);
+
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+
+  --text-masthead: 2.75rem;
+  --text-masthead--line-height: 1;
+  --text-masthead--font-weight: 800;
+  --text-title: 1.0625rem;
+  --text-title--line-height: 1.2;
+
+  --container-table: 47.5rem;
+}
+
+/* Archivo's wdth axis, narrowed for titles and mastheads (spike 1.5). */
+@utility font-condensed {
+  font-stretch: 75%;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  scrollbar-color: var(--rule-strong) transparent;
+}
+
+body {
+  caret-color: var(--ink);
+}
+
+::selection {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
