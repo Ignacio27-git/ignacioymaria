@@ -10,7 +10,9 @@ Las dependencias apuntan hacia dentro. Estas reglas son vinculantes.
 |---|---|---|---|
 | Dominio | Tipos y reglas puras (notas, media, estados) | Nada externo | Next.js, React, Supabase, TMDB, E/S |
 | Servidor | Casos de uso, acceso a datos, clientes de Supabase y TMDB | Dominio | Código de UI |
-| UI | Páginas y componentes | Dominio (solo tipos); Servidor mediante los mecanismos de Next.js | Clientes de servidor, claves secretas |
+| UI | Páginas y componentes | Dominio (tipos y constantes de datos); Servidor mediante los mecanismos de Next.js | Funciones del dominio, clientes de servidor, claves secretas |
+
+La UI puede importar del dominio tipos y constantes de datos (p. ej., etiquetas como `WATCH_STATE_LABELS`), nunca funciones (D-53). Lo que necesita una función del dominio, como construir una nota con `parseScore` o calcular una media con `averageScore`, se hace en el servidor y llega ya resuelto a la UI.
 
 El dominio se prueba con Vitest sin simular servicios. La regla "nada externo" la vigila `src/domain/purity.test.ts`, que falla si algún módulo del dominio importa una ruta no relativa.
 
@@ -46,6 +48,13 @@ Regla: solo el código de servidor llama a servicios externos. Ningún código d
 - Caché: la Data Cache de `fetch` con `next: { revalidate }` (búsquedas 1 h, detalles 7 días, D-38). Persiste entre despliegues, solo guarda respuestas 200 y el token forma parte de la clave.
 - Pósters: solo se guarda `poster_path`. `posterUrl` (`src/lib/tmdb/poster-url.ts`, segura para el cliente) construye la URL `w342` al renderizar, y `next.config.ts` solo admite `https://image.tmdb.org/t/p/w342/**` (D-44).
 
+## Sistema de diseño y tema
+
+- Tokens (paso D.2): `src/lib/design/tokens.ts` es la única fuente de los colores claros y oscuros y de los pares de contraste; `globals.css` los replica y un test de sincronización exige que coincidan (D-47 y D-48). `contrast.ts` calcula las proporciones de contraste.
+- Componentes: `src/components/ui/` contiene componentes de presentación, sin datos ni llamadas al servidor. Archivos en kebab-case y exportaciones en PascalCase (D-52); solo `ThemeToggle` es componente de cliente.
+- Tema: `src/lib/theme/preference.ts` define los valores (`system`, `light`, `dark`) y su lectura segura; `src/server/theme/read-preference.ts` lee la cookie `theme` en el servidor y `src/app/_actions/theme.ts` (`setThemeAction`) la escribe. `RootLayout` envuelve `ThemedDocument` en `Suspense` para pintar `data-theme` desde el servidor (D-50 y D-51).
+- `/sistema`: muestrario vivo del sistema, protegido por sesión como el resto de rutas. Sus datos de muestra salen de `src/server/specimen/sample.ts` (`server-only`), que construye notas y medias con funciones del dominio (D-53).
+
 ## Secretos
 
 - Las claves secretas solo existen en el entorno del servidor y nunca se exponen al cliente (p. ej., no usar el prefijo `NEXT_PUBLIC_` para ellas).
@@ -64,15 +73,22 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | `src/server/auth/` | Casos de uso de acceso: `sendMagicLink`, `signOut`, `getCurrentPerson` y `scoreColumnFor` |
 | `src/server/tmdb/` | Integración con TMDB: `env`, `client`, `mappers`, `lookup` y `types` (paso 1.5) |
 | `src/lib/tmdb/` | `posterUrl`: construye la URL del póster; pura y segura para el cliente |
-| `src/app/_actions/` | Server Actions de la interfaz (`requestMagicLinkAction`, `signOutAction`, `searchTmdbAction`, `getTmdbDetailsAction`), envoltorios finos |
+| `src/app/_actions/` | Server Actions de la interfaz (`requestMagicLinkAction`, `signOutAction`, `searchTmdbAction`, `getTmdbDetailsAction`, `setThemeAction`), envoltorios finos |
+| `src/app/sistema/` | Muestrario del sistema de diseño (`/sistema`, paso D.2) |
+| `src/components/ui/` | Componentes de presentación del sistema de diseño (paso D.2): `Button`, `TextField`, `StateCell`, `ScoreFigure`, `AverageBox`, `FilterChip`, `SortControl`, `CriticsTable`, `Masthead`, `ThemeToggle` y `AddAction`, más `cx` e `icons` |
+| `src/lib/design/` | Tokens de color (`tokens.ts`, fuente única) y cálculo de contraste (`contrast.ts`) |
+| `src/lib/theme/` | Preferencia de tema: valores admitidos y lectura segura |
+| `src/server/theme/` | Lectura de la cookie `theme` en el servidor |
+| `src/server/specimen/` | Datos de muestra de `/sistema` (`server-only`) |
+| `src/test/` | Ayudantes de tests unitarios (`axe.ts` con `expectNoAxeViolations`, `score.ts`) |
 | `src/proxy.ts` | Proxy de Next.js: refresca la sesión y protege las rutas |
 | `supabase/migrations/` | Migraciones versionadas: `allowlist` y `titles` (paso 1.3) y `couple_auth` (paso 1.4: `person`, `current_person()`, hook de registro y trigger de notas) y `tmdb_fields` (paso 1.5: `tmdb_id`, `poster_path` y `seasons_total`) |
 | `supabase/templates/` | Plantilla del correo de acceso (`sign-in.html`) |
 | `supabase/tests/database/` | Tests pgTAP (`pnpm test:db`): `titles_constraints`, `access_control`, `couple_auth` y `tmdb_fields`; solo en local |
 | `supabase/config.toml` | Configuración de la CLI de Supabase (proyecto `ignacioymaria`, sin semilla) |
-| `tests/e2e/` | Pruebas E2E (Playwright): `auth.spec.ts` con ayudantes de Mailpit y `pg`; `globalSetup` inserta las dos cuentas de prueba |
+| `tests/e2e/` | Pruebas E2E (Playwright): `auth.spec.ts` con ayudantes de Mailpit y `pg`, `design-system.spec.ts` (`/sistema` en ambos temas y anchos) y `session.ts` (ayudantes de sesión compartidos); `globalSetup` inserta las dos cuentas de prueba |
 | `vitest.config.mts` | Configuración de Vitest (jsdom, solo `src/**/*.test.{ts,tsx}`) |
-| `playwright.config.ts` | Configuración de Playwright (chromium, arranca `pnpm dev`) |
+| `playwright.config.ts` | Configuración de Playwright (chromium, arranca `pnpm dev`; proyecto `auth` antes que `ui`, D-57) |
 
 Los tests unitarios viven junto al código (`*.test.ts(x)`). `src/server/index.ts` importa `server-only`: si un componente cliente importa código de `src/server`, el build falla.
 

@@ -1,0 +1,629 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-30T19:25:36.044Z",
+  "title": "Design System: Ignacio y María",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Cool Paper (light)",
+        "canonical": "#f4f4f1",
+        "tonalRamp": [
+          "#262626",
+          "#444443",
+          "#616160",
+          "#7e7e7d",
+          "#9b9b9a",
+          "#b9b9b6",
+          "#d6d6d3",
+          "#f3f3f0"
+        ]
+      },
+      "paper-dark": {
+        "role": "neutral",
+        "displayName": "Cool Paper (dark)",
+        "canonical": "#111214",
+        "tonalRamp": [
+          "#252628",
+          "#424345",
+          "#606062",
+          "#7d7d7f",
+          "#9a9b9c",
+          "#b8b8b8",
+          "#d5d5d5",
+          "#f2f2f2"
+        ]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Press Ink (light)",
+        "canonical": "#131313",
+        "tonalRamp": [
+          "#262626",
+          "#434343",
+          "#616161",
+          "#7e7e7e",
+          "#9b9b9b",
+          "#b8b8b8",
+          "#d5d5d5",
+          "#f2f2f2"
+        ]
+      },
+      "ink-dark": {
+        "role": "primary",
+        "displayName": "Press Ink (dark)",
+        "canonical": "#ebe9e4",
+        "tonalRamp": [
+          "#272626",
+          "#444442",
+          "#62615f",
+          "#7f7e7c",
+          "#9d9b98",
+          "#bab9b5",
+          "#d8d6d1",
+          "#f4f3f0"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Faded Ink (light)",
+        "canonical": "#5c5b57",
+        "tonalRamp": [
+          "#272725",
+          "#454441",
+          "#62615e",
+          "#7f7e7b",
+          "#9c9b99",
+          "#b9b8b7",
+          "#d6d5d4",
+          "#f2f2f2"
+        ]
+      },
+      "ink-muted-dark": {
+        "role": "neutral",
+        "displayName": "Faded Ink (dark)",
+        "canonical": "#96948f",
+        "tonalRamp": [
+          "#272725",
+          "#454442",
+          "#63615e",
+          "#807f7a",
+          "#9e9c97",
+          "#bab9b5",
+          "#d6d5d4",
+          "#f3f2f2"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline (light)",
+        "canonical": "#d6d5cf",
+        "tonalRamp": [
+          "#272725",
+          "#444442",
+          "#62615f",
+          "#7f7f7b",
+          "#9d9c98",
+          "#bab9b4",
+          "#d8d7d1",
+          "#f3f3f1"
+        ]
+      },
+      "rule-dark": {
+        "role": "neutral",
+        "displayName": "Hairline (dark)",
+        "canonical": "#2a2b2e",
+        "tonalRamp": [
+          "#252628",
+          "#424345",
+          "#5f6062",
+          "#7d7d7f",
+          "#9a9b9c",
+          "#b7b8b9",
+          "#d5d5d6",
+          "#f2f2f2"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Marked Rule (light)",
+        "canonical": "#858480",
+        "tonalRamp": [
+          "#272725",
+          "#444442",
+          "#62615e",
+          "#807f7b",
+          "#9c9c98",
+          "#b9b9b6",
+          "#d6d5d4",
+          "#f2f2f2"
+        ]
+      },
+      "rule-strong-dark": {
+        "role": "neutral",
+        "displayName": "Marked Rule (dark)",
+        "canonical": "#6b6c70",
+        "tonalRamp": [
+          "#262627",
+          "#424345",
+          "#5f6063",
+          "#7c7d80",
+          "#999a9d",
+          "#b7b7b9",
+          "#d5d5d6",
+          "#f2f2f3"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Pressed Paper (light)",
+        "canonical": "#eaeae5",
+        "tonalRamp": [
+          "#272726",
+          "#444442",
+          "#61615f",
+          "#7f7f7c",
+          "#9c9c99",
+          "#b9b9b5",
+          "#d7d7d2",
+          "#f3f3f0"
+        ]
+      },
+      "surface-dark": {
+        "role": "neutral",
+        "displayName": "Pressed Paper (dark)",
+        "canonical": "#1b1c1f",
+        "tonalRamp": [
+          "#252628",
+          "#424345",
+          "#5f6062",
+          "#7d7d7f",
+          "#9a9b9c",
+          "#b7b8b9",
+          "#d5d5d6",
+          "#f2f2f2"
+        ]
+      },
+      "focus": {
+        "role": "primary",
+        "displayName": "Focus Ink (light)",
+        "canonical": "#131313",
+        "tonalRamp": [
+          "#262626",
+          "#434343",
+          "#616161",
+          "#7e7e7e",
+          "#9b9b9b",
+          "#b8b8b8",
+          "#d5d5d5",
+          "#f2f2f2"
+        ]
+      },
+      "focus-dark": {
+        "role": "primary",
+        "displayName": "Focus Ink (dark)",
+        "canonical": "#ebe9e4",
+        "tonalRamp": [
+          "#272626",
+          "#444442",
+          "#62615f",
+          "#7f7e7c",
+          "#9d9b98",
+          "#bab9b5",
+          "#d8d6d1",
+          "#f4f3f0"
+        ]
+      },
+      "inverse-bg": {
+        "role": "neutral",
+        "displayName": "Verdict Inverse Ground (light)",
+        "canonical": "#131313",
+        "tonalRamp": [
+          "#262626",
+          "#434343",
+          "#616161",
+          "#7e7e7e",
+          "#9b9b9b",
+          "#b8b8b8",
+          "#d5d5d5",
+          "#f2f2f2"
+        ]
+      },
+      "inverse-bg-dark": {
+        "role": "neutral",
+        "displayName": "Verdict Inverse Ground (dark)",
+        "canonical": "#ebe9e4",
+        "tonalRamp": [
+          "#272626",
+          "#444442",
+          "#62615f",
+          "#7f7e7c",
+          "#9d9b98",
+          "#bab9b5",
+          "#d8d6d1",
+          "#f4f3f0"
+        ]
+      },
+      "inverse-ink": {
+        "role": "neutral",
+        "displayName": "Verdict Inverse Figure (light)",
+        "canonical": "#f4f4f1",
+        "tonalRamp": [
+          "#262626",
+          "#444443",
+          "#616160",
+          "#7e7e7d",
+          "#9b9b9a",
+          "#b9b9b6",
+          "#d6d6d3",
+          "#f3f3f0"
+        ]
+      },
+      "inverse-ink-dark": {
+        "role": "neutral",
+        "displayName": "Verdict Inverse Figure (dark)",
+        "canonical": "#111214",
+        "tonalRamp": [
+          "#252628",
+          "#424345",
+          "#606062",
+          "#7d7d7f",
+          "#9a9b9c",
+          "#b8b8b8",
+          "#d5d5d5",
+          "#f2f2f2"
+        ]
+      },
+      "state-urgent": {
+        "role": "tertiary",
+        "displayName": "Urgent Red (light)",
+        "canonical": "#c8352b",
+        "tonalRamp": [
+          "#4e1511",
+          "#89241d",
+          "#c4342a",
+          "#d25850",
+          "#dc7e77",
+          "#e6a39f",
+          "#f0c9c6",
+          "#fbefee"
+        ]
+      },
+      "state-urgent-dark": {
+        "role": "tertiary",
+        "displayName": "Urgent Red (dark)",
+        "canonical": "#e5594d",
+        "tonalRamp": [
+          "#431a16",
+          "#752e27",
+          "#a84138",
+          "#db5549",
+          "#ea786e",
+          "#f09f98",
+          "#f6c7c3",
+          "#fceeed"
+        ]
+      },
+      "state-watched": {
+        "role": "tertiary",
+        "displayName": "Watched Green (light)",
+        "canonical": "#2f7d4a",
+        "tonalRamp": [
+          "#163a23",
+          "#27673d",
+          "#408859",
+          "#649e78",
+          "#87b496",
+          "#aacab5",
+          "#cde0d3",
+          "#f0f5f2"
+        ]
+      },
+      "state-watched-dark": {
+        "role": "tertiary",
+        "displayName": "Watched Green (dark)",
+        "canonical": "#4fae6f",
+        "tonalRamp": [
+          "#193723",
+          "#2c613e",
+          "#3f8a58",
+          "#55b174",
+          "#7bc293",
+          "#a1d4b2",
+          "#c8e6d2",
+          "#eef7f1"
+        ]
+      },
+      "state-rewatch": {
+        "role": "tertiary",
+        "displayName": "Rewatch Amber (light)",
+        "canonical": "#b07a10",
+        "tonalRamp": [
+          "#402d06",
+          "#714f0a",
+          "#a2710f",
+          "#bb8d31",
+          "#caa660",
+          "#dac08e",
+          "#e9dabc",
+          "#f8f4eb"
+        ]
+      },
+      "state-rewatch-dark": {
+        "role": "tertiary",
+        "displayName": "Rewatch Amber (dark)",
+        "canonical": "#d9a23a",
+        "tonalRamp": [
+          "#392b0f",
+          "#644b1b",
+          "#906b26",
+          "#bb8c32",
+          "#dcaa4a",
+          "#e6c37f",
+          "#f0dbb4",
+          "#fbf4e8"
+        ]
+      },
+      "state-no-rewatch": {
+        "role": "tertiary",
+        "displayName": "No-Rewatch Lilac (light)",
+        "canonical": "#8a6bbf",
+        "tonalRamp": [
+          "#241c32",
+          "#403259",
+          "#5c477f",
+          "#775da5",
+          "#9478c5",
+          "#b39fd6",
+          "#d2c6e7",
+          "#f1eef8"
+        ]
+      },
+      "state-no-rewatch-dark": {
+        "role": "tertiary",
+        "displayName": "No-Rewatch Lilac (dark)",
+        "canonical": "#b29be0",
+        "tonalRamp": [
+          "#25202e",
+          "#413851",
+          "#5d5174",
+          "#786998",
+          "#9481bb",
+          "#b09ade",
+          "#d0c3ec",
+          "#f1edf9"
+        ]
+      },
+      "state-awful": {
+        "role": "tertiary",
+        "displayName": "Awful Blue (light)",
+        "canonical": "#2f5fb3",
+        "tonalRamp": [
+          "#112240",
+          "#1e3c71",
+          "#2a56a1",
+          "#4973bd",
+          "#7293cc",
+          "#9bb2db",
+          "#c4d2e9",
+          "#edf1f8"
+        ]
+      },
+      "state-awful-dark": {
+        "role": "tertiary",
+        "displayName": "Awful Blue (dark)",
+        "canonical": "#5b8fe0",
+        "tonalRamp": [
+          "#172438",
+          "#283f63",
+          "#3a5a8e",
+          "#4b76b8",
+          "#5e91e1",
+          "#8db1e9",
+          "#bcd1f2",
+          "#ebf1fb"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Masthead",
+        "purpose": "Page mastheads only, condensed 75% width."
+      },
+      "headline": {
+        "displayName": "Verdict Figure",
+        "purpose": "The figure inside the average box."
+      },
+      "title": {
+        "displayName": "Row Title",
+        "purpose": "Title names in table rows, condensed and truncated."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text and input values."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field and column labels, chips, state labels, hints."
+      }
+    },
+    "shadows": [
+      {
+        "name": "float",
+        "value": "0 6px 16px rgb(0 0 0 / 0.22)",
+        "purpose": "Only on the fixed Añadir action, which floats over scrolling rows."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-feedback",
+        "value": "150ms ease-out",
+        "purpose": "Background-colour and press-scale transitions on buttons, chips, theme options and rows."
+      },
+      {
+        "name": "press-scale",
+        "value": "scale(0.98)",
+        "purpose": "Active state of pressable controls."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "transition: none",
+        "purpose": "All transitions switch off under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "table-max",
+        "value": "760px"
+      }
+    ],
+    "themes": {
+      "mechanism": "Server-read cookie `theme` (system | light | dark) sets data-theme on <html>; dark tokens apply under [data-theme=dark] and under prefers-color-scheme: dark guarded by :root:not([data-theme=light]).",
+      "source": "src/lib/design/tokens.ts, mirrored by src/app/globals.css"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The ruled action: 2px ink border with a 4px bottom rule, never filled.",
+      "html": "<button class=\"ds-btn-primary\">Guardar</button>",
+      "css": ".ds-btn-primary{background:var(--paper);color:var(--ink);font-family:var(--font-sans);min-height:44px;padding:0 20px;font-size:1rem;border-radius:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 150ms ease-out,background-color 150ms ease-out;border:2px solid var(--ink);border-bottom-width:4px;font-weight:600}.ds-btn-primary:hover{background:var(--surface)}.ds-btn-primary:active{transform:scale(0.98)}.ds-btn-primary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}@media (prefers-reduced-motion:reduce){.ds-btn-primary{transition:none}}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Quiet alternative action on a Marked Rule hairline.",
+      "html": "<button class=\"ds-btn-secondary\">Cancelar</button>",
+      "css": ".ds-btn-secondary{background:var(--paper);color:var(--ink);font-family:var(--font-sans);min-height:44px;padding:0 20px;font-size:1rem;border-radius:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 150ms ease-out,background-color 150ms ease-out;border:1px solid var(--rule-strong)}.ds-btn-secondary:hover{background:var(--surface)}.ds-btn-secondary:active{transform:scale(0.98)}.ds-btn-secondary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}@media (prefers-reduced-motion:reduce){.ds-btn-secondary{transition:none}}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Underlined text action with no visible border.",
+      "html": "<button class=\"ds-btn-ghost\">Salir</button>",
+      "css": ".ds-btn-ghost{background:var(--paper);color:var(--ink);font-family:var(--font-sans);min-height:44px;padding:0 20px;font-size:1rem;border-radius:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 150ms ease-out,background-color 150ms ease-out;border:1px solid transparent;text-decoration:underline;text-underline-offset:4px}.ds-btn-ghost:hover{background:var(--surface)}.ds-btn-ghost:active{transform:scale(0.98)}.ds-btn-ghost:focus-visible{outline:2px solid var(--focus);outline-offset:2px}@media (prefers-reduced-motion:reduce){.ds-btn-ghost{transition:none}}"
+    },
+    {
+      "name": "Añadir",
+      "kind": "button",
+      "refersTo": "add-action",
+      "description": "The page's single floating primary action, fixed bottom right; the only shadow in the system.",
+      "html": "<button class=\"ds-add\"><svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M8 3v10M3 8h10\"/></svg>Añadir</button>",
+      "css": ".ds-add{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 16px;background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-bottom-width:4px;border-radius:0;font-family:var(--font-sans);font-stretch:75%;font-size:1.125rem;font-weight:700;box-shadow:0 6px 16px rgb(0 0 0/0.22);cursor:pointer;transition:transform 150ms ease-out,background-color 150ms ease-out}.ds-add:hover{background:var(--surface)}.ds-add:active{transform:scale(0.98)}.ds-add:focus-visible{outline:2px solid var(--focus);outline-offset:2px}@media (prefers-reduced-motion:reduce){.ds-add{transition:none}}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "text-field",
+      "description": "Square 44px field on a Marked Rule hairline; label above.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Buscar</span><input class=\"ds-input\" placeholder=\"Título\"></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:6px;font-family:var(--font-sans);color:var(--ink)}.ds-field-label{font-size:0.875rem;font-weight:500}.ds-input{min-height:44px;padding:0 12px;border:1px solid var(--rule-strong);border-radius:0;background:var(--paper);color:var(--ink);font-size:1rem;font-family:inherit}.ds-input::placeholder{color:var(--ink-muted)}.ds-input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}.ds-input[aria-invalid=true]{border:2px solid var(--state-urgent)}"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "filter-chip",
+      "description": "State filter; selected shows Pressed Paper, an ink hairline and a check.",
+      "html": "<div style=\"display:flex;gap:8px\"><button class=\"ds-chip\" aria-pressed=\"true\"><svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 8.5 6.2 11.7 13 4.8\"/></svg><span class=\"ds-sw\" style=\"background:var(--state-watched)\"></span>Vista</button><button class=\"ds-chip\" aria-pressed=\"false\"><span class=\"ds-sw\" style=\"background:var(--state-urgent)\"></span>Urgente</button></div>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:1px solid var(--rule-strong);border-radius:0;background:var(--paper);color:var(--ink);font-family:var(--font-sans);font-size:0.875rem;cursor:pointer;transition:transform 150ms ease-out,background-color 150ms ease-out}.ds-chip:hover{background:var(--surface)}.ds-chip:active{transform:scale(0.98)}.ds-chip[aria-pressed=true]{border-color:var(--ink);background:var(--surface);font-weight:600}.ds-chip:focus-visible{outline:2px solid var(--focus);outline-offset:2px}.ds-sw{display:inline-block;width:14px;height:14px}"
+    },
+    {
+      "name": "Average Box",
+      "kind": "custom",
+      "refersTo": "average-box",
+      "description": "The only inverted element: the average reversed out of an ink box; an outlined dash when empty.",
+      "html": "<span class=\"ds-avg\">7,63</span> <span class=\"ds-avg ds-avg-empty\">—</span>",
+      "css": ".ds-avg{display:inline-flex;align-items:center;justify-content:center;min-width:48px;min-height:40px;padding:0 6px;background:var(--inverse-bg);color:var(--inverse-ink);font-family:var(--font-sans);font-size:1.25rem;font-weight:800;font-variant-numeric:tabular-nums}.ds-avg-empty{background:transparent;color:var(--ink-muted);border:1px solid var(--rule-strong)}"
+    },
+    {
+      "name": "Critics' Table Row",
+      "kind": "card",
+      "refersTo": "critics-table-row",
+      "description": "The signature row: condensed title, year and state cell, two tabular scores, verdict box.",
+      "html": "<div class=\"ds-row\"><div><a class=\"ds-row-title\" href=\"#\">Perfect Days</a><div class=\"ds-row-meta\"><span>2023</span><span class=\"ds-sw\" style=\"background:var(--state-rewatch)\"></span><span>Repetir</span></div></div><span class=\"ds-num\">8,5</span><span class=\"ds-num\">7,75</span><span class=\"ds-avg\">8,13</span></div>",
+      "css": ".ds-row{display:grid;grid-template-columns:minmax(0,1fr) 2.75rem 2.75rem 3rem;align-items:center;column-gap:8px;height:60px;padding:0 4px;border-bottom:1px solid var(--rule);background:var(--paper);color:var(--ink);font-family:var(--font-sans);transition:background-color 150ms}.ds-row:hover{background:var(--surface)}.ds-row:focus-within{outline:2px solid var(--focus);outline-offset:-2px}.ds-row-title{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-stretch:75%;font-size:1.0625rem;line-height:1.2;font-weight:700;color:inherit;text-decoration:none}.ds-row-title:focus-visible{outline:none}.ds-row-meta{display:flex;align-items:center;gap:8px;font-size:0.875rem;color:var(--ink-muted);font-variant-numeric:tabular-nums}.ds-sw{display:inline-block;width:14px;height:14px}.ds-num{text-align:center;font-variant-numeric:tabular-nums}.ds-avg{display:inline-flex;align-items:center;justify-content:center;min-width:48px;min-height:40px;padding:0 6px;background:var(--inverse-bg);color:var(--inverse-ink);font-family:var(--font-sans);font-size:1.25rem;font-weight:800;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Masthead",
+      "kind": "nav",
+      "refersTo": "masthead",
+      "description": "Condensed display title with its count on the baseline, closed by a 2px ink rule.",
+      "html": "<div class=\"ds-mast\"><h1>Vistas</h1><span>276</span></div>",
+      "css": ".ds-mast{display:flex;align-items:baseline;gap:12px;padding-bottom:8px;border-bottom:2px solid var(--ink);color:var(--ink);font-family:var(--font-sans)}.ds-mast h1{margin:0;font-stretch:75%;font-size:2.75rem;line-height:1;font-weight:800;letter-spacing:-0.025em}.ds-mast span{font-size:1.5rem;font-weight:600;color:var(--ink-muted);font-variant-numeric:tabular-nums}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Critics' Table",
+    "overview": "Every title is a row in a film magazine's critics' panel: one column for María, one for Ignacio, and a verdict box at the right edge. The page is a ruled grid, not a wall of posters and not a stack of cards. Hairline rules carry the structure; a heavier ink rule closes the masthead and opens the table head. Type is one family, Archivo, used at two widths: condensed for titles, mastheads and the critics' names, normal width for everything you operate.\n\nThe world is restrained and nocturnal. It is built for a phone on a sofa in a dim room, so the dark theme is first-class: a near-black ground (never pure black) with warm off-white ink, mirrored by a light theme on cool paper (never pure white). Colour is reserved for the six watch states, each a small painted square beside its label, a nod to the Excel legend. Hierarchy comes from size contrast and one inversion: the average is the only element reversed out of the ground.\n\nSurfaces are flat and square. There is no radius anywhere, no decorative shadow, no gradient. Motion is limited to quick state feedback (150ms colour and a 0.98 press scale), always switched off under reduced motion.",
+    "keyCharacteristics": [
+      "Ruled grid of hairlines; heavy 2px ink rules only at the masthead foot and the table head.",
+      "Archivo variable: 75% width for titles, mastheads and critic names; normal width for UI; tabular figures for every number.",
+      "Neutral paper and ink in both themes; colour only in the state swatches.",
+      "The average box is the single inverted element.",
+      "Square corners everywhere; 44px minimum touch target on every control.",
+      "Theme follows Sistema / Claro / Oscuro, server-rendered via `data-theme` on `<html>`."
+    ],
+    "rules": [
+      {
+        "name": "The One Inversion Rule",
+        "body": "Only the average box reverses out of the ground. No button, chip, header or banner may use `inverse-bg`; selection and action are expressed by rules and tinted ground instead.",
+        "section": "colors"
+      },
+      {
+        "name": "The Painted Square Rule",
+        "body": "State colour appears only as a 14px square swatch, always next to its text label. Never tint text, rows, borders or backgrounds with a state hue. The one exception is the error border of a text field, which borrows Urgent Red and is always paired with an \"Error:\" text line.",
+        "section": "colors"
+      },
+      {
+        "name": "The Never-Pure Rule",
+        "body": "No `#fff` and no `#000`. Light is cool paper on near-black ink; dark is a near-black ground with warm off-white ink.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Widths Rule",
+        "body": "Condensed width is for names (titles, mastheads, critics, the Añadir label, guide words). Everything you read to operate stays at normal width.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Figures Rule",
+        "body": "Every score, average, year, count and date uses tabular figures. Scores use the Spanish decimal comma (7,25 · 7,5 · 8).",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Table Rule",
+        "body": "Nothing at rest casts a shadow except the floating Añadir action. Rows, chips, fields and buttons separate by rules and ground, never by elevation.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep both critics' scores side by side in equal columns; neither is privileged.",
+      "**Do** use condensed Archivo (75% width) for names and normal width for operating text.",
+      "**Do** use tabular figures and the decimal comma for every score and average.",
+      "**Do** show state as a 14px swatch plus its label.",
+      "**Do** keep every control at least 44px tall and every corner square.",
+      "**Do** express selection with Pressed Paper, an ink hairline and a check mark; express action with the heavy 2px/4px ink rules.",
+      "**Do** design the dark theme first-class and verify both themes, including the system-preference path.",
+      "**Do** switch transitions off under `prefers-reduced-motion`."
+    ],
+    "donts": [
+      "**Don't** invert anything except the average box.",
+      "**Don't** use state hues as text, row or background colour.",
+      "**Don't** use pure white or pure black.",
+      "**Don't** round corners or add shadows to anything resting in the page; the floating Añadir is the only shadow.",
+      "**Don't** replace the ruled table with a poster wall or a card list.",
+      "**Don't** use icons without text; icons are decorative."
+    ]
+  }
+}

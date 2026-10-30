@@ -65,3 +65,11 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** La exploración de `title-management` encontró el bloqueo de la regla 9 (D.1 y D.2 sin hacer) y el cambio quedó en pausa. D.1 se hizo con `impeccable`: `PRODUCT.md` y la dirección «Tabla de críticos», con su contrato en `.impeccable/surfaces/`. D.2 se hará como cambio SDD `design-system`.
 
 **Lección:** Antes de lanzar un paso con requisitos previos, comprobar que están hechos. La exploración lo detectó, pero el prompt del paso no lo recordaba.
+
+### 2026-10-30 · D.2 · sistema de diseño (SDD `design-system`)
+
+**Prompt:** El ciclo SDD `design-system`, lanzado a partir de «hazlos ahora, son parte del 1.6»: tokens, componentes base y tema claro y oscuro sobre la dirección «Tabla de críticos» de D.1.
+
+**Resultado:** Tokens con fuente única y tests de contraste y sincronización, Archivo con eje `wdth`, tema Sistema/Claro/Oscuro en cookie leída por el servidor, nueve componentes más `ThemeToggle` y `AddAction`, y el muestrario `/sistema`. Tras la revisión final, 524 tests de Vitest y 34 de Playwright; `DESIGN.md` y `.impeccable/design.json` escritos a partir de lo construido.
+
+**Lección:** La revisión final con capturas encontró problemas que los tests no podían ver: la acción principal, lo seleccionado y el error compartían el mismo aspecto. Las capturas con barras de desplazamiento clásicas recortaban 15 px; hay que ocultarlas antes de capturar. Una decisión que contradice la documentación del framework (tema leído en el servidor en lugar de un script en línea) conviene validarla con un spike de build antes de construir encima.

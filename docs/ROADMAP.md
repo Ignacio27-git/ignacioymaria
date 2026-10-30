@@ -265,7 +265,7 @@ Comprueba cada pantalla con el MCP de Playwright en escritorio y móvil.
 
 **Revisar.** Que en el móvil se puede añadir y puntuar una película en menos de 30 segundos.
 
-**Notas:** 2026-10-30 · Exploración SDD de `title-management` hecha y guardada en Engram. El cambio quedó en pausa porque la regla 9 lo bloqueaba: D.1 y D.2 no estaban hechos. D.1 ya está terminado. D.2 va en el cambio SDD `design-system`. Al retomar el 1.6 quedan 14 preguntas de producto por resolver antes de la propuesta. La exploración recomienda partir el paso en cuatro cambios: datos, alta, ficha y listas.
+**Notas:** 2026-10-30 · Exploración SDD de `title-management` hecha y guardada en Engram. El cambio quedó en pausa porque la regla 9 lo bloqueaba: D.1 y D.2 no estaban hechos. D.1 ya está terminado. D.2 también, con el cambio SDD `design-system`. Al retomar el 1.6 quedan 14 preguntas de producto por resolver antes de la propuesta. La exploración recomienda partir el paso en cuatro cambios: datos, alta, ficha y listas.
 
 ---
 
@@ -297,7 +297,7 @@ clara. Debe ser idempotente y generar un informe de filas dudosas para revisarla
 Va en paralelo a la Fase 1. El detalle de cada paso está en `docs/DESIGN-ROADMAP.md`.
 
 - [x] **D.1 · Dirección visual.** Personalidad, referencias, tipografía y color con `impeccable`.
-- [ ] **D.2 · Sistema de diseño.** Tokens, componentes base, tema claro y oscuro.
+- [x] **D.2 · Sistema de diseño.** Tokens, componentes base, tema claro y oscuro.
 - [ ] **D.3 · Pantallas clave.** Listas, ficha, alta y login sobre el sistema de diseño.
 - [ ] **D.4 · Movimiento.** Transiciones y microinteracciones con `animate` y `emil-design-eng`.
 - [ ] **D.5 · Pulido.** Accesibilidad, rendimiento, móvil (`mobile-native`) y capturas con Playwright.
@@ -385,3 +385,5 @@ propio ciclo SDD.
 | 2026-10-30 | 1.5 | Fase 0 (variable `TMDB_READ_ACCESS_TOKEN` en `.env.example` y `.env.local`) queda a cargo de la persona | Los permisos del agente bloquean los archivos `.env*` |
 | 2026-10-30 | 1.5 | Un único PR con excepción de tamaño aceptada; el diff real supera el forecast | Los tests son cerca de la mitad del diff; el usuario aceptó no dividir |
 | 2026-10-30 | 1.6 | Se pausó tras la exploración para hacer D.1 y D.2 en la misma sesión; D.2 va como cambio SDD propio `design-system` | La regla 9 exige D.1 y D.2 antes del 1.6; la persona pidió hacerlos ya |
+| 2026-10-30 | D.2 | Un único PR con excepción de tamaño para `design-system` | El usuario aceptó no dividir el cambio |
+| 2026-10-30 | D.2 | Para `pnpm start` y los E2E, las variables de Supabase se exportan en la shell desde `pnpm exec supabase status -o env` (más `SITE_URL`) | Los agentes no pueden leer `.env.local` y no traía `NEXT_PUBLIC_SUPABASE_*` |

@@ -25,11 +25,19 @@ Esqueleto de los pasos de diseño `D.n` de la Fase D de `docs/ROADMAP.md`. Aquí
 
 ---
 
-## [ ] D.2 · Sistema de diseño
+## [x] D.2 · Sistema de diseño
 
 **Objetivo.** Tokens, componentes base, tema claro y oscuro.
 
-**Notas:**
+**Notas:** 2026-10-30 · Hecho como cambio SDD `design-system` (commits `92b2c01` a `324941c`, un único PR con excepción de tamaño). Decisiones D-47 a D-57.
+- **Tokens.** Colores claros y oscuros con `src/lib/design/tokens.ts` como única fuente, replicados en `globals.css` y comprobados con tests de sincronización y de contraste AA.
+- **Tipografía.** Archivo con eje `wdth` mediante `next/font`; la anchura estrecha usa `font-stretch: 75%`.
+- **Tema.** Sistema, Claro y Oscuro, guardado en una cookie que lee el servidor (sin parpadeo), con `ThemeToggle` en `/` y `/sistema`.
+- **Componentes.** Nueve componentes base (`Button`, `TextField`, `StateCell`, `ScoreFigure`, `AverageBox`, `FilterChip`, `SortControl`, `CriticsTable`, `Masthead`) más `ThemeToggle` y `AddAction`, con tests de accesibilidad (axe) por componente. El login y la portada ya usan el sistema.
+- **Muestrario.** `/sistema` (protegido por sesión) enseña todos los componentes con datos de muestra del servidor; los E2E lo recorren en ambos temas, a 1280 y a 390 px.
+- **Revisión final de `impeccable`.** Nuevas capturas, revisión con 7 correcciones materiales (aspecto propio para acción principal, seleccionado y error; acción «Añadir»; media vacía con borde; filtros completos en escritorio y alineados con el margen; palabras guía; reglas de la tabla; flecha propia del orden) y entrega sobre esas correcciones. `DESIGN.md` y `.impeccable/design.json` los escribió el documentador a partir de lo construido.
+- **Pendiente para el paso 1.6.** La interacción de «sello» con alternativa para movimiento reducido y el anclaje de «Añadir» en escritorio.
+- **Pruebas.** 524 tests unitarios y 34 E2E (7 de acceso y 27 de interfaz) en verde, con lint, typecheck y build limpios.
 
 ---
 
@@ -62,3 +70,6 @@ Esqueleto de los pasos de diseño `D.n` de la Fase D de `docs/ROADMAP.md`. Aquí
 | Fecha | Paso | Qué cambió | Por qué |
 |---|---|---|---|
 | 2026-10-30 | D.1 | D.1 se hizo en la misma sesión que el arranque del paso 1.6, que se pausó tras la exploración | Lo pidió la persona: D.1 y D.2 son el requisito previo del 1.6. D.2 va en su propio cambio SDD `design-system` |
+| 2026-10-30 | D.2 | Se añadió un selector de tema (Sistema, Claro, Oscuro) guardado en cookie, cuando D.1 solo pedía seguir al sistema | Decisión del usuario antes de la propuesta; el valor por defecto sigue siendo el del sistema (D-50) |
+| 2026-10-30 | D.2 | Componente extra `AddAction` («Añadir»), fuera de los nueve previstos | Lo pidió la revisión final de `impeccable`; su anclaje en escritorio queda para el 1.6 |
+| 2026-10-30 | D.2 | Un único PR de unas 4200 líneas añadidas (65 archivos) con excepción de tamaño | Aceptado por el usuario antes de la propuesta; los tests son buena parte del diff |
