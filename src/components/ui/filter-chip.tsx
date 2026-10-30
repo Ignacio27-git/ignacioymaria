@@ -29,7 +29,8 @@ export function FilterChip({
       type="button"
       {...props}
       aria-pressed={pressed}
-      onClick={() => onToggle?.(!pressed)}
+      // No handler without onToggle: a server-rendered chip must not carry a function.
+      onClick={onToggle ? () => onToggle(!pressed) : undefined}
       className={cx(
         "inline-flex min-h-11 shrink-0 snap-start items-center gap-2 whitespace-nowrap",
         "border bg-paper px-3 text-sm text-ink",

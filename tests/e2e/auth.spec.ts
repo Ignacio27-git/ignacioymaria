@@ -1,33 +1,14 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import { withDb } from "./db";
 import { E2E_PEOPLE } from "./global-setup";
 import { noNewMail, snapshotMailbox, waitForMagicLink } from "./mailpit";
+import { requestLink, signIn } from "./session";
 
 const [ignacio, maria] = E2E_PEOPLE;
 const OUTSIDER = "e2e-outsider@example.test";
-const NEUTRAL = "Si este correo puede entrar, te llegará un enlace.";
-
-// The local auth server throttles repeated requests for one address (1 s).
-const SAME_ADDRESS_GAP_MS = 1_100;
 
 test.describe.configure({ mode: "serial" });
-
-async function requestLink(page: Page, typed: string) {
-  await page.waitForTimeout(SAME_ADDRESS_GAP_MS);
-  await page.goto("/login");
-  await page.getByLabel("Correo electrónico").fill(typed);
-  await page.getByRole("button", { name: "Enviar enlace" }).click();
-  await expect(page.getByRole("status")).toHaveText(NEUTRAL);
-}
-
-async function signIn(page: Page, email: string) {
-  const known = await snapshotMailbox(email);
-  await requestLink(page, email);
-  const link = await waitForMagicLink(email, known);
-  await page.goto(link);
-  return link;
-}
 
 test("an allowlisted person signs in, stays signed in and signs out", async ({ page }) => {
   await signIn(page, ignacio.email);

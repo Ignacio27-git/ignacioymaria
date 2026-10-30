@@ -51,7 +51,8 @@ export function SortControl({
         name={name}
         value={value}
         defaultValue={value === undefined ? defaultValue : undefined}
-        onChange={handleChange}
+        // No handler without onChange: a server-rendered select must not carry a function.
+        onChange={onChange ? handleChange : undefined}
         className="min-h-11 border border-rule-strong bg-paper px-3 text-sm text-ink"
       >
         {options.map((option) => (

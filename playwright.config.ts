@@ -15,9 +15,18 @@ export default defineConfig({
     baseURL,
     trace: "on-first-retry",
   },
+  // D-57: Supabase signOut() is global, so the auth specs (which sign out)
+  // finish before the ui specs (which reuse a saved session) start.
   projects: [
     {
-      name: "chromium",
+      name: "auth",
+      testMatch: "**/auth.spec.ts",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "ui",
+      testMatch: "**/design-system.spec.ts",
+      dependencies: ["auth"],
       use: { ...devices["Desktop Chrome"] },
     },
   ],
