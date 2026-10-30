@@ -41,14 +41,20 @@ test("builds a minimal movie with every default and no seasonsWatched key", () =
     actors: [],
     watchDate: { kind: "unknown" },
     scores: { maria: null, ignacio: null },
+    tmdbId: null,
+    posterPath: null,
   });
   expect("seasonsWatched" in value).toBe(false);
+  expect("seasonsTotal" in value).toBe(false);
 });
 
-test("builds a minimal series with seasonsWatched null", () => {
+test("builds a minimal series with seasonsWatched and seasonsTotal null", () => {
   expect(valueOf(series)).toMatchObject({
     kind: "series",
     seasonsWatched: null,
+    seasonsTotal: null,
+    tmdbId: null,
+    posterPath: null,
   });
 });
 
@@ -110,6 +116,67 @@ test("a movie never carries seasonsWatched", () => {
     false,
   );
 });
+
+// TMDB fields (S-TM-1..4)
+test("accepts the TMDB fields on a series", () => {
+  expect(
+    valueOf({
+      ...series,
+      tmdbId: 1399,
+      posterPath: "/p.jpg",
+      seasonsTotal: 8,
+    }),
+  ).toMatchObject({ tmdbId: 1399, posterPath: "/p.jpg", seasonsTotal: 8 });
+});
+
+test("accepts tmdbId and posterPath on a movie", () => {
+  expect(valueOf({ ...movie, tmdbId: 603, posterPath: "/m.png" })).toMatchObject(
+    { tmdbId: 603, posterPath: "/m.png" },
+  );
+});
+
+test("seasonsWatched and seasonsTotal are independent", () => {
+  expect(
+    valueOf({ ...series, seasonsWatched: 5, seasonsTotal: 2 }),
+  ).toMatchObject({ seasonsWatched: 5, seasonsTotal: 2 });
+});
+
+test.each([undefined, null])("series seasonsTotal %j is null", (seasonsTotal) => {
+  expect(valueOf({ ...series, seasonsTotal })).toMatchObject({
+    seasonsTotal: null,
+  });
+});
+
+test.each([0, -1, 1.5, "3", NaN])("rejects tmdbId %j", (tmdbId) => {
+  expect(errorsOf({ ...movie, tmdbId })).toEqual([
+    { field: "tmdbId", code: "not_positive_integer" },
+  ]);
+});
+
+test.each(["", "p.jpg", 5])("rejects posterPath %j", (posterPath) => {
+  expect(errorsOf({ ...movie, posterPath })).toEqual([
+    { field: "posterPath", code: "invalid_path" },
+  ]);
+});
+
+test.each([0, -2, 2.5, "3"])("rejects seasonsTotal %j", (seasonsTotal) => {
+  expect(errorsOf({ ...series, seasonsTotal })).toEqual([
+    { field: "seasonsTotal", code: "not_positive_integer" },
+  ]);
+});
+
+test("rejects a movie that carries seasonsTotal", () => {
+  expect(errorsOf({ ...movie, seasonsTotal: 2 })).toEqual([
+    { field: "seasonsTotal", code: "not_allowed_for_kind" },
+  ]);
+});
+
+test.each([undefined, null])(
+  "a movie with seasonsTotal %j is valid and has no key",
+  (seasonsTotal) => {
+    expect("seasonsTotal" in valueOf({ ...movie, seasonsTotal })).toBe(false);
+  },
+);
 
 // State (S1.x, S9.8)
 test.each(WATCH_STATES.flatMap((s) => [movie, series].map((b) => [b, s] as const)))(

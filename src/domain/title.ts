@@ -19,6 +19,9 @@ interface TitleBase {
   readonly observations: string | null;
   readonly watchDate: WatchDate;
   readonly state: WatchState;
+  readonly tmdbId: number | null;
+  /** TMDB poster path (starts with "/"); the image URL is built at render time. */
+  readonly posterPath: string | null;
   readonly scores: {
     readonly maria: Score | null;
     readonly ignacio: Score | null;
@@ -29,6 +32,8 @@ export type Movie = TitleBase & { readonly kind: "movie" };
 export type Series = TitleBase & {
   readonly kind: "series";
   readonly seasonsWatched: number | null;
+  /** Seasons TMDB reports; independent of seasonsWatched. */
+  readonly seasonsTotal: number | null;
 };
 export type Title = Movie | Series;
 
@@ -39,6 +44,9 @@ export type TitleInput = {
   state?: WatchState;
   year?: number | null;
   seasonsWatched?: number | null;
+  seasonsTotal?: number | null;
+  tmdbId?: number | null;
+  posterPath?: string | null;
   actors?: readonly string[];
   observations?: string | null;
   watchDate?: WatchDate;
@@ -52,6 +60,9 @@ export type TitleError =
   | { field: "state"; code: "invalid_state" }
   | { field: "year"; code: "not_integer" }
   | { field: "seasonsWatched"; code: "not_non_negative_integer" }
+  | { field: "seasonsTotal"; code: "not_positive_integer" | "not_allowed_for_kind" }
+  | { field: "tmdbId"; code: "not_positive_integer" }
+  | { field: "posterPath"; code: "invalid_path" }
   | { field: "actors"; code: "not_an_array" }
   | { field: `actors.${number}`; code: "not_a_string" }
   | { field: "observations"; code: "not_a_string" }
@@ -63,6 +74,14 @@ type Scores = TitleBase["scores"];
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 1;
+}
+
+function isPosterPath(value: unknown): value is string {
+  return typeof value === "string" && value.startsWith("/");
 }
 
 function parseScores(raw: unknown, errors: TitleError[]): Scores {
@@ -130,6 +149,29 @@ export function createTitle(
     }
   }
 
+  let seasonsTotal: number | null = null;
+  const total = input.seasonsTotal;
+  if (total !== undefined && total !== null) {
+    if (kind === "movie") {
+      errors.push({ field: "seasonsTotal", code: "not_allowed_for_kind" });
+    } else if (kind === "series") {
+      if (isPositiveInteger(total)) seasonsTotal = total;
+      else errors.push({ field: "seasonsTotal", code: "not_positive_integer" });
+    }
+  }
+
+  let tmdbId: number | null = null;
+  if (input.tmdbId !== undefined && input.tmdbId !== null) {
+    if (isPositiveInteger(input.tmdbId)) tmdbId = input.tmdbId;
+    else errors.push({ field: "tmdbId", code: "not_positive_integer" });
+  }
+
+  let posterPath: string | null = null;
+  if (input.posterPath !== undefined && input.posterPath !== null) {
+    if (isPosterPath(input.posterPath)) posterPath = input.posterPath;
+    else errors.push({ field: "posterPath", code: "invalid_path" });
+  }
+
   let actors: readonly string[] = [];
   if (input.actors !== undefined) {
     if (!Array.isArray(input.actors)) {
@@ -172,11 +214,13 @@ export function createTitle(
     observations,
     watchDate,
     state,
+    tmdbId,
+    posterPath,
     scores,
   };
   return ok(
     kind === "series"
-      ? { ...base, kind: "series", seasonsWatched }
+      ? { ...base, kind: "series", seasonsWatched, seasonsTotal }
       : { ...base, kind: "movie" },
   );
 }
