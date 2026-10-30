@@ -3,6 +3,8 @@
 import { useActionState } from "react";
 
 import { requestMagicLinkAction } from "@/app/_actions/auth";
+import { Button } from "@/components/ui/button";
+import { TextField } from "@/components/ui/text-field";
 import type { SignInState } from "@/server/auth/send-magic-link";
 
 const MESSAGES: Record<Exclude<SignInState["status"], "idle">, string> = {
@@ -21,13 +23,21 @@ export function LoginForm() {
   );
 
   return (
-    <form action={formAction} noValidate>
-      <label htmlFor="email">Correo electrónico</label>
-      <input id="email" name="email" type="email" autoComplete="email" />
-      <button type="submit" disabled={isPending}>
+    <form action={formAction} noValidate className="flex flex-col gap-5">
+      <TextField
+        label="Correo electrónico"
+        name="email"
+        type="email"
+        autoComplete="email"
+      />
+      <Button type="submit" disabled={isPending} aria-busy={isPending}>
         Enviar enlace
-      </button>
-      {state.status !== "idle" && <p role="status">{MESSAGES[state.status]}</p>}
+      </Button>
+      {state.status !== "idle" && (
+        <p role="status" className="text-ink">
+          {MESSAGES[state.status]}
+        </p>
+      )}
     </form>
   );
 }

@@ -7,6 +7,9 @@ vi.mock("@/app/_actions/auth", () => ({ signOutAction: vi.fn() }));
 vi.mock("./person-gate", () => ({
   PersonGate: () => <p>Sesión iniciada como Ignacio</p>,
 }));
+vi.mock("./theme-section", () => ({
+  ThemeSection: () => <p>Selector de tema</p>,
+}));
 
 test("renders the home heading", () => {
   render(<Home />);
@@ -21,4 +24,10 @@ test("renders the signed-in person and a sign-out button", () => {
 
   expect(screen.getByText("Sesión iniciada como Ignacio")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Salir" })).toBeInTheDocument();
+});
+
+test("renders the theme selector", () => {
+  render(<Home />);
+
+  expect(screen.getByText("Selector de tema")).toBeInTheDocument();
 });
