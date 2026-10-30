@@ -13,7 +13,7 @@ select columns_are(
   array[
     'id', 'name', 'kind', 'year', 'actors', 'observations', 'watch_date',
     'state', 'score_maria', 'score_ignacio', 'seasons_watched',
-    'created_at', 'updated_at', 'tmdb_id', 'poster_path', 'seasons_total'
+    'created_at', 'updated_at', 'tmdb_id', 'poster_path', 'seasons_total', 'name_search'
   ],
   'TS-1.1 titles has exactly the specified columns'
 );
