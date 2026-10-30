@@ -46,3 +46,27 @@ test("has no accessibility violations as link or button", async () => {
 
   await expectNoAxeViolations(container);
 });
+
+test("sits in a click-through wrapper anchored to the 760px column (DS-1)", () => {
+  render(<AddAction href="/x" />);
+
+  const link = screen.getByRole("link", { name: "Añadir" });
+  const track = link.parentElement;
+  const wrapper = track?.parentElement;
+
+  expect(wrapper).toHaveClass("fixed", "pointer-events-none");
+  expect(track).toHaveClass("max-w-table", "mx-auto", "flex", "justify-end");
+  expect(link).toHaveClass("pointer-events-auto");
+  expect(link).not.toHaveClass("fixed");
+});
+
+test("the button variant lives in the same anchored wrapper", () => {
+  render(<AddAction />);
+
+  const button = screen.getByRole("button", { name: "Añadir" });
+  expect(button.parentElement?.parentElement).toHaveClass(
+    "fixed",
+    "pointer-events-none",
+  );
+  expect(button).toHaveClass("pointer-events-auto");
+});

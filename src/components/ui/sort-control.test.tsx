@@ -130,3 +130,56 @@ test("draws its own chevron: decorative, after the select, outside the tab order
   expect(chevron).toHaveAttribute("focusable", "false");
   expect(container.querySelectorAll("svg")).toHaveLength(1);
 });
+
+test("attaches no onChange to the select without a callback (DS-3)", () => {
+  const element = SortControl({ label: "Ordenar", name: "orden", options: OPTIONS });
+
+  expect(findSelect(element)?.props?.onChange).toBeUndefined();
+});
+
+test("attaches onChange when the callback is present (DS-3)", () => {
+  const element = SortControl({
+    label: "Ordenar",
+    name: "orden",
+    options: OPTIONS,
+    onChange: vi.fn(),
+  });
+
+  expect(findSelect(element)?.props?.onChange).toBeTypeOf("function");
+});
+
+test("supports the priority key for Pendientes", () => {
+  const onChange = vi.fn();
+  render(
+    <SortControl
+      label="Ordenar"
+      name="orden"
+      options={[
+        { key: "priority", direction: "desc", label: "Urgente primero" },
+        { key: "score", direction: "desc", label: "Nota" },
+      ]}
+      value="priority:desc"
+      onChange={onChange}
+    />,
+  );
+
+  expect(screen.getByLabelText("Ordenar")).toHaveValue("priority:desc");
+  fireEvent.change(screen.getByLabelText("Ordenar"), {
+    target: { value: "score:desc" },
+  });
+  expect(onChange).toHaveBeenLastCalledWith({ key: "score", direction: "desc" });
+});
+
+type Node = { type?: unknown; props?: { children?: unknown; onChange?: unknown } };
+
+function findSelect(node: unknown): Node | undefined {
+  if (!node || typeof node !== "object") return undefined;
+  const element = node as Node;
+  if (element.type === "select") return element;
+  const children = element.props?.children;
+  for (const child of Array.isArray(children) ? children : [children]) {
+    const found = findSelect(child);
+    if (found) return found;
+  }
+  return undefined;
+}

@@ -570,3 +570,41 @@ test.describe("screenshots", () => {
     });
   }
 });
+
+// DS-2: the server markup and the first client render must agree. The guard
+// listens for React's hydration warnings (console errors and page errors) while
+// the page loads and the theme toggle is used in both themes.
+test.describe("hydration console guard", () => {
+  const HYDRATION = /hydrat|did not match|server rendered html/i;
+
+  for (const scheme of SCHEMES) {
+    test(`/sistema logs no hydration warning in ${scheme}`, async ({
+      browser,
+    }) => {
+      const context = await openContext(browser, {
+        viewport: DESKTOP,
+        colorScheme: scheme,
+      });
+      const page = await context.newPage();
+      const problems: string[] = [];
+      page.on("console", (message) => {
+        if (["error", "warning"].includes(message.type())) {
+          problems.push(message.text());
+        }
+      });
+      page.on("pageerror", (error) => problems.push(error.message));
+
+      await page.goto("/sistema");
+      await waitForThemeToggle(page);
+      await themeOption(page, "Oscuro").click();
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+      await themeOption(page, "Sistema").click();
+      await expect(page.locator("html")).not.toHaveAttribute("data-theme");
+      await page.reload();
+      await waitForThemeToggle(page);
+
+      expect(problems.filter((text) => HYDRATION.test(text))).toEqual([]);
+      await context.close();
+    });
+  }
+});

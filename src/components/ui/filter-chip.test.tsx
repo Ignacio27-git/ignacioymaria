@@ -136,3 +136,19 @@ test("the chip row stays a labelled group", () => {
     screen.getByRole("group", { name: "Filtrar por estado" }),
   ).toBeInTheDocument();
 });
+
+test("attaches no onClick when onToggle is absent (DS-3)", () => {
+  const element = FilterChip({ pressed: true, children: "Vista" });
+
+  expect(element.props.onClick).toBeUndefined();
+  expect(element.props["aria-pressed"]).toBe(true);
+});
+
+test("keeps the callback wired when onToggle is present (DS-3)", () => {
+  const onToggle = vi.fn();
+  const element = FilterChip({ pressed: false, onToggle, children: "Vista" });
+
+  expect(element.props.onClick).toBeTypeOf("function");
+  element.props.onClick();
+  expect(onToggle).toHaveBeenCalledWith(true);
+});

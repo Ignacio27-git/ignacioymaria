@@ -265,7 +265,10 @@ Comprueba cada pantalla con el MCP de Playwright en escritorio y móvil.
 
 **Revisar.** Que en el móvil se puede añadir y puntuar una película en menos de 30 segundos.
 
-**Notas:** 2026-10-30 · Exploración SDD de `title-management` hecha y guardada en Engram. El cambio quedó en pausa porque la regla 9 lo bloqueaba: D.1 y D.2 no estaban hechos. D.1 ya está terminado. D.2 también, con el cambio SDD `design-system`. Al retomar el 1.6 quedan 14 preguntas de producto por resolver antes de la propuesta. La exploración recomienda partir el paso en cuatro cambios: datos, alta, ficha y listas.
+**Notas:** 2026-10-30 · Cambio SDD `title-management`, un único cambio y un único PR con excepción de tamaño (decisión de la persona). Las preguntas de producto están resueltas (Engram #823 y #827). Propuesta, specs, diseño y tareas en Engram (#824 a #828); el progreso de apply está en #829.
+- **Hecho:** lotes A a E, en los commits `87a53fd` a `fd229c3`. Incluyen la migración con `fold_search`, `name_search` y el índice único `(kind, tmdb_id)`, el dominio, el repositorio, los casos de uso, las Server Actions y el doble de TMDB para los E2E.
+- **A medias:** lotes F y G (componentes de interfaz, layout `(catalog)` y listas). El commit es de trabajo en curso; typecheck y 804 tests están en verde, pero lint y build no se han comprobado. Al retomar, revisar qué tareas de F y G faltan, en #828 y en el diff de ese commit.
+- **Pendiente:** lotes H (alta y ficha), I (E2E) y J (comprobación con el MCP de Playwright y documentación: DECISIONS D-58 a D-70, ARCHITECTURE, DESIGN-ROADMAP, PROMPTS). Después, verify y archive.
 
 ---
 

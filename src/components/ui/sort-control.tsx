@@ -3,7 +3,8 @@ import type { ChangeEvent } from "react";
 import { cx } from "./cx";
 import { ChevronDown } from "./icons";
 
-export type SortKey = "score" | "date" | "name";
+/** `priority` is Pendientes' default: Urgente first, then the most recently added. */
+export type SortKey = "score" | "date" | "name" | "priority";
 export type SortDirection = "asc" | "desc";
 export type SortValue = `${SortKey}:${SortDirection}`;
 

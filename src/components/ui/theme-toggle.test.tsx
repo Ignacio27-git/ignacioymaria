@@ -1,4 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import { setThemeAction } from "@/app/_actions/theme";
@@ -108,4 +110,30 @@ test("only the selected option carries the decorative check", () => {
   const dark = screen.getByRole("radio", { name: "Oscuro" }).closest("label");
   expect(dark?.querySelector("svg")).not.toBeNull();
   expect(container.querySelectorAll("svg")).toHaveLength(1);
+});
+
+test("hydrates the server markup without a mismatch warning (DS-2)", async () => {
+  const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+  const server = renderToString(<ThemeToggle value="dark" />);
+  const container = document.createElement("div");
+  container.innerHTML = server;
+  document.body.append(container);
+
+  await act(async () => {
+    hydrateRoot(container, <ThemeToggle value="dark" />);
+  });
+
+  expect(errors).not.toHaveBeenCalled();
+  expect(container.querySelector<HTMLInputElement>("input:checked")?.value).toBe(
+    "dark",
+  );
+  errors.mockRestore();
+  container.remove();
+});
+
+test("the first render checks exactly the server-provided preference", () => {
+  const html = renderToString(<ThemeToggle value="light" />);
+
+  expect(html.match(/checked=""/g)).toHaveLength(1);
+  expect(html).toMatch(/value="light"[^>]*checked=""|checked=""[^>]*value="light"/);
 });
