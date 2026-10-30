@@ -20,5 +20,5 @@ export {
   WATCH_STATES,
 } from "./watch-state";
 export type { WatchState } from "./watch-state";
-export { isPerson, PEOPLE } from "./person";
+export { isPerson, PEOPLE, PERSON_LABELS } from "./person";
 export type { Person } from "./person";
