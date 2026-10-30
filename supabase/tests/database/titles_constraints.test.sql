@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(73);
+select plan(72);
 
 -- TS-1.1: table shape.
 select has_table('public', 'titles', 'TS-1.1 titles exists');
@@ -13,12 +13,11 @@ select columns_are(
   array[
     'id', 'name', 'kind', 'year', 'actors', 'observations', 'watch_date',
     'state', 'score_maria', 'score_ignacio', 'seasons_watched',
-    'created_at', 'updated_at'
+    'created_at', 'updated_at', 'tmdb_id', 'poster_path', 'seasons_total'
   ],
   'TS-1.1 titles has exactly the specified columns'
 );
 select hasnt_column('public', 'titles', 'owner_id', 'TS-1.1 no owner_id');
-select hasnt_column('public', 'titles', 'tmdb_id', 'TS-1.1 no TMDB column');
 select hasnt_column('public', 'titles', 'average', 'TS-1.1 no stored average');
 select col_is_pk('public', 'titles', 'id', 'TS-1.1 id is the primary key');
 select col_not_null('public', 'titles', 'name', 'TS-1.1 name not null');
