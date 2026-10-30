@@ -6,6 +6,17 @@ const nextConfig: NextConfig = {
   // the cookie host (see docs/DECISIONS.md).
   allowedDevOrigins: ["127.0.0.1"],
   cacheComponents: true,
+  // Narrow on purpose: only w342 posters can go through the image optimizer
+  // (see posterUrl in src/lib/tmdb/poster-url.ts).
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "image.tmdb.org",
+        pathname: "/t/p/w342/**",
+      },
+    ],
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {
