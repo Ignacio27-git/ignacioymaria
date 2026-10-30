@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo } from "next/font/google";
+import { cookies } from "next/headers";
+import { Suspense } from "react";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const archivo = Archivo({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  axes: ["wdth"],
+  variable: "--font-archivo",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -17,13 +16,28 @@ export const metadata: Metadata = {
   description: "Películas y series de Ignacio y María",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+// Spike (D-50): the theme cookie is read on the server so the initial HTML
+// already carries data-theme. "system" (or anything else) omits the attribute.
+async function ThemedDocument({ children }: { children: React.ReactNode }) {
+  const store = await cookies();
+  const theme = store.get("theme")?.value;
+  const dataTheme = theme === "dark" || theme === "light" ? theme : undefined;
+
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      data-theme={dataTheme}
+      className={`${archivo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
+  );
+}
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
+  return (
+    <Suspense>
+      <ThemedDocument>{children}</ThemedDocument>
+    </Suspense>
   );
 }
