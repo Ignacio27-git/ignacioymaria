@@ -11,14 +11,16 @@ export type AddActionProps = { className?: string } & (
 
 // Fixed to the bottom, inside the thumb's reach and clear of the home indicator.
 // The full-width wrapper ignores pointer events; its inner track is as wide as
-// the centred 760px column, so from the desktop breakpoint the action hugs the
-// column's right edge instead of the viewport's (DS-1, D-67). Same ruled look
+// the centred 760px column and carries the pages' own horizontal padding
+// (px-4, sm:px-6), so from the desktop breakpoint the action lines up with the
+// content's right edge, not the viewport's or the padded box's (DS-1, D-67).
+// Safe-area insets still win on a phone. Same ruled look
 // as the primary Button (never inverted, R4), with a soft shadow because it
 // floats over scrolling rows.
 const WRAPPER =
   "pointer-events-none fixed inset-x-0 z-20 bottom-[max(1rem,env(safe-area-inset-bottom))]";
 const TRACK =
-  "mx-auto flex max-w-table justify-end px-[max(1rem,env(safe-area-inset-right))] md:px-[env(safe-area-inset-right)]";
+  "mx-auto flex max-w-table justify-end px-[max(1rem,env(safe-area-inset-right))] sm:px-[max(1.5rem,env(safe-area-inset-right))]";
 const LOOK = [
   "pointer-events-auto",
   "inline-flex min-h-12 items-center justify-center gap-2 px-4",

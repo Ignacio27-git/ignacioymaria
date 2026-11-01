@@ -85,6 +85,22 @@ test("FilterChipRow is a labelled group of chips", () => {
   expect(group).toContainElement(screen.getByRole("button", { name: "Vista" }));
 });
 
+test("FilterChipRow scrolls sideways on phones with its scrollbar hidden", () => {
+  render(
+    <FilterChipRow label="Filtros">
+      <FilterChip pressed={false}>Vista</FilterChip>
+    </FilterChipRow>,
+  );
+
+  const group = screen.getByRole("group");
+  expect(group).toHaveClass(
+    "overflow-x-auto",
+    "[scrollbar-width:none]",
+    "[&::-webkit-scrollbar]:hidden",
+  );
+  expect(group).not.toHaveClass("[scrollbar-width:thin]");
+});
+
 test("forwards className on chip and row", () => {
   render(
     <FilterChipRow label="Filtros" className="row-extra">

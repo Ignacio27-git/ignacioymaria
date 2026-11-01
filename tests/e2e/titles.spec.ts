@@ -476,22 +476,26 @@ test.describe("pages at every viewport and theme", () => {
     }
   }
 
-  test("at 1440px Añadir sits on the right edge of the 760px column", async ({
-    browser,
-  }) => {
-    const { context, page } = await openPage(browser, { viewport: WIDE });
+  // `main`'s box includes its horizontal padding, so the visible content edge
+  // is the right edge of the critics table, not of `main`.
+  for (const viewport of [DESKTOP, WIDE]) {
+    test(`at ${viewport.width}px Añadir aligns with the table's right edge`, async ({
+      browser,
+    }) => {
+      const { context, page } = await openPage(browser, { viewport });
 
-    for (const path of ["/vistas", "/pendientes"]) {
-      await page.goto(path);
-      await page.waitForLoadState("networkidle");
-      const main = (await page.getByRole("main").boundingBox())!;
-      const add = (await page.getByRole("link", { name: "Añadir" }).boundingBox())!;
-      expect(main.width).toBeLessThanOrEqual(760);
-      expect(Math.abs(add.x + add.width - (main.x + main.width))).toBeLessThanOrEqual(1);
-      expect(add.x).toBeGreaterThan(main.x);
-    }
-    await context.close();
-  });
+      for (const path of ["/vistas", "/pendientes"]) {
+        await page.goto(path);
+        await page.waitForLoadState("networkidle");
+        const row = (await page.getByRole("table").boundingBox())!;
+        const add = (await page.getByRole("link", { name: "Añadir" }).boundingBox())!;
+        expect(row.width).toBeLessThanOrEqual(760);
+        expect(Math.abs(add.x + add.width - (row.x + row.width))).toBeLessThanOrEqual(1);
+        expect(add.x).toBeGreaterThan(row.x);
+      }
+      await context.close();
+    });
+  }
 
   test("at 390px Añadir keeps the thumb corner and the last row stays reachable", async ({
     browser,

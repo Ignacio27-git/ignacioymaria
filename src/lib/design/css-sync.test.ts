@@ -133,6 +133,17 @@ describe("globals.css theme wiring", () => {
     expect(variant).toContain('[data-theme="light"]');
   });
 
+  test("the native search clear button is painted with the ink token", () => {
+    const rule = blockAfter(
+      css,
+      'input[type="search"]::-webkit-search-cancel-button',
+    );
+
+    expect(rule).toMatch(/background-color:\s*var\(--ink\)/);
+    expect(rule).toContain("mask:");
+    expect(rule).toMatch(/appearance:\s*none/);
+  });
+
   test("focus ring and no Geist reference", () => {
     expect(css).toMatch(/:focus-visible/);
     expect(css).toContain("var(--focus)");

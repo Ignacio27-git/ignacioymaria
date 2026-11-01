@@ -56,6 +56,10 @@ test("sits in a click-through wrapper anchored to the 760px column (DS-1)", () =
 
   expect(wrapper).toHaveClass("fixed", "pointer-events-none");
   expect(track).toHaveClass("max-w-table", "mx-auto", "flex", "justify-end");
+  // Same horizontal padding as the pages' content, so the right edges match.
+  expect(track?.className).toContain("px-[max(1rem,env(safe-area-inset-right))]");
+  expect(track?.className).toContain("sm:px-[max(1.5rem,env(safe-area-inset-right))]");
+  expect(track?.className).not.toContain("md:px-[env(safe-area-inset-right)]");
   expect(link).toHaveClass("pointer-events-auto");
   expect(link).not.toHaveClass("fixed");
 });

@@ -103,6 +103,14 @@ test("Quitar nota clears the score and is unavailable when there is none", () =>
   expect(screen.getByRole("button", { name: "Quitar nota" })).toBeDisabled();
 });
 
+test("Quitar nota aligns with the content edge and keeps a 44px target", () => {
+  setup({ value: 6 });
+
+  const button = screen.getByRole("button", { name: "Quitar nota" });
+  expect(button.className).not.toMatch(/(^|\s)(px-\d|border(\s|$))/);
+  expect(button).toHaveClass("min-h-11", "min-w-11");
+});
+
 test("before any save there is no stamp and no status text", () => {
   const { container } = setup({ value: 7 });
 

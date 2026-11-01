@@ -27,6 +27,14 @@ const BUTTON =
   "hover:bg-surface active:scale-[0.98] motion-reduce:transition-none " +
   "disabled:border-rule disabled:text-ink-muted disabled:hover:bg-paper disabled:active:scale-100";
 
+// A link-style action: no side padding or border, so its text sits on the
+// content's left edge; the 44px touch target comes from min-h-11 and min-w-11.
+const LINK_BUTTON =
+  "inline-flex min-h-11 min-w-11 items-center justify-center bg-paper text-sm text-ink underline underline-offset-4 " +
+  "transition-[transform,background-color] duration-150 ease-out " +
+  "hover:bg-surface active:scale-[0.98] motion-reduce:transition-none " +
+  "disabled:text-ink-muted disabled:hover:bg-paper disabled:active:scale-100";
+
 /**
  * The ficha's own-score control: whole-number buttons plus a quarter-point
  * stepper, instead of a slider (precise on a phone, one tap for the common
@@ -112,7 +120,7 @@ export function ScorePanel({
           type="button"
           disabled={disabled || value === null}
           onClick={() => onChange(null)}
-          className={cx(BUTTON, "border-transparent bg-paper text-sm underline underline-offset-4")}
+          className={LINK_BUTTON}
         >
           Quitar nota
         </button>

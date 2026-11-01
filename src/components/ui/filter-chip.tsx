@@ -69,7 +69,10 @@ export function FilterChipRow({
         // -mx-1/px-1: room for the focus ring without pushing chips off the text margin;
         // scroll-px-1 stops the snap from nudging the first chip into that padding.
         // Phones scroll sideways; from md the chips wrap so all of them show.
-        "-mx-1 flex snap-x scroll-px-1 gap-2 overflow-x-auto px-1 py-1 [scrollbar-width:thin]",
+        "-mx-1 flex snap-x scroll-px-1 gap-2 overflow-x-auto px-1 py-1",
+        // Still scrollable by touch, wheel and keyboard (focus scrolls the chip into view);
+        // only the classic Windows scrollbar is hidden.
+        "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         "md:snap-none md:flex-wrap md:overflow-visible",
         className,
       )}
