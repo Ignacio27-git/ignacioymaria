@@ -29,6 +29,14 @@ export default defineConfig({
       dependencies: ["auth"],
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      // Owns the titles table: the only spec that writes to it.
+      name: "titles",
+      testMatch: "**/titles.spec.ts",
+      // After "ui": both sign in as the same person, and one mailbox race is enough to fail.
+      dependencies: ["ui"],
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
   webServer: {
     command: "pnpm dev",

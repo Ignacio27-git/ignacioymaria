@@ -13,7 +13,12 @@ import { saveSignedInState } from "./session";
 
 const [ignacio] = E2E_PEOPLE;
 const STATE_FILE = "test-results/design-system-session.json";
-const REVIEW_DIR = ".impeccable/review";
+// The tracked review captures only change on purpose: REVIEW_CAPTURE=1 writes
+// them; otherwise the screenshots go to Playwright's output directory.
+const REVIEW_DIR =
+  process.env.REVIEW_CAPTURE === "1"
+    ? ".impeccable/review"
+    : "test-results/review";
 
 const DESKTOP = { width: 1280, height: 800 };
 const MOBILE = { width: 390, height: 844 };
