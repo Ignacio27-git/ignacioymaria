@@ -37,6 +37,7 @@ Esqueleto de los pasos de diseño `D.n` de la Fase D de `docs/ROADMAP.md`. Aquí
 - **Muestrario.** `/sistema` (protegido por sesión) enseña todos los componentes con datos de muestra del servidor; los E2E lo recorren en ambos temas, a 1280 y a 390 px.
 - **Revisión final de `impeccable`.** Nuevas capturas, revisión con 7 correcciones materiales (aspecto propio para acción principal, seleccionado y error; acción «Añadir»; media vacía con borde; filtros completos en escritorio y alineados con el margen; palabras guía; reglas de la tabla; flecha propia del orden) y entrega sobre esas correcciones. `DESIGN.md` y `.impeccable/design.json` los escribió el documentador a partir de lo construido.
 - **Pendiente para el paso 1.6.** La interacción de «sello» con alternativa para movimiento reducido y el anclaje de «Añadir» en escritorio.
+  - Hecho en el paso 1.6: el «sello» (`ScorePanel`, animación de 180 ms con `motion-reduce:animate-none` y aviso «Nota guardada» en `role="status"`) y el anclaje de «Añadir» a la columna de 760 px (D-67). Falta la comprobación visual con el MCP de Playwright.
 - **Pruebas.** 524 tests unitarios y 34 E2E (7 de acceso y 27 de interfaz) en verde, con lint, typecheck y build limpios.
 
 ---
@@ -73,3 +74,4 @@ Esqueleto de los pasos de diseño `D.n` de la Fase D de `docs/ROADMAP.md`. Aquí
 | 2026-10-30 | D.2 | Se añadió un selector de tema (Sistema, Claro, Oscuro) guardado en cookie, cuando D.1 solo pedía seguir al sistema | Decisión del usuario antes de la propuesta; el valor por defecto sigue siendo el del sistema (D-50) |
 | 2026-10-30 | D.2 | Componente extra `AddAction` («Añadir»), fuera de los nueve previstos | Lo pidió la revisión final de `impeccable`; su anclaje en escritorio queda para el 1.6 |
 | 2026-10-30 | D.2 | Un único PR de unas 4200 líneas añadidas (65 archivos) con excepción de tamaño | Aceptado por el usuario antes de la propuesta; los tests son buena parte del diff |
+| 2026-11-01 | D.2 | `ScoreFigure` acepta `number \| null` (antes solo número) | Las listas y la ficha muestran títulos sin nota; se aprobó en el paso 1.6 |

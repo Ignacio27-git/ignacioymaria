@@ -65,6 +65,19 @@ Registro ligero de las decisiones ya tomadas y de las que siguen abiertas. Fuent
 | D-55 | La media se muestra con hasta dos decimales, sin ceros finales, con coma (`es-ES`) y redondeo hacia arriba en el medio (`roundingMode: "halfExpand"`): 7,25 · 7,5 · 8 · 7,125 → 7,13. `formatScore` vive en `score-figure.tsx` y la comparten los componentes | Decisión del usuario. La rejilla de 0,125 es exacta en binario, así que el redondeo no falla | 2026-10-30 |
 | D-56 | Accesibilidad en tests unitarios con `axe-core` como dependencia de desarrollo y el ayudante `expectNoAxeViolations` (`src/test/axe.ts`), con la regla `color-contrast` desactivada | jsdom no calcula el contraste; lo cubren los tests de tokens (D-48). Se descartan `vitest-axe` (sin mantenimiento) y `jest-axe` (tipos de Jest) | 2026-10-30 |
 | D-57 | Playwright ejecuta el proyecto `auth` antes que `ui` (`dependencies: ["auth"]`), con los ayudantes de sesión compartidos en `tests/e2e/session.ts` | `signOut()` de Supabase cierra todas las sesiones de la cuenta; en paralelo, los tests de acceso tiraban la sesión de los de interfaz | 2026-10-30 |
+| D-58 | La interfaz habla con el servidor mediante Server Actions para escrituras y búsquedas (`src/app/_actions/titles.ts`); las páginas RSC leen llamando a los casos de uso directamente y pasan DTO ya resueltos (media incluida, D-53) a islas de cliente pequeñas | Es el mismo mecanismo que Auth (D-28) y TMDB (D-45). Se descartan los Route Handlers. Cierra la decisión abierta sobre el mecanismo UI a servidor | 2026-10-31 |
+| D-59 | La búsqueda por nombre no distingue acentos ni mayúsculas: función SQL inmutable `public.fold_search(text)` (`lower` de `normalize(NFD)` sin marcas combinantes), columna generada almacenada `titles.name_search` y espejo `foldSearch` en el dominio. Se consulta con `ilike '%q%'` escapando `%`, `_` y `\` (`escapeLike`); los mismos casos («Amélie», «Léon») se prueban en Vitest y en pgTAP | Mismo algoritmo en ambos lados, sin extensión. Se descartan `unaccent` (STABLE, exige envoltorio inmutable), las colaciones ICU no deterministas (sin `LIKE` en PG17) y una columna escrita por la aplicación (la importación del paso 1.7 como `postgres` se la saltaría). Reversión: ver «Reversión de title-management» | 2026-10-31 |
+| D-60 | Índice único parcial `titles_kind_tmdb_id_key` sobre `(kind, tmdb_id) where tmdb_id is not null`. La búsqueda de añadir marca cada candidato con `existingId` (aviso «Ya está en la lista» con «Abrir ficha») y un 23505 en carrera se convierte en `duplicate{existingId}`. Una película y una serie pueden compartir `tmdb_id`; los títulos manuales (`tmdb_id` nulo) no chocan | Garantía en la base de datos más aviso antes de pulsar; solo una comprobación en la aplicación no resiste una carrera. Resuelve la pregunta abierta de D-43 sobre la unicidad | 2026-10-31 |
+| D-61 | Los casos de uso devuelven `Result<_, TitleFailure>` y nunca lanzan (D-20). `TitleFailure.kind`: `unauthorized`, `invalid_input`, `not_found` (PGRST116 o 0 filas), `duplicate{existingId}` (23505), `forbidden` (42501) y `unavailable` (cualquier otro; solo se registra el código, D-32). La fila se convierte con `rowToRecord` mediante `createTitle` (mintea la `Score`) y un `TitleRecord {id, createdAt, title}` propio del servidor; el dominio no cambia | Mapeo explícito y probable con un cliente simulado. Se descarta `supabase gen types` (tabla pequeña, lista de columnas explícita); queda aplazado | 2026-10-31 |
+| D-62 | Edición campo a campo: `updateTitleFieldAction(id, patch)` con un parche de un solo campo (`state`, `watchDate`, `observations` o `myScore`). La columna de nota sale siempre de `scoreColumnFor(persona de la sesión)`, nunca del cliente; la acción devuelve la ficha fresca. Cada isla guarda de forma optimista (`useOptimistic` dentro de `startTransition`), con cola serializada por campo en la que gana el último valor, `aria-busy` y reversión con `role="alert"` («No se pudo guardar. Inténtalo de nuevo.») | Guardado inmediato por campo (decisión del usuario, #823) y orden correcto con toques rápidos de −/+. Se descartan el formulario entero y solo el debounce. Mientras se guarda se mantiene la media anterior con `aria-busy`: calcularla en el cliente rompería D-53 | 2026-10-31 |
+| D-63 | Los filtros por estado y por nombre se hacen en SQL; el orden, en el dominio con `sortTitles` (media y fecha vacías al final, empates por nombre con `es`; en Pendientes `prioridad` pone primero lo urgente y luego lo más reciente). El estado de la lista vive en la URL: `parseListParams` (`src/lib/titles/list-params.ts`, pura) recorta `q` a 100, filtra `estado` a los estados de esa lista y cae al orden por defecto si `orden` no es válido. Las listas cargan hasta 300 filas. El cliente solo hace `router.replace` (con `q` en debounce de 250 ms) | La media no se guarda (D-19), así que no se puede ordenar en SQL. El servidor es la fuente, sin `useSearchParams` ni Suspense extra | 2026-10-31 |
+| D-64 | Los pósters usan `next/image` con `unoptimized` | TMDB ya sirve `w342` (D-44); evita gastar la cuota de optimización de imágenes de Vercel. Cierra la decisión abierta | 2026-10-31 |
+| D-65 | Rutas bajo el grupo `src/app/(catalog)/`: `/vistas`, `/pendientes`, `/anadir` y `/titulo/[id]` (un id que no es uuid da `notFound()`). Su `layout.tsx` llama a `connection()` y resuelve la persona dentro de `Suspense`, y pinta la cabecera solo con sesión: pestañas Vistas y Pendientes con `aria-current` y un menú `popover` con `ThemeToggle` y «Cerrar sesión» (Escape devuelve el foco). `/` es una página que hace `redirect("/vistas")`; se retiran `PersonGate` y la sección de tema de la portada | Una sola guarda comprobable. Se descarta `redirects` en `next.config`. Actualiza D-51: el tema pasa a la navegación | 2026-10-31 |
+| D-66 | `getCurrentPerson` se envuelve en `cache()` de React | El layout y los casos de uso de una misma petición comparten una sola llamada RPC a `current_person()` | 2026-10-31 |
+| D-67 | `AddAction` se ancla a la columna de 760 px en escritorio: envoltorio fijo de ancho completo con `pointer-events-none` y, dentro, `max-w-table mx-auto flex justify-end`; el botón lleva `pointer-events-auto` y recibe `href`. Un E2E comprueba a 1440 px que su borde derecho coincide con el de `main` (±1 px) | Se descarta `calc(100vw …)` por el error con la barra de desplazamiento. Cierra lo que D.2 dejó pendiente | 2026-10-31 |
+| D-68 | El estado inicial de un título nuevo depende del origen: `/anadir?desde=vistas` crea `Vista` con la fecha de hoy; `desde=pendientes` o sin `desde`, `Pendiente`. `AddAction` de cada lista lleva `desde`, y la creación acepta `state` y `watchDate` opcionales. Además, un cambio de estado a uno visto (`watched`, `watched_rewatch`, `watched_no_rewatch`, `watched_awful`) en un título con fecha desconocida guarda hoy en la misma escritura, en el servidor y con el día de Europe/Madrid (`todayIso`). Si la fecha ya se conoce, o la persona elige luego «No sé cuándo», se respeta; los estados no vistos nunca tocan la fecha | Decisión del usuario (#827): ayuda al objetivo de añadir y puntuar en menos de 30 s. Se descarta solo prerrellenar el selector de fecha | 2026-10-31 |
+| D-69 | En Pendientes, el orden «fecha» ordena por `createdAt` descendente (cuándo se añadió); en Vistas, por fecha de visionado descendente | Pendientes no tiene fecha de visionado. Decisión del usuario (#827) | 2026-10-31 |
+| D-70 | Doble de TMDB solo de servidor para los E2E (`src/server/tmdb/test-double.ts`): búsqueda y detalles deterministas, con una serie incluida. Solo se activa con `TMDB_TEST_DOUBLE=1` y `NODE_ENV !== "production"`; en producción con el indicador activo falla al arrancar. `playwright.config.ts` lo pone en el entorno del servidor web. Las capturas del MCP de Playwright usan TMDB real | Pruebas deterministas y sin red ni cuota. El indicador no puede llegar a producción | 2026-10-31 |
 
 ## Carga manual de la lista permitida
 
@@ -124,6 +137,18 @@ select policyname from pg_policies where tablename = 'allowed_emails';
 
 Comprobado el 2026-10-30 en local, con una fila en `titles` (notas 7 y 8) y dos filas en `allowed_emails`: primero dentro de `begin; ... rollback;` y después confirmado en una base descartable; en ambos casos los objetos desaparecieron y las filas de `allowed_emails` y `titles` siguieron intactas. Después se restauró con `pnpm db:reset`.
 
+## Reversión de title-management
+
+La migración `20261031090000_title_search_unique.sql` es aditiva y lleva el SQL de reversión en su cabecera. Para deshacerla, como `postgres`:
+
+```sql
+drop index titles_kind_tmdb_id_key;
+alter table titles drop column name_search;
+drop function fold_search(text);
+```
+
+Las filas de `titles` no cambian. Después, revertir el PR de title-management.
+
 ## Abiertas
 
 Sin resultado decidido. Cada una se resuelve en el paso indicado.
@@ -131,8 +156,5 @@ Sin resultado decidido. Cada una se resuelve en el paso indicado.
 | Tema | Se decide en |
 |---|---|
 | Observaciones que no son notas de la película | Paso 1.7 |
-| ¿`(kind, tmdb_id)` único para evitar títulos duplicados? (por defecto, sin restricción, D-43) | Paso 1.6 |
-| ¿Pósters `unoptimized` para ahorrar cuota de imágenes de Vercel? | Paso 1.6 |
-| Mecanismo UI a servidor para datos (Auth ya usa Server Actions y un Route Handler, D-28) | Paso 1.x |
 | Detalles de producción y alojamiento | Fase 2 |
 | Prioridad y diseño de la Fase 3 | Tras el lanzamiento |

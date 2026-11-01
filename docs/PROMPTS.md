@@ -73,3 +73,13 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** Tokens con fuente única y tests de contraste y sincronización, Archivo con eje `wdth`, tema Sistema/Claro/Oscuro en cookie leída por el servidor, nueve componentes más `ThemeToggle` y `AddAction`, y el muestrario `/sistema`. Tras la revisión final, 524 tests de Vitest y 34 de Playwright; `DESIGN.md` y `.impeccable/design.json` escritos a partir de lo construido.
 
 **Lección:** La revisión final con capturas encontró problemas que los tests no podían ver: la acción principal, lo seleccionado y el error compartían el mismo aspecto. Las capturas con barras de desplazamiento clásicas recortaban 15 px; hay que ocultarlas antes de capturar. Una decisión que contradice la documentación del framework (tema leído en el servidor en lugar de un script en línea) conviene validarla con un spike de build antes de construir encima.
+
+---
+
+### 2026-11-01 · Paso 1.6 · gestión de títulos (SDD `title-management`)
+
+**Prompt:** `/gentle-sdd-new title-management` — Implementa con el sistema de diseño de docs/DESIGN-ROADMAP.md: Añadir título buscando en TMDB (o a mano). Ficha con las dos notas, la media, el estado, la fecha vista y las observaciones. Listas de vistas y pendientes con búsqueda, filtros por estado y orden por nota o fecha. Comprueba cada pantalla con el MCP de Playwright en escritorio y móvil.
+
+**Resultado:** Un único cambio con migración (`fold_search`, `name_search`, índice único), repositorio y casos de uso, Server Actions, doble de TMDB para los E2E, rutas `(catalog)` con añadir, ficha y listas, y guardado optimista por campo. 893 tests de Vitest, 55 E2E y 244 comprobaciones pgTAP. La comprobación con el MCP de Playwright queda pendiente.
+
+**Lección:** Resolver las preguntas de producto antes de la propuesta (estado inicial, fecha automática, orden de Pendientes) evitó rehacer el diseño. Los E2E con el doble de TMDB destaparon dos carreras del propio test (rellenar antes de hidratar e inicios de sesión en paralelo), no fallos de la aplicación.

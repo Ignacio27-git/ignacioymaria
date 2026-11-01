@@ -265,11 +265,12 @@ Comprueba cada pantalla con el MCP de Playwright en escritorio y móvil.
 
 **Revisar.** Que en el móvil se puede añadir y puntuar una película en menos de 30 segundos.
 
-**Notas:** 2026-10-30 · Cambio SDD `title-management`, un único cambio y un único PR con excepción de tamaño (decisión de la persona). Las preguntas de producto están resueltas (Engram #823 y #827). Propuesta, specs, diseño y tareas en Engram (#824 a #828); el progreso de apply está en #829.
-- **Hecho:** lotes A a E, en los commits `87a53fd` a `fd229c3`. Incluyen la migración con `fold_search`, `name_search` y el índice único `(kind, tmdb_id)`, el dominio, el repositorio, los casos de uso, las Server Actions y el doble de TMDB para los E2E.
-- **A medias:** lotes F y G (componentes de interfaz, layout `(catalog)` y listas). El commit es de trabajo en curso; typecheck y 804 tests están en verde, pero lint y build no se han comprobado. Al retomar, revisar qué tareas de F y G faltan, en #828 y en el diff de ese commit.
-- **Pendiente:** lotes H (alta y ficha), I (E2E) y J (comprobación con el MCP de Playwright y documentación: DECISIONS D-58 a D-70, ARCHITECTURE, DESIGN-ROADMAP, PROMPTS). Después, verify y archive.
-
+**Notas:** 2026-11-01 · Cambio SDD `title-management`, un único cambio y un único PR con excepción de tamaño (decisión de la persona). Las preguntas de producto están resueltas (Engram #823 y #827). Propuesta, specs, diseño y tareas en Engram (#824 a #828); el progreso de apply está en #829.
+- **Construido.** Migración `title_search_unique` (`fold_search`, `name_search`, índice único `(kind, tmdb_id)`); dominio (`foldSearch`, `sortTitles`, `todayIso`); `src/server/titles` con repositorio y casos de uso; Server Actions y doble de TMDB para los E2E; componentes de interfaz nuevos; rutas `(catalog)` (`/vistas`, `/pendientes`, `/anadir`, `/titulo/[id]`) con cabecera, búsqueda, filtros y orden por URL; ficha con guardado optimista por campo; `/` redirige a `/vistas`.
+- **Commits.** `87a53fd` a `888b409` (lotes A a I; el de F y G, `53426db`, es de trabajo en curso).
+- **Pruebas.** 893 tests de Vitest, 55 E2E de Playwright (7 de acceso, los de interfaz y 26 de títulos) y 244 comprobaciones pgTAP en verde, con lint, typecheck y build limpios.
+- **Decisiones.** D-58 a D-70 en `docs/DECISIONS.md`.
+- **Pendiente.** Comprobación visual con el MCP de Playwright contra TMDB real (escritorio y móvil, claro y oscuro) y correcciones de diseño que salgan de ella; después, verify y archive. El estado sigue en `[~]` hasta entonces.
 ---
 
 ## [ ] 1.7 · Importador del Excel
@@ -390,3 +391,12 @@ propio ciclo SDD.
 | 2026-10-30 | 1.6 | Se pausó tras la exploración para hacer D.1 y D.2 en la misma sesión; D.2 va como cambio SDD propio `design-system` | La regla 9 exige D.1 y D.2 antes del 1.6; la persona pidió hacerlos ya |
 | 2026-10-30 | D.2 | Un único PR con excepción de tamaño para `design-system` | El usuario aceptó no dividir el cambio |
 | 2026-10-30 | D.2 | Para `pnpm start` y los E2E, las variables de Supabase se exportan en la shell desde `pnpm exec supabase status -o env` (más `SITE_URL`) | Los agentes no pueden leer `.env.local` y no traía `NEXT_PUBLIC_SUPABASE_*` |
+| 2026-11-01 | 1.6 | Un único cambio SDD en lugar de la división en cuatro que se exploró | Decisión de la persona; un único PR con excepción de tamaño |
+| 2026-11-01 | 1.6 | Dos reinicios del presupuesto nativo de revisión aprobados por la persona (lotes C a E con 2739 líneas y lote H con 2617) | Los lotes superaban el presupuesto previsto |
+| 2026-11-01 | 1.6 | Las capturas de revisión de los E2E son opcionales: solo se escriben en `.impeccable/review` con `REVIEW_CAPTURE=1`; si no, van a `test-results/review` | Evita modificar capturas versionadas en cada ejecución |
+| 2026-11-01 | 1.6 | Hay que ejecutar `pnpm db:reset` antes de `pnpm test:db` si se acaban de ejecutar los E2E | Los E2E dejan filas en la lista permitida y la comprobación AC-1.2 de pgTAP espera que esté vacía |
+| 2026-11-01 | 1.6 | Una caché `.next` obsoleta provocó un fallo de build (`0xc0000142`) | Se resolvió borrando `.next` y volviendo a compilar; no hay cambio de código |
+| 2026-11-01 | 1.6 | `ScoreFigure` acepta `number \| null` | La ficha y las listas muestran títulos sin nota; evita convertir a mano la ausencia |
+| 2026-11-01 | 1.6 | Para una fecha de visionado desconocida hay un botón «Hoy» en lugar de un selector prerrellenado | Un selector nativo prerrellenado no distingue «sin fecha» de «hoy» |
+| 2026-11-01 | 1.6 | Estado inicial según el origen, guardado automático de hoy al pasar a un estado visto y orden «fecha» de Pendientes por `createdAt` | Enmiendas A1 a A3 de la persona (#827); D-68 y D-69 |
+| 2026-11-01 | 1.6 | Los E2E usan un doble de TMDB en el servidor; las capturas del MCP usan TMDB real | Enmienda A4; D-70 |

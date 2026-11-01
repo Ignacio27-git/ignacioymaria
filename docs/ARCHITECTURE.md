@@ -55,6 +55,18 @@ Regla: solo el código de servidor llama a servicios externos. Ningún código d
 - Tema: `src/lib/theme/preference.ts` define los valores (`system`, `light`, `dark`) y su lectura segura; `src/server/theme/read-preference.ts` lee la cookie `theme` en el servidor y `src/app/_actions/theme.ts` (`setThemeAction`) la escribe. `RootLayout` envuelve `ThemedDocument` en `Suspense` para pintar `data-theme` desde el servidor (D-50 y D-51).
 - `/sistema`: muestrario vivo del sistema, protegido por sesión como el resto de rutas. Sus datos de muestra salen de `src/server/specimen/sample.ts` (`server-only`), que construye notas y medias con funciones del dominio (D-53).
 
+## Gestión de títulos (paso 1.6)
+
+- Dominio (puro): `search.ts` (`foldSearch`, `escapeLike`), `title-order.ts` (`sortTitles`) y `today.ts` (`todayIso`, día de Europe/Madrid); todos exportados desde `@/domain`.
+- Servidor, `src/server/titles/` (`server-only`): `types`, `row` y `mapper` (fila a `TitleRecord`), `errors` (códigos de PostgREST a `TitleFailure`, D-61), `repository` (cliente de sesión, lista de columnas explícita) y los casos de uso `create`, `update-field`, `get`, `list`, `delete` y `add-candidates`. Orden en cada uno: identidad, validación y base de datos; nada lanza (D-20). `src/server/auth/current-person.ts` va envuelto en `cache()` (D-66).
+- Server Actions, `src/app/_actions/titles.ts`: envoltorios finos (`updateTitleFieldAction`, `addFromTmdbAction`, `addManualAction`, `deleteTitleAction`, `searchAddCandidatesAction`). `addFromTmdbAction` vuelve a pedir los detalles a TMDB en el servidor y no confía en los campos del cliente.
+- `src/lib/titles/`: funciones puras y seguras para el cliente: `list-params`, `add-origin` y `format-date`.
+- Rutas, `src/app/(catalog)/` (D-65): `layout.tsx` (guarda de sesión tras `connection()`), `app-header.tsx`, `vistas/` y `pendientes/` (con `titles-list.tsx` compartido y la isla `list-controls.tsx` para búsqueda, filtros y orden por URL), `anadir/` (`add-form.tsx`) y `titulo/[id]/` (ficha con islas de nota, estado, fecha, observaciones y borrado sobre `use-field-save.ts`).
+- Componentes nuevos de `src/components/ui/`: `ScorePanel`, `StatePicker` y `ConfirmDialog`; `FilterChip`, `SortControl` y `AddAction` se amplían (D-67).
+- Doble de TMDB: `src/server/tmdb/test-double.ts`, conectado en `client.ts` y `lookup.ts` y activo solo con `TMDB_TEST_DOUBLE=1` fuera de producción (D-70).
+- Búsqueda y unicidad en la base de datos (D-59 y D-60): `fold_search`, `name_search` e índice único parcial `(kind, tmdb_id)`.
+- Flujo de escritura: isla -> Server Action -> caso de uso (persona, validación) -> repositorio -> Supabase (RLS y trigger de notas) -> `Result<TitleView, TitleFailure>` -> isla (confirma o revierte). Flujo de lectura: página RSC -> `parseListParams` -> `list` -> `sortTitles` -> `CriticsTable`.
+
 ## Secretos
 
 - Las claves secretas solo existen en el entorno del servidor y nunca se exponen al cliente (p. ej., no usar el prefijo `NEXT_PUBLIC_` para ellas).
@@ -73,7 +85,10 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | `src/server/auth/` | Casos de uso de acceso: `sendMagicLink`, `signOut`, `getCurrentPerson` y `scoreColumnFor` |
 | `src/server/tmdb/` | Integración con TMDB: `env`, `client`, `mappers`, `lookup` y `types` (paso 1.5) |
 | `src/lib/tmdb/` | `posterUrl`: construye la URL del póster; pura y segura para el cliente |
-| `src/app/_actions/` | Server Actions de la interfaz (`requestMagicLinkAction`, `signOutAction`, `searchTmdbAction`, `getTmdbDetailsAction`, `setThemeAction`), envoltorios finos |
+| `src/app/_actions/` | Server Actions de la interfaz (`requestMagicLinkAction`, `signOutAction`, `searchTmdbAction`, `getTmdbDetailsAction`, `setThemeAction`) y `titles.ts` (paso 1.6), envoltorios finos |
+| `src/server/titles/` | Repositorio y casos de uso de títulos (paso 1.6) |
+| `src/lib/titles/` | Parámetros de lista, origen de «Añadir» y formato de fecha; puro y seguro para el cliente |
+| `src/app/(catalog)/` | Rutas con sesión: `/vistas`, `/pendientes`, `/anadir`, `/titulo/[id]` y su cabecera |
 | `src/app/sistema/` | Muestrario del sistema de diseño (`/sistema`, paso D.2) |
 | `src/components/ui/` | Componentes de presentación del sistema de diseño (paso D.2): `Button`, `TextField`, `StateCell`, `ScoreFigure`, `AverageBox`, `FilterChip`, `SortControl`, `CriticsTable`, `Masthead`, `ThemeToggle` y `AddAction`, más `cx` e `icons` |
 | `src/lib/design/` | Tokens de color (`tokens.ts`, fuente única) y cálculo de contraste (`contrast.ts`) |
@@ -82,11 +97,11 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | `src/server/specimen/` | Datos de muestra de `/sistema` (`server-only`) |
 | `src/test/` | Ayudantes de tests unitarios (`axe.ts` con `expectNoAxeViolations`, `score.ts`) |
 | `src/proxy.ts` | Proxy de Next.js: refresca la sesión y protege las rutas |
-| `supabase/migrations/` | Migraciones versionadas: `allowlist` y `titles` (paso 1.3) y `couple_auth` (paso 1.4: `person`, `current_person()`, hook de registro y trigger de notas) y `tmdb_fields` (paso 1.5: `tmdb_id`, `poster_path` y `seasons_total`) |
+| `supabase/migrations/` | Migraciones versionadas: `allowlist` y `titles` (paso 1.3) y `couple_auth` (paso 1.4: `person`, `current_person()`, hook de registro y trigger de notas) y `tmdb_fields` (paso 1.5: `tmdb_id`, `poster_path` y `seasons_total`) y `title_search_unique` (paso 1.6: `fold_search`, `name_search` e índice único) |
 | `supabase/templates/` | Plantilla del correo de acceso (`sign-in.html`) |
-| `supabase/tests/database/` | Tests pgTAP (`pnpm test:db`): `titles_constraints`, `access_control`, `couple_auth` y `tmdb_fields`; solo en local |
+| `supabase/tests/database/` | Tests pgTAP (`pnpm test:db`): `titles_constraints`, `access_control`, `couple_auth`, `tmdb_fields` y `title_search_unique`; solo en local |
 | `supabase/config.toml` | Configuración de la CLI de Supabase (proyecto `ignacioymaria`, sin semilla) |
-| `tests/e2e/` | Pruebas E2E (Playwright): `auth.spec.ts` con ayudantes de Mailpit y `pg`, `design-system.spec.ts` (`/sistema` en ambos temas y anchos) y `session.ts` (ayudantes de sesión compartidos); `globalSetup` inserta las dos cuentas de prueba |
+| `tests/e2e/` | Pruebas E2E (Playwright): `auth.spec.ts` con ayudantes de Mailpit y `pg`, `design-system.spec.ts` (`/sistema` en ambos temas y anchos) `titles.spec.ts` con `titles-db.ts` (gestión de títulos con el doble de TMDB) y `session.ts` (ayudantes de sesión compartidos); `globalSetup` inserta las dos cuentas de prueba |
 | `vitest.config.mts` | Configuración de Vitest (jsdom, solo `src/**/*.test.{ts,tsx}`) |
 | `playwright.config.ts` | Configuración de Playwright (chromium, arranca `pnpm dev`; proyecto `auth` antes que `ui`, D-57) |
 
@@ -98,7 +113,6 @@ Nada de esto está decidido. No se adelanta en ningún documento.
 
 | Tema | Se decide en |
 |---|---|
-| Server Actions o Route Handlers como mecanismo UI a servidor para datos (Auth ya usa Server Actions y un Route Handler) | Paso 1.x que lo necesite |
 | Mecanismo de caché de TMDB | Paso 1.5 |
 
 Ver también `docs/DECISIONS.md`.
