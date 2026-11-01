@@ -22,6 +22,13 @@ describe("formatScore (es-ES, up to two decimals, half expands)", () => {
 });
 
 describe("ScoreFigure", () => {
+  test("accepts a plain number, as client islands hold scores", () => {
+    render(<ScoreFigure score={7.5} label="María" />);
+
+    expect(screen.getByText("7,5")).toBeInTheDocument();
+    expect(screen.getByText("María:", { exact: false })).toHaveClass("sr-only");
+  });
+
   test("shows the formatted score", () => {
     render(<ScoreFigure score={makeScore(7.25)} />);
 

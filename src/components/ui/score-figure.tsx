@@ -1,5 +1,3 @@
-import type { Score } from "@/domain/score";
-
 import { cx } from "./cx";
 
 // 0.125 steps are exact in binary, so halfExpand gives 7,125 -> 7,13.
@@ -19,7 +17,8 @@ export function ScoreFigure({
   label,
   className,
 }: {
-  score: Score | null;
+  /** A domain Score, or the plain number a client island holds (D-53). */
+  score: number | null;
   /** Person the score belongs to; announced to assistive tech only. */
   label?: string;
   className?: string;
