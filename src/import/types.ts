@@ -21,7 +21,8 @@ export type NoteReason =
   | "duplicate"
   | "unlinked"
   | "conflict"
-  | "kind";
+  | "kind"
+  | "invalid";
 
 /** One thing a rule decided that the people should review. */
 export type Note = {

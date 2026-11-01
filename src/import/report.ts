@@ -16,6 +16,7 @@ const SECTIONS: ReadonlyArray<readonly [NoteReason, string]> = [
   ["unlinked", "Titles left unlinked from TMDB"],
   ["conflict", "TMDB conflicts (not imported)"],
   ["kind", "Kind decisions that are not certain"],
+  ["invalid", "Rows that could not be imported"],
 ];
 
 /** One table cell: no pipes or line breaks that would break the Markdown table. */

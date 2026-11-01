@@ -13,6 +13,7 @@ const REASONS: NoteReason[] = [
   "unlinked",
   "conflict",
   "kind",
+  "invalid",
 ];
 
 const note = (reason: NoteReason, row: number): ReportNote => ({
