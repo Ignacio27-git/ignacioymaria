@@ -398,6 +398,6 @@ propio ciclo SDD.
 | 2026-11-01 | 1.6 | Hay que ejecutar `pnpm db:reset` antes de `pnpm test:db` si se acaban de ejecutar los E2E | Los E2E dejan filas en la lista permitida y la comprobación AC-1.2 de pgTAP espera que esté vacía |
 | 2026-11-01 | 1.6 | Una caché `.next` obsoleta provocó un fallo de build (`0xc0000142`) | Se resolvió borrando `.next` y volviendo a compilar; no hay cambio de código |
 | 2026-11-01 | 1.6 | `ScoreFigure` acepta `number \| null` | La ficha y las listas muestran títulos sin nota; evita convertir a mano la ausencia |
-| 2026-11-01 | 1.6 | Para una fecha de visionado desconocida hay un botón «Hoy» en lugar de un selector prerrellenado | Un selector nativo prerrellenado no distingue «sin fecha» de «hoy» |
+| 2026-11-01 | 1.6 | TD-6 S3: con fecha desconocida el selector queda vacío y el botón «Hoy» pone la fecha de hoy, en lugar de abrirse con hoy | Decisión del usuario tras verify; la spec se enmendó. Un selector nativo prerrellenado no distingue «sin fecha» de «hoy» |
 | 2026-11-01 | 1.6 | Estado inicial según el origen, guardado automático de hoy al pasar a un estado visto y orden «fecha» de Pendientes por `createdAt` | Enmiendas A1 a A3 de la persona (#827); D-68 y D-69 |
 | 2026-11-01 | 1.6 | Los E2E usan un doble de TMDB en el servidor; las capturas del MCP usan TMDB real | Enmienda A4; D-70 |

@@ -103,6 +103,29 @@ test("without a session / is protected and /login is public", async ({ page }) =
   await expect(page.getByLabel("Correo electrónico")).toBeVisible();
 });
 
+for (const path of [
+  "/anadir",
+  "/titulo/00000000-0000-4000-8000-000000000000",
+  "/vistas",
+  "/pendientes",
+]) {
+  test(`unauthenticated ${path} redirects to /login`, async ({ page }) => {
+    await page.goto(path);
+
+    await expect(page).toHaveURL("/login");
+  });
+}
+
+test("/login shows no header tabs or menu", async ({ page }) => {
+  await page.goto("/login");
+
+  await expect(page.getByLabel("Correo electrónico")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Listas" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Vistas" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Pendientes" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Menú" })).toHaveCount(0);
+});
+
 test("removing the email from the allowlist ends access immediately", async ({ page }) => {
   await signIn(page, maria.email);
   await openMenu(page);
