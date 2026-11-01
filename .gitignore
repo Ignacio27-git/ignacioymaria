@@ -54,3 +54,7 @@ coverage/
 # Local tool output
 .playwright-mcp/
 .impeccable/questions/
+
+# Excel import: source workbook and reports (personal data)
+/import-reports/
+*.xlsx
