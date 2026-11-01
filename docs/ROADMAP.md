@@ -270,7 +270,8 @@ Comprueba cada pantalla con el MCP de Playwright en escritorio y móvil.
 - **Commits.** `87a53fd` a `888b409` (lotes A a I; el de F y G, `53426db`, es de trabajo en curso).
 - **Pruebas.** 893 tests de Vitest, 55 E2E de Playwright (7 de acceso, los de interfaz y 26 de títulos) y 244 comprobaciones pgTAP en verde, con lint, typecheck y build limpios.
 - **Decisiones.** D-58 a D-70 en `docs/DECISIONS.md`.
-- **Pendiente.** Comprobación visual con el MCP de Playwright contra TMDB real (escritorio y móvil, claro y oscuro) y correcciones de diseño que salgan de ella; después, verify y archive. El estado sigue en `[~]` hasta entonces.
+- **Comprobación visual (2026-11-01).** Con el MCP de Playwright, TMDB real y el build de producción se revisaron `/vistas`, `/pendientes`, `/anadir` y la ficha a 1280 y 390 px, en claro y oscuro (capturas `.impeccable/review/titles-*.png`). Salieron cuatro defectos, corregidos en `f08a02e` y confirmados con el MCP: «Añadir» desalineado 24 px con la tabla en escritorio (el E2E comparaba con el borde de `main`; ahora compara con la tabla), «Quitar nota» desplazado, barra de desplazamiento visible en la fila de filtros y la «×» nativa del buscador en azul. Tests: 896 unitarios y 56 E2E.
+- **Pendiente.** Verify y archive. `DESIGN.md` aún no documenta el token `--animate-stamp`. El estado sigue en `[~]` hasta el archive.
 ---
 
 ## [ ] 1.7 · Importador del Excel
