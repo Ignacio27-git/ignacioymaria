@@ -39,7 +39,7 @@ export async function saveSignedInState(
   try {
     const page = await context.newPage();
     await signIn(page, email);
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL("/vistas");
     await context.storageState({ path });
   } finally {
     await context.close();

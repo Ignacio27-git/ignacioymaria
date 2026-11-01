@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { withDb } from "./db";
 import { E2E_PEOPLE } from "./global-setup";
@@ -8,21 +8,37 @@ import { requestLink, signIn } from "./session";
 const [ignacio, maria] = E2E_PEOPLE;
 const OUTSIDER = "e2e-outsider@example.test";
 
+/** The header menu (native popover) holds the session line and sign-out. */
+async function openMenu(page: Page) {
+  await page.getByRole("button", { name: "Menú" }).click();
+}
+
+function menuSession(page: Page, person: string) {
+  return page.getByText(`Sesión de ${person}`);
+}
+
+async function signOut(page: Page) {
+  await page.getByRole("button", { name: "Cerrar sesión" }).click();
+}
+
 test.describe.configure({ mode: "serial" });
 
 test("an allowlisted person signs in, stays signed in and signs out", async ({ page }) => {
   await signIn(page, ignacio.email);
 
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/vistas");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Ignacio y María" }),
+    page.getByRole("heading", { level: 1, name: "Vistas" }),
   ).toBeVisible();
-  await expect(page.getByText("Sesión iniciada como Ignacio")).toBeVisible();
+  await expect(menuSession(page, "Ignacio")).toBeHidden();
+  await openMenu(page);
+  await expect(menuSession(page, "Ignacio")).toBeVisible();
 
   await page.reload();
-  await expect(page.getByText("Sesión iniciada como Ignacio")).toBeVisible();
+  await openMenu(page);
+  await expect(menuSession(page, "Ignacio")).toBeVisible();
 
-  await page.getByRole("button", { name: "Salir" }).click();
+  await signOut(page);
   await expect(page).toHaveURL("/login");
 
   await page.goto("/");
@@ -31,8 +47,9 @@ test("an allowlisted person signs in, stays signed in and signs out", async ({ p
 
 test("a magic link works once", async ({ page }) => {
   const link = await signIn(page, ignacio.email);
-  await expect(page).toHaveURL("/");
-  await page.getByRole("button", { name: "Salir" }).click();
+  await expect(page).toHaveURL("/vistas");
+  await openMenu(page);
+  await signOut(page);
   await expect(page).toHaveURL("/login");
 
   await page.goto(link);
@@ -64,8 +81,9 @@ test("the email is trimmed and matched case-insensitively", async ({ page }) => 
 
   await page.goto(await waitForMagicLink(maria.email, known));
 
-  await expect(page).toHaveURL("/");
-  await expect(page.getByText("Sesión iniciada como María")).toBeVisible();
+  await expect(page).toHaveURL("/vistas");
+  await openMenu(page);
+  await expect(menuSession(page, "María")).toBeVisible();
 });
 
 test("a bad token goes to /login without a session", async ({ page }) => {
@@ -87,7 +105,8 @@ test("without a session / is protected and /login is public", async ({ page }) =
 
 test("removing the email from the allowlist ends access immediately", async ({ page }) => {
   await signIn(page, maria.email);
-  await expect(page.getByText("Sesión iniciada como María")).toBeVisible();
+  await openMenu(page);
+  await expect(menuSession(page, "María")).toBeVisible();
 
   await withDb((client) =>
     client.query("delete from public.allowed_emails where email = $1", [
