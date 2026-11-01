@@ -244,6 +244,7 @@ test("Hoy fills in today for an unknown date", async () => {
     value: { kind: "known", date: TODAY },
   });
   expect(screen.getByLabelText("Fecha de visionado")).toHaveValue(TODAY);
+  expect(screen.getByRole("button", { name: "Hoy" })).toBeDisabled();
 });
 
 test("No sé cuándo clears a known date and the display says so", async () => {
