@@ -403,3 +403,4 @@ propio ciclo SDD.
 | 2026-11-01 | 1.7 | Un único PR con excepción de tamaño aceptada para `excel-import` | El usuario aceptó no dividir el cambio (~1030 líneas) |
 | 2026-11-01 | 1.7 | `.env.example` ya traía `SUPABASE_DB_URL` y `TMDB_READ_ACCESS_TOKEN` (los añadió la persona en 1.4 y 1.5); no se tocó | Los permisos del agente bloquean los archivos `.env*` |
 | 2026-11-01 | 1.7 | Nueva razón de informe `invalid` (filas que `createTitle` rechaza tras limpiar) y `pnpm-workspace.yaml` marca `esbuild: true` en `allowBuilds` | Ninguna fila se pierde sin aparecer en el informe; `tsx` depende de `esbuild` y pnpm exige decidirlo |
+| 2026-11-01 | 1.7 | La evidencia RED de Strict TDD del paso 1.7 no se registró en su momento y se reprodujo después en un worktree aislado (implementación sustituida por stubs) | `sdd-verify` la marcó como crítica; evidencia en `sdd/excel-import/apply-progress` |
