@@ -248,7 +248,7 @@ encuentra el título.
 
 ---
 
-## [~] 1.6 · Gestión de títulos
+## [x] 1.6 · Gestión de títulos
 
 **Objetivo.** Las pantallas del MVP: añadir, editar, borrar, puntuar y ver listas.
 Requiere D.1 y D.2 terminados.
@@ -267,11 +267,11 @@ Comprueba cada pantalla con el MCP de Playwright en escritorio y móvil.
 
 **Notas:** 2026-11-01 · Cambio SDD `title-management`, un único cambio y un único PR con excepción de tamaño (decisión de la persona). Las preguntas de producto están resueltas (Engram #823 y #827). Propuesta, specs, diseño y tareas en Engram (#824 a #828); el progreso de apply está en #829.
 - **Construido.** Migración `title_search_unique` (`fold_search`, `name_search`, índice único `(kind, tmdb_id)`); dominio (`foldSearch`, `sortTitles`, `todayIso`); `src/server/titles` con repositorio y casos de uso; Server Actions y doble de TMDB para los E2E; componentes de interfaz nuevos; rutas `(catalog)` (`/vistas`, `/pendientes`, `/anadir`, `/titulo/[id]`) con cabecera, búsqueda, filtros y orden por URL; ficha con guardado optimista por campo; `/` redirige a `/vistas`.
-- **Commits.** `87a53fd` a `888b409` (lotes A a I; el de F y G, `53426db`, es de trabajo en curso).
-- **Pruebas.** 893 tests de Vitest, 55 E2E de Playwright (7 de acceso, los de interfaz y 26 de títulos) y 244 comprobaciones pgTAP en verde, con lint, typecheck y build limpios.
+- **Commits.** `87a53fd` a `19608d2` (16 commits: lotes A a I, con el de F y G, `53426db`, de trabajo en curso; documentación; remediación de verify en `d957430` y `19608d2`).
+- **Pruebas.** Verify final `pass_with_warnings` (#831): 896 tests de Vitest, 61 E2E de Playwright y 244 comprobaciones pgTAP en verde, con lint, typecheck y build limpios; 41/41 requisitos y 99/99 escenarios.
 - **Decisiones.** D-58 a D-70 en `docs/DECISIONS.md`.
-- **Comprobación visual (2026-11-01).** Con el MCP de Playwright, TMDB real y el build de producción se revisaron `/vistas`, `/pendientes`, `/anadir` y la ficha a 1280 y 390 px, en claro y oscuro (capturas `.impeccable/review/titles-*.png`). Salieron cuatro defectos, corregidos en `f08a02e` y confirmados con el MCP: «Añadir» desalineado 24 px con la tabla en escritorio (el E2E comparaba con el borde de `main`; ahora compara con la tabla), «Quitar nota» desplazado, barra de desplazamiento visible en la fila de filtros y la «×» nativa del buscador en azul. Tests: 896 unitarios y 56 E2E.
-- **Pendiente.** Verify y archive. `DESIGN.md` aún no documenta el token `--animate-stamp`. El estado sigue en `[~]` hasta el archive.
+- **Comprobación visual (2026-11-01).** Con el MCP de Playwright, TMDB real y el build de producción se revisaron `/vistas`, `/pendientes`, `/anadir` y la ficha a 1280 y 390 px, en claro y oscuro (capturas `.impeccable/review/titles-*.png`). Salieron cuatro defectos, corregidos en `f08a02e` y confirmados con el MCP: «Añadir» desalineado 24 px con la tabla en escritorio (el E2E comparaba con el borde de `main`; ahora compara con la tabla), «Quitar nota» desplazado, barra de desplazamiento visible en la fila de filtros y la «×» nativa del buscador en azul. Tests: 896 unitarios y 61 E2E (cifras finales de verify).
+- **Cerrado (2026-11-01).** Verify `pass_with_warnings` (#831, 0 CRÍTICO) y archive en Engram (`sdd/title-management/archive-report`, #833). Seguimiento abierto: documentar el token `--animate-stamp` en `DESIGN.md`; diagnósticos de prerender de `next dev` (`Date.now` y `searchParams` fuera de Suspense); falta la tabla formal de evidencia TDD en apply-progress (#829); aserciones de los tests de interfaz acopladas a clases (add-action, score-panel, filter-chip); añadir un script de cobertura; volver a capturar `/pendientes`, la ficha y `/anadir` tras `f08a02e`; `SITE_URL` debe estar en `.env.local` para ejecutar en local.
 ---
 
 ## [ ] 1.7 · Importador del Excel
