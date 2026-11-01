@@ -26,6 +26,8 @@ Regla: solo el código de servidor llama a servicios externos. Ningún código d
 | Supabase datos (lecturas y escrituras) | No | Sí, bajo RLS | No |
 | TMDB | No | Sí, con la clave solo de servidor y con caché | No |
 
+Excepción: el script local `scripts/import-excel.ts` (paso 1.7, D-71) habla por sí mismo con TMDB y con Postgres. No es código de la aplicación ni se despliega.
+
 ## Supabase
 
 - El navegador nunca habla con Supabase: no hay cliente de navegador (D-28). Auth y datos pasan por el código de servidor; la clave publicable solo se lee en el servidor.
@@ -67,6 +69,12 @@ Regla: solo el código de servidor llama a servicios externos. Ningún código d
 - Búsqueda y unicidad en la base de datos (D-59 y D-60): `fold_search`, `name_search` e índice único parcial `(kind, tmdb_id)`.
 - Flujo de escritura: isla -> Server Action -> caso de uso (persona, validación) -> repositorio -> Supabase (RLS y trigger de notas) -> `Result<TitleView, TitleFailure>` -> isla (confirma o revierte). Flujo de lectura: página RSC -> `parseListParams` -> `list` -> `sortTitles` -> `CriticsTable`.
 
+## Importador del Excel (paso 1.7)
+
+`scripts/import-excel.ts` es la raíz de composición del importador: lee el libro con `exceljs`, consulta TMDB con su propio `fetch` y escribe en Postgres con `pg` y `SUPABASE_DB_URL` (excepción a D-42 en D-71). Es un script local, fuera de `src/`; no se despliega ni lo importa la aplicación. Toda la lógica de reglas está en `src/import/`, que son módulos puros: importan solo rutas relativas y pueden usar el dominio, pero nunca `src/server` ni `server-only` (lo vigila `src/import/purity.test.ts`). La única pieza de `src/server/tmdb` que usa el script es `mapDetails` con sus tipos, también puros.
+
+Flujo: hoja `Pelis` -> `RawRow[]` -> `prepareRow` -> `dedupeRows` -> `search/multi` -> `decideMatch` -> detalles -> `buildImportRow` (pasa por `createTitle`) -> una transacción de solo inserción -> informe en `import-reports/`.
+
 ## Secretos
 
 - Las claves secretas solo existen en el entorno del servidor y nunca se exponen al cliente (p. ej., no usar el prefijo `NEXT_PUBLIC_` para ellas).
@@ -96,10 +104,12 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | `src/server/theme/` | Lectura de la cookie `theme` en el servidor |
 | `src/server/specimen/` | Datos de muestra de `/sistema` (`server-only`) |
 | `src/test/` | Ayudantes de tests unitarios (`axe.ts` con `expectNoAxeViolations`, `score.ts`) |
+| `src/import/` | Reglas puras del importador del Excel (paso 1.7): `color`, `sheet-date`, `season`, `score`, `tmdb-search`, `match`, `row`, `report` y `types` |
+| `scripts/` | Scripts locales: `import-excel.ts` (`pnpm import:excel`), con acceso a TMDB y a Postgres; fuera de la aplicación |
 | `src/proxy.ts` | Proxy de Next.js: refresca la sesión y protege las rutas |
-| `supabase/migrations/` | Migraciones versionadas: `allowlist` y `titles` (paso 1.3) y `couple_auth` (paso 1.4: `person`, `current_person()`, hook de registro y trigger de notas) y `tmdb_fields` (paso 1.5: `tmdb_id`, `poster_path` y `seasons_total`) y `title_search_unique` (paso 1.6: `fold_search`, `name_search` e índice único) |
+| `supabase/migrations/` | Migraciones versionadas: `allowlist` y `titles` (paso 1.3) y `couple_auth` (paso 1.4: `person`, `current_person()`, hook de registro y trigger de notas) y `tmdb_fields` (paso 1.5: `tmdb_id`, `poster_path` y `seasons_total`), `title_search_unique` (paso 1.6: `fold_search`, `name_search` e índice único) y `titles_import_key` (paso 1.7: `import_key`) |
 | `supabase/templates/` | Plantilla del correo de acceso (`sign-in.html`) |
-| `supabase/tests/database/` | Tests pgTAP (`pnpm test:db`): `titles_constraints`, `access_control`, `couple_auth`, `tmdb_fields` y `title_search_unique`; solo en local |
+| `supabase/tests/database/` | Tests pgTAP (`pnpm test:db`): `titles_constraints`, `access_control`, `couple_auth`, `tmdb_fields`, `title_search_unique` y `titles_import_key`; solo en local |
 | `supabase/config.toml` | Configuración de la CLI de Supabase (proyecto `ignacioymaria`, sin semilla) |
 | `tests/e2e/` | Pruebas E2E (Playwright): `auth.spec.ts` con ayudantes de Mailpit y `pg`, `design-system.spec.ts` (`/sistema` en ambos temas y anchos) `titles.spec.ts` con `titles-db.ts` (gestión de títulos con el doble de TMDB) y `session.ts` (ayudantes de sesión compartidos); `globalSetup` inserta las dos cuentas de prueba |
 | `vitest.config.mts` | Configuración de Vitest (jsdom, solo `src/**/*.test.{ts,tsx}`) |

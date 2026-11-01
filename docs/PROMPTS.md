@@ -83,3 +83,13 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** Un único cambio con migración (`fold_search`, `name_search`, índice único), repositorio y casos de uso, Server Actions, doble de TMDB para los E2E, rutas `(catalog)` con añadir, ficha y listas, y guardado optimista por campo. 893 tests de Vitest, 55 E2E y 244 comprobaciones pgTAP. La comprobación con el MCP de Playwright queda pendiente.
 
 **Lección:** Resolver las preguntas de producto antes de la propuesta (estado inicial, fecha automática, orden de Pendientes) evitó rehacer el diseño. Los E2E con el doble de TMDB destaparon dos carreras del propio test (rellenar antes de hidratar e inicios de sesión en paralelo), no fallos de la aplicación.
+
+---
+
+### 2026-11-01 · Paso 1.7 · importador del Excel (SDD `excel-import`)
+
+**Prompt:** `/gentle-sdd-new excel-import` — Escribe un importador de la hoja Pelis de "Ignacio y María.xlsx": convierte las fechas de Excel, trata el texto libre como fecha desconocida, deduce el estado del color de la celda (los colores que no están en la leyenda se asignan al estado de la leyenda más parecido), separa las series y sus temporadas del nombre, y enlaza con TMDB cuando la coincidencia sea clara. Debe ser idempotente y generar un informe de filas dudosas para revisarlas a mano.
+
+**Resultado:** Migración `import_key`, módulos puros en `src/import/` con tests, y el script `scripts/import-excel.ts` con `--dry-run`, inserción solo-nueva en una transacción e informe en `import-reports/`. Las fases 1 a 4 están hechas; la verificación con el Excel real queda en manos de la persona.
+
+**Lección:** Resolver antes de diseñar las preguntas de producto (tipo sin marca de temporada, rangos de año, token en el script) evitó rehacer el diseño. La identidad del título no debe incluir el tipo cuando este se deduce de TMDB.

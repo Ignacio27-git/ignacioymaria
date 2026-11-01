@@ -78,6 +78,12 @@ Registro ligero de las decisiones ya tomadas y de las que siguen abiertas. Fuent
 | D-68 | El estado inicial de un título nuevo depende del origen: `/anadir?desde=vistas` crea `Vista` con la fecha de hoy; `desde=pendientes` o sin `desde`, `Pendiente`. `AddAction` de cada lista lleva `desde`, y la creación acepta `state` y `watchDate` opcionales. Además, un cambio de estado a uno visto (`watched`, `watched_rewatch`, `watched_no_rewatch`, `watched_awful`) en un título con fecha desconocida guarda hoy en la misma escritura, en el servidor y con el día de Europe/Madrid (`todayIso`). Si la fecha ya se conoce, o la persona elige luego «No sé cuándo», se respeta; los estados no vistos nunca tocan la fecha | Decisión del usuario (#827): ayuda al objetivo de añadir y puntuar en menos de 30 s. Se descarta solo prerrellenar el selector de fecha | 2026-10-30 |
 | D-69 | En Pendientes, el orden «fecha» ordena por `createdAt` descendente (cuándo se añadió); en Vistas, por fecha de visionado descendente | Pendientes no tiene fecha de visionado. Decisión del usuario (#827) | 2026-10-30 |
 | D-70 | Doble de TMDB solo de servidor para los E2E (`src/server/tmdb/test-double.ts`): búsqueda y detalles deterministas, con una serie incluida. Solo se activa con `TMDB_TEST_DOUBLE=1` y `NODE_ENV !== "production"`; en producción con el indicador activo falla al arrancar. `playwright.config.ts` lo pone en el entorno del servidor web. Las capturas del MCP de Playwright usan TMDB real | Pruebas deterministas y sin red ni cuota. El indicador no puede llegar a producción | 2026-10-30 |
+| D-71 | Excepción a D-42: `scripts/import-excel.ts` lee `TMDB_READ_ACCESS_TOKEN` y `SUPABASE_DB_URL` de `.env.local` por sí mismo (`process.loadEnvFile`) y hace su propio `fetch` a TMDB (Bearer, `es-ES`, 5 s, un reintento tras 429, secuencial y con caché en memoria). Reutiliza solo `mapDetails` y los tipos de `src/server/tmdb`, que son puros. El token nunca se registra, imprime ni escribe en el informe (el texto impreso pasa por un filtro `redact`), y nunca llega al cliente. Sin token, el script termina con código 1 antes de trabajar | Es un script local que no pasa por Next.js, así que no puede usar `getTmdbReadAccessToken` (`server-only`). Se descarta extraer un cliente común para no tocar la barrera del paso 1.6. Decisión del usuario (#844) | 2026-11-01 |
+| D-72 | La importación solo inserta y es idempotente. Un título borrado en la aplicación se vuelve a insertar en la siguiente ejecución, porque la clave no se invalida (sin lápida) | Comportamiento documentado y aceptado por el usuario (#844). Una fila ya importada nunca se actualiza ni se toca, aunque se editara en la aplicación o cambiara la celda del Excel | 2026-11-01 |
+| D-73 | El redondeo de notas del importador es un paso explícito y propio (`roundToGrid`: `Math.round(x * 4) / 4`) antes de `parseScore`, y cada nota ajustada se lista en el informe. **D-18 no cambia**: el dominio sigue rechazando 9,9 | El Excel tiene notas fuera de la rejilla (9,9 y 7,3) que hay que importar sin perder la trazabilidad. Se descarta tocar el dominio | 2026-11-01 |
+| D-74 | Migración `titles_import_key`: `import_key text unique` nula, con `check (import_key ~ '\S')`. La clave es `pelis:` + nombre limpio plegado (`foldSearch`, sin marca de temporada, espacios colapsados); **el tipo no forma parte de la clave**, porque puede deducirse de TMDB y no es estable. Dentro de la hoja gana la primera fila y las siguientes se listan como duplicadas. Se inserta con `on conflict do nothing` sin objetivo en una única transacción, así que una colisión de `(kind, tmdb_id)` omite la fila y se informa como conflicto en lugar de abortar. Conexión con `SUPABASE_DB_URL` (rol `postgres`, nunca `service_role`) | Identidad estable ante cambios de fila o de tipo. Los títulos creados en la aplicación tienen la clave nula y no chocan. Reversión: ver «Reversión de excel-import» | 2026-11-01 |
+| D-75 | Las observaciones (columna H) se copian tal cual al campo `observations` del título, sin recortar, reescribir ni traducir; los actores de la columna G se importan tal como vienen (uno por línea) y ganan a los de TMDB cuando no están vacíos. **Cierra la decisión abierta** sobre las observaciones que no son notas de la película | Es la opción que no pierde información; la depuración posterior la hacen las personas desde la ficha | 2026-11-01 |
+| D-76 | Tipo sin marca de temporada: el de la única coincidencia clara de TMDB. Un año con rango (`2020-2024`) o `-` no guarda año y solo sesga hacia serie: antes de contar, los candidatos de nombre exacto se reducen a series y, si queda una sola, se enlaza como serie. La pista nunca fija el tipo por sí sola; si no se puede determinar, se importa como película y se informa («movie by default»). Una celda `Date` cuyo formato no tiene día y no es `mm/yyyy` es fecha desconocida y se informa | Decisiones del usuario (#844 y #845). Nunca se inventa una fecha ni un año | 2026-11-01 |
 
 ## Carga manual de la lista permitida
 
@@ -149,12 +155,22 @@ drop function fold_search(text);
 
 Las filas de `titles` no cambian. Después, revertir el PR de title-management.
 
+## Reversión de excel-import
+
+La migración `20261101120000_titles_import_key.sql` es aditiva y lleva el SQL de reversión en su cabecera. Para deshacer una importación y la columna, como `postgres`:
+
+```sql
+delete from titles where import_key is not null;
+alter table titles drop column import_key;
+```
+
+Los títulos creados en la aplicación tienen `import_key` nula y no se tocan. Después, revertir el PR de excel-import. El informe de `import-reports/` es local y está ignorado por git.
+
 ## Abiertas
 
 Sin resultado decidido. Cada una se resuelve en el paso indicado.
 
 | Tema | Se decide en |
 |---|---|
-| Observaciones que no son notas de la película | Paso 1.7 |
 | Detalles de producción y alojamiento | Fase 2 |
 | Prioridad y diseño de la Fase 3 | Tras el lanzamiento |

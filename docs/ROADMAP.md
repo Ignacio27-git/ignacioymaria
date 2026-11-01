@@ -288,12 +288,11 @@ separa las series y sus temporadas del nombre, y enlaza con TMDB cuando la coinc
 clara. Debe ser idempotente y generar un informe de filas dudosas para revisarlas a mano.
 ```
 
-**Decisiones abiertas.**
-- Qué hacer con las observaciones que no son notas de la película.
+**Decisiones abiertas.** Ninguna: las observaciones se copian tal cual (D-75).
 
 **Revisar.** El informe de filas dudosas, entero, antes de dar el paso por bueno.
 
-**Notas:**
+**Notas:** 2026-11-01 · Cambio SDD `excel-import`, con Strict TDD activo. Hecho (fases 1 a 4 del encargo): migración `titles_import_key` (`import_key` nula y única, con `check` de no vacía) y su pgTAP; módulos puros en `src/import/` (`color`, `sheet-date`, `season`, `score`, `tmdb-search`, `match`, `row`, `report` y `purity.test.ts`) con tests unitarios; y el script `scripts/import-excel.ts` (`pnpm import:excel --file <xlsx> [--dry-run]`) que lee solo la hoja `Pelis`, enlaza con TMDB, inserta en una transacción con `on conflict do nothing` y escribe el informe de filas dudosas en `import-reports/` (ignorado por git, igual que cualquier `.xlsx`). Decisiones D-71 a D-76 y reversión en `docs/DECISIONS.md`. Comprobado de extremo a extremo en local con un libro sintético y un token falso de TMDB (todo queda sin enlazar): la primera ejecución inserta 3 y la segunda 0 con 3 existentes. **Pendiente de la persona (fase 5):** confirmar `SUPABASE_DB_URL` y `TMDB_READ_ACCESS_TOKEN` en `.env.local`, ejecutar `--dry-run` con el Excel real (276 filas, informe, base intacta), la importación real y una segunda ejecución que inserte 0, y revisar el informe entero. El paso sigue abierto hasta entonces. Un único PR con excepción de tamaño aceptada (~1030 líneas, sin contar `pnpm-lock.yaml`).
 
 ---
 
@@ -401,3 +400,6 @@ propio ciclo SDD.
 | 2026-11-01 | 1.6 | TD-6 S3: con fecha desconocida el selector queda vacío y el botón «Hoy» pone la fecha de hoy, en lugar de abrirse con hoy | Decisión del usuario tras verify; la spec se enmendó. Un selector nativo prerrellenado no distingue «sin fecha» de «hoy» |
 | 2026-11-01 | 1.6 | Estado inicial según el origen, guardado automático de hoy al pasar a un estado visto y orden «fecha» de Pendientes por `createdAt` | Enmiendas A1 a A3 de la persona (#827); D-68 y D-69 |
 | 2026-11-01 | 1.6 | Los E2E usan un doble de TMDB en el servidor; las capturas del MCP usan TMDB real | Enmienda A4; D-70 |
+| 2026-11-01 | 1.7 | Un único PR con excepción de tamaño aceptada para `excel-import` | El usuario aceptó no dividir el cambio (~1030 líneas) |
+| 2026-11-01 | 1.7 | `.env.example` ya traía `SUPABASE_DB_URL` y `TMDB_READ_ACCESS_TOKEN` (los añadió la persona en 1.4 y 1.5); no se tocó | Los permisos del agente bloquean los archivos `.env*` |
+| 2026-11-01 | 1.7 | Nueva razón de informe `invalid` (filas que `createTitle` rechaza tras limpiar) y `pnpm-workspace.yaml` marca `esbuild: true` en `allowBuilds` | Ninguna fila se pierde sin aparecer en el informe; `tsx` depende de `esbuild` y pnpm exige decidirlo |
