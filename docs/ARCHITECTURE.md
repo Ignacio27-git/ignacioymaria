@@ -71,9 +71,9 @@ Excepción: el script local `scripts/import-excel.ts` (paso 1.7, D-71) habla por
 
 ## Importador del Excel (paso 1.7)
 
-`scripts/import-excel.ts` es la raíz de composición del importador: lee el libro con `exceljs`, consulta TMDB con su propio `fetch` y escribe en Postgres con `pg` y `SUPABASE_DB_URL` (excepción a D-42 en D-71). Es un script local, fuera de `src/`; no se despliega ni lo importa la aplicación. Toda la lógica de reglas está en `src/import/`, que son módulos puros: importan solo rutas relativas y pueden usar el dominio, pero nunca `src/server` ni `server-only` (lo vigila `src/import/purity.test.ts`). La única pieza de `src/server/tmdb` que usa el script es `mapDetails` con sus tipos, también puros.
+`scripts/import-excel.ts` es la raíz de composición del importador: lee el libro con `exceljs`, consulta TMDB con su propio `fetch` y escribe en Postgres con `pg` y `IMPORT_DB_URL` (excepción a D-42 en D-71; la variable de base de datos la sustituye D-77 y `SUPABASE_DB_URL` no se lee). Es un script local, fuera de `src/`; no se despliega ni lo importa la aplicación. Toda la lógica de reglas está en `src/import/`, que son módulos puros: importan solo rutas relativas y pueden usar el dominio, pero nunca `src/server` ni `server-only` (lo vigila `src/import/purity.test.ts`). La única pieza de `src/server/tmdb` que usa el script es `mapDetails` con sus tipos, también puros.
 
-Flujo: hoja `Pelis` -> `RawRow[]` -> `prepareRow` -> `dedupeRows` -> `search/multi` -> `decideMatch` -> detalles -> `buildImportRow` (pasa por `createTitle`) -> una transacción de solo inserción -> informe en `import-reports/`.
+Flujo: hoja `Pelis` -> `RawRow[]` -> `prepareRow` -> `resolveCollisions` (fusión provisional de temporadas, D-79) -> `search/multi` -> `decideMatch` -> detalles -> `buildImportRow` (pasa por `createTitle`) -> una transacción de solo inserción -> informe en `import-reports/`.
 
 ## Secretos
 
@@ -104,7 +104,7 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | `src/server/theme/` | Lectura de la cookie `theme` en el servidor |
 | `src/server/specimen/` | Datos de muestra de `/sistema` (`server-only`) |
 | `src/test/` | Ayudantes de tests unitarios (`axe.ts` con `expectNoAxeViolations`, `score.ts`) |
-| `src/import/` | Reglas puras del importador del Excel (paso 1.7): `color`, `sheet-date`, `season`, `score`, `tmdb-search`, `match`, `row`, `report` y `types` |
+| `src/import/` | Reglas puras del importador del Excel (paso 1.7): `color`, `sheet-date`, `season`, `score`, `tmdb-search`, `match`, `row`, `merge`, `env`, `db-error`, `report` y `types` |
 | `scripts/` | Scripts locales: `import-excel.ts` (`pnpm import:excel`), con acceso a TMDB y a Postgres; fuera de la aplicación |
 | `src/proxy.ts` | Proxy de Next.js: refresca la sesión y protege las rutas |
 | `supabase/migrations/` | Migraciones versionadas: `allowlist` y `titles` (paso 1.3) y `couple_auth` (paso 1.4: `person`, `current_person()`, hook de registro y trigger de notas) y `tmdb_fields` (paso 1.5: `tmdb_id`, `poster_path` y `seasons_total`), `title_search_unique` (paso 1.6: `fold_search`, `name_search` e índice único) y `titles_import_key` (paso 1.7: `import_key`) |

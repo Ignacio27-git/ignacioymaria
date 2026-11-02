@@ -292,7 +292,26 @@ clara. Debe ser idempotente y generar un informe de filas dudosas para revisarla
 
 **Revisar.** El informe de filas dudosas, entero, antes de dar el paso por bueno.
 
-**Notas:** 2026-11-01 · Cambio SDD `excel-import`, con Strict TDD activo. Hecho (fases 1 a 4 del encargo): migración `titles_import_key` (`import_key` nula y única, con `check` de no vacía) y su pgTAP; módulos puros en `src/import/` (`color`, `sheet-date`, `season`, `score`, `tmdb-search`, `match`, `row`, `report` y `purity.test.ts`) con tests unitarios; y el script `scripts/import-excel.ts` (`pnpm import:excel --file <xlsx> [--dry-run]`) que lee solo la hoja `Pelis`, enlaza con TMDB, inserta en una transacción con `on conflict do nothing` y escribe el informe de filas dudosas en `import-reports/` (ignorado por git, igual que cualquier `.xlsx`). Decisiones D-71 a D-76 y reversión en `docs/DECISIONS.md`. Comprobado de extremo a extremo en local con un libro sintético y un token falso de TMDB (todo queda sin enlazar): la primera ejecución inserta 3 y la segunda 0 con 3 existentes. **Pendiente de la persona (fase 5):** confirmar `SUPABASE_DB_URL` y `TMDB_READ_ACCESS_TOKEN` en `.env.local`, ejecutar `--dry-run` con el Excel real (276 filas, informe, base intacta), la importación real y una segunda ejecución que inserte 0, y revisar el informe entero. El paso sigue abierto hasta entonces. Un único PR con excepción de tamaño aceptada (previsto ~1030 líneas; real ~2030 sin contar `pnpm-lock.yaml`, aceptado también). Verificación SDD: PASS con avisos (evidencia RED reproducida después; 15 escenarios del script quedan para la fase 5; una fila pendiente con nota no se informaría). Estado al cerrar la sesión del 2026-11-01: `.env.local` ya conecta con el Supabase alojado de desarrollo (pooler), pero ese proyecto no tiene ninguna migración aplicada (`relation "public.titles" does not exist`) y el repo no está enlazado. Decisión de la persona: verificar primero en local y después, como paso aparte, poner a punto el alojado (procedimiento de `docs/DECISIONS.md`, «Configuración manual en Supabase alojado») e importar allí. Por hacer al retomar: (1) separar la URL del importador de `SUPABASE_DB_URL`, que en `.env.local` es la base local de los E2E; (2) que `--dry-run` escriba el informe aunque falle la base de datos; (3) revisar que solo salen 269 títulos distintos de 276 filas (4 duplicados explican 272; se sospecha que las temporadas de una misma serie en filas distintas, como *The last of us* temp 1 y 2, se fusionan y gana la primera).
+**Notas:** 2026-11-01 · Cambio SDD `excel-import`, con Strict TDD activo. Hecho (fases 1 a 4 del encargo): migración `titles_import_key` (`import_key` nula y única, con `check` de no vacía) y su pgTAP; módulos puros en `src/import/` (`color`, `sheet-date`, `season`, `score`, `tmdb-search`, `match`, `row`, `report` y `purity.test.ts`) con tests unitarios; y el script `scripts/import-excel.ts` (`pnpm import:excel --file <xlsx> [--dry-run]`) que lee solo la hoja `Pelis`, enlaza con TMDB, inserta en una transacción con `on conflict do nothing` y escribe el informe de filas dudosas en `import-reports/` (ignorado por git, igual que cualquier `.xlsx`). Decisiones D-71 a D-80 y reversión en `docs/DECISIONS.md`. Comprobado de extremo a extremo en local con un libro sintético y un token falso de TMDB (todo queda sin enlazar): la primera ejecución inserta 3 y la segunda 0 con 3 existentes. **Pendiente de la persona (fase 5):** confirmar `IMPORT_DB_URL` (antes `SUPABASE_DB_URL`) y `TMDB_READ_ACCESS_TOKEN` en `.env.local`, ejecutar `--dry-run` con el Excel real (276 filas, informe, base intacta), la importación real y una segunda ejecución que inserte 0, y revisar el informe entero. El paso sigue abierto hasta entonces. Un único PR con excepción de tamaño aceptada (previsto ~1030 líneas; real ~2030 sin contar `pnpm-lock.yaml`, aceptado también). Verificación SDD: PASS con avisos (evidencia RED reproducida después; 15 escenarios del script quedan para la fase 5; una fila pendiente con nota no se informaría). Estado al cerrar la sesión del 2026-11-01: `.env.local` ya conecta con el Supabase alojado de desarrollo (pooler), pero ese proyecto no tiene ninguna migración aplicada (`relation "public.titles" does not exist`) y el repo no está enlazado. Decisión de la persona: verificar primero en local y después, como paso aparte, poner a punto el alojado (procedimiento de `docs/DECISIONS.md`, «Configuración manual en Supabase alojado») e importar allí. Seguimiento del 2026-11-02 (fase 6, hecho): (1) el importador lee `IMPORT_DB_URL` y no `SUPABASE_DB_URL` (D-77); (2) `--dry-run` escribe el informe aunque falle la base de datos, con la línea `Existing-keys check skipped` (D-78); (3) las filas de temporadas de una misma serie se fusionan de forma provisional en una sola serie (D-79), con las filas descartadas en la sección `Merged season rows` del informe, de modo que 276 filas dan 269 títulos distintos. Comprobado en local con un libro sintético y un token falso: importación real sin `IMPORT_DB_URL` (código 1 aunque `SUPABASE_DB_URL` exista), dry-run sin ella (código 0, línea de omisión), dry-run con contraseña errónea y con puerto cerrado (informe escrito, código 1, sin secretos) y dos importaciones reales (3 y luego 0 insertados). **Pendiente de la persona:** añadir `IMPORT_DB_URL` a `.env.local` y su nombre (sin valor) a `.env.example` (el agente no puede editar `.env*`) y después las comprobaciones de la fase 5 solo contra la base local. La importación real en el alojado espera al paso 1.8 (D-80).
+
+---
+
+## [ ] 1.8 · Valoración por temporada
+
+**Objetivo.** Que cada temporada de una serie tenga su propio estado, notas y fecha, para que el importador pueda cargar una fila por temporada sin la fusión provisional de D-79.
+
+```text
+/gentle-sdd-new season-ratings
+
+Permite valorar cada temporada de una serie por separado (estado, nota de cada persona y
+fecha) y adapta el importador del Excel para cargar una fila por temporada.
+```
+
+**Decisiones abiertas.** Modelo de datos (tabla de temporadas o columnas), cómo se calcula la nota de la serie a partir de las temporadas y cómo se muestra en la ficha y las listas. Se preguntan antes de la propuesta.
+
+**Revisar.** Que *The last of us* conserva sus dos temporadas con sus notas y que el informe del importador ya no tiene filas fusionadas.
+
+**Notas:** Paso nuevo del 2026-11-02 (#853). La importación real en el Supabase alojado (2.3) espera a este paso.
 
 ---
 
@@ -347,7 +366,7 @@ migraciones, dominio y comprobación con Playwright contra la URL pública.
 **Revisar.** Que el número de títulos coincide con el Excel y que una copia se puede
 restaurar.
 
-**Notas:**
+**Notas:** Espera al paso 1.8 (valoración por temporada): el importador se adaptará allí a una fila por temporada antes de cargar el alojado (D-80).
 
 ---
 
@@ -404,3 +423,6 @@ propio ciclo SDD.
 | 2026-11-01 | 1.7 | `.env.example` ya traía `SUPABASE_DB_URL` y `TMDB_READ_ACCESS_TOKEN` (los añadió la persona en 1.4 y 1.5); no se tocó | Los permisos del agente bloquean los archivos `.env*` |
 | 2026-11-01 | 1.7 | Nueva razón de informe `invalid` (filas que `createTitle` rechaza tras limpiar) y `pnpm-workspace.yaml` marca `esbuild: true` en `allowBuilds` | Ninguna fila se pierde sin aparecer en el informe; `tsx` depende de `esbuild` y pnpm exige decidirlo |
 | 2026-11-01 | 1.7 | La evidencia RED de Strict TDD del paso 1.7 no se registró en su momento y se reprodujo después en un worktree aislado (implementación sustituida por stubs) | `sdd-verify` la marcó como crítica; evidencia en `sdd/excel-import/apply-progress` |
+| 2026-11-02 | 1.7 | Seguimiento de `excel-import` (fase 6): `IMPORT_DB_URL` sustituye a `SUPABASE_DB_URL` en el importador, `--dry-run` resiste fallos de base de datos y las temporadas de una misma serie se fusionan de forma provisional | Hallazgos de la persona al probar con el alojado (#853); D-77 a D-80 |
+| 2026-11-02 | 1.7 | Nuevo paso 1.8 «Valoración por temporada» antes de la importación real (2.3), que espera a este paso | La base solo guarda una nota por persona y título (D-80). La numeración 1.8 es del agente: la persona puede reubicarlo |
+| 2026-11-02 | 1.7 | No se extrajo un helper de resultado de ejecución del script: la lógica testeable nueva está en `env.ts` y `db-error.ts`, y el pegamento del script se comprobó con ejecuciones locales (libro sintético, token falso) | Lo que queda son unas diez líneas de try/catch sin reglas propias |

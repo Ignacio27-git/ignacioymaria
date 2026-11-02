@@ -93,3 +93,13 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** Migración `import_key`, módulos puros en `src/import/` con tests, y el script `scripts/import-excel.ts` con `--dry-run`, inserción solo-nueva en una transacción e informe en `import-reports/`. Las fases 1 a 4 están hechas; la verificación con el Excel real queda en manos de la persona.
 
 **Lección:** Resolver antes de diseñar las preguntas de producto (tipo sin marca de temporada, rangos de año, token en el script) evitó rehacer el diseño. La identidad del título no debe incluir el tipo cuando este se deduce de TMDB.
+
+---
+
+### 2026-11-02 · Paso 1.7 · seguimiento del importador (SDD `excel-import`, fase 6)
+
+**Prompt:** Tras probar con el Supabase alojado: separar la URL del importador de `SUPABASE_DB_URL`, que `--dry-run` escriba el informe aunque falle la base de datos, y fusionar de forma provisional las temporadas de una misma serie (caso *The last of us*), aplazando la valoración por temporada a un paso propio.
+
+**Resultado:** `IMPORT_DB_URL`, módulos puros `merge`, `env` y `db-error`, sección `season_merge` y línea de omisión en el informe, y decisiones D-77 a D-80. Comprobado en local con un libro sintético.
+
+**Lección:** Las primeras pruebas con la base real destaparon dos riesgos que los datos sintéticos no cubrían: que una variable compartida apunte a otra base y que un fallo de conexión cueste el informe. Fusionar sin perder datos exige dejar las filas descartadas, con sus valores, en el informe.

@@ -38,7 +38,7 @@ Next.js (App Router) + React + TypeScript estricto · Supabase (Postgres y Auth,
 | `pnpm db:stop` | disponible |
 | `pnpm db:reset` | disponible (reaplica las migraciones desde cero) |
 | `pnpm test:db` | disponible (pgTAP, requiere `pnpm db:start`) |
-| `pnpm import:excel` | disponible (`--file <xlsx> [--dry-run]`; lee `.env.local`, ver D-71) |
+| `pnpm import:excel` | disponible (`--file <xlsx> [--dry-run]`; lee `.env.local`; la base es `IMPORT_DB_URL`, ver D-71 y D-77) |
 
 ## Registro obligatorio
 
