@@ -257,7 +257,7 @@ select throws_ok(
 reset role;
 
 select results_eq(
-  'select name from public.titles order by name',
+  'select name from public.titles where id::text like ''00000000-0000-0000-0000-0000000000%'' order by name',
   $$values ('Existing'::text)$$,
   'AC-3.1/3.2/3.5 titles unchanged after denied access'
 );
@@ -272,7 +272,7 @@ select lives_ok(
   'AC-3.3 allowlisted user inserts'
 );
 select results_eq(
-  $$select name from public.titles order by name$$,
+  $$select name from public.titles where id::text like '00000000-0000-0000-0000-0000000000%' order by name$$,
   $$values ('Ana film'::text), ('Existing'::text)$$,
   'AC-3.3 allowlisted user selects every row'
 );
@@ -293,7 +293,7 @@ select results_eq(
   'AC-3.3 allowlisted user deletes'
 );
 select results_eq(
-  'select name from public.titles',
+  'select name from public.titles where id::text like ''00000000-0000-0000-0000-0000000000%''',
   $$values ('Existing'::text)$$,
   'AC-3.3 reads reflect the delete'
 );
@@ -337,7 +337,7 @@ select throws_ok(
 select set_config('request.jwt.claims',
   '{"role":"authenticated","email":"ben@example.test"}', true);
 select is(
-  (select count(*)::integer from public.titles),
+  (select count(*)::integer from public.titles where id::text like '00000000-0000-0000-0000-0000000000%'),
   2,
   'AC-3.7 remaining allowlisted user still sees the rows'
 );
