@@ -14,6 +14,7 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "test:db": "supabase test db",
+    "test:import": "vitest run --config vitest.import.config.mts",
     "import:excel": "tsx scripts/import-excel.ts"
   },
   "dependencies": {
