@@ -19,6 +19,7 @@ export type NoteReason =
   | "date"
   | "season"
   | "duplicate"
+  | "season_merge"
   | "unlinked"
   | "conflict"
   | "kind"

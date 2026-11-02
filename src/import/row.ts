@@ -107,32 +107,6 @@ export function prepareRow(raw: RawRow): PreparedRow {
   };
 }
 
-/** One title per folded clean name: the first row in sheet order wins. */
-export function dedupeRows(rows: readonly PreparedRow[]): {
-  kept: PreparedRow[];
-  duplicates: ReportNote[];
-} {
-  const firstByKey = new Map<string, PreparedRow>();
-  const kept: PreparedRow[] = [];
-  const duplicates: ReportNote[] = [];
-  for (const row of rows) {
-    const first = firstByKey.get(row.key);
-    if (first === undefined) {
-      firstByKey.set(row.key, row);
-      kept.push(row);
-    } else {
-      duplicates.push({
-        row: row.row,
-        name: row.displayName,
-        reason: "duplicate",
-        original: row.displayName,
-        decision: `duplicate of row ${first.row}, not imported`,
-      });
-    }
-  }
-  return { kept, duplicates };
-}
-
 export type BuiltRow =
   | { ok: true; key: string; title: Title; notes: ReportNote[] }
   | { ok: false; key: string; errors: readonly TitleError[]; notes: ReportNote[] };

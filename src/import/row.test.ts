@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, test } from "vitest";
 
-import { buildImportRow, dedupeRows, prepareRow } from "./row";
+import { buildImportRow, prepareRow } from "./row";
 import type { MatchDecision } from "./match";
 import type { RawRow } from "./types";
 
@@ -93,26 +93,6 @@ describe("prepareRow", () => {
     const row = prepareRow(raw({ watchDate: "jiji", watchDateFormat: null }));
     expect(row.watchDate).toEqual({ kind: "unknown" });
     expect(row.notes[0]).toMatchObject({ reason: "date", original: "jiji" });
-  });
-});
-
-describe("dedupeRows", () => {
-  test("first row wins and later rows are reported, ignoring case, accents and markers", () => {
-    const rows = [
-      prepareRow(raw({ row: 2, name: "Amélie" })),
-      prepareRow(raw({ row: 7, name: "amelie (t1)" })),
-      prepareRow(raw({ row: 9, name: "Otra" })),
-    ];
-    const { kept, duplicates } = dedupeRows(rows);
-    expect(kept.map((r) => r.row)).toEqual([2, 9]);
-    expect(duplicates).toEqual([
-      expect.objectContaining({
-        row: 7,
-        name: "amelie (t1)",
-        reason: "duplicate",
-        decision: expect.stringContaining("row 2"),
-      }),
-    ]);
   });
 });
 

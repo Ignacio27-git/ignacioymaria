@@ -4,8 +4,9 @@
  *   pnpm import:excel --file "<path to xlsx>" [--dry-run]
  *
  * Insert-only and idempotent (import_key + `on conflict do nothing`). Reads
- * TMDB_READ_ACCESS_TOKEN and SUPABASE_DB_URL from .env.local itself (recorded
- * exception to D-42). Neither value is ever logged, printed or reported.
+ * TMDB_READ_ACCESS_TOKEN and IMPORT_DB_URL from .env.local itself (recorded
+ * exception to D-42; SUPABASE_DB_URL is never read). Neither value is ever
+ * logged, printed or reported.
  */
 import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -16,9 +17,12 @@ import ExcelJS from "exceljs";
 import { Client } from "pg";
 
 import type { Title } from "../src/domain/title";
+import { describeDbError } from "../src/import/db-error";
+import { hostOf, resolveImportEnv } from "../src/import/env";
 import { decideMatch, type MatchDecision } from "../src/import/match";
+import { resolveCollisions } from "../src/import/merge";
 import { renderReport } from "../src/import/report";
-import { buildImportRow, dedupeRows, prepareRow, type PreparedRow } from "../src/import/row";
+import { buildImportRow, prepareRow, type PreparedRow } from "../src/import/row";
 import { mapSearchMulti } from "../src/import/tmdb-search";
 import type { MatchKind, RawRow, ReportNote } from "../src/import/types";
 import { mapDetails } from "../src/server/tmdb/mappers";
@@ -201,14 +205,6 @@ function lookupFailed(prepared: PreparedRow): MatchDecision {
 
 // ----------------------------------------------------------------- database
 
-function hostOf(url: string): string {
-  try {
-    return new URL(url).host;
-  } catch {
-    return "(unparseable URL)";
-  }
-}
-
 async function existingKeys(client: Client, keys: string[]): Promise<Set<string>> {
   const result = await client.query<{ import_key: string }>(
     "select import_key from public.titles where import_key = any($1::text[])",
@@ -291,12 +287,10 @@ async function main(): Promise<void> {
   if (!existsSync(file)) throw new UsageError(`file not found: ${file}`);
 
   if (existsSync(".env.local")) process.loadEnvFile(".env.local");
-  const token = process.env.TMDB_READ_ACCESS_TOKEN;
-  const dbUrl = process.env.SUPABASE_DB_URL;
-  if (!token) throw new UsageError("TMDB_READ_ACCESS_TOKEN is missing (set it in .env.local)");
-  if (!dryRun && !dbUrl) throw new UsageError("SUPABASE_DB_URL is missing (set it in .env.local)");
-  secrets.push(token);
-  if (dbUrl) secrets.push(dbUrl);
+  const env = resolveImportEnv(process.env, dryRun);
+  if (!env.ok) throw new UsageError(env.error);
+  const { token, dbUrl } = env;
+  secrets.push(...env.secrets);
 
   const { rows: raw, themedFills } = await readRows(file);
   log(`Read ${raw.length} named rows from "${SHEET}"${dryRun ? " (dry run)" : ""}.`);
@@ -304,9 +298,9 @@ async function main(): Promise<void> {
     log(`Warning: ${themedFills} name cells use a theme fill color, treated as no fill (pending).`);
   }
 
-  const { kept, duplicates } = dedupeRows(raw.map(prepareRow));
+  const { kept, notes: collisions } = resolveCollisions(raw.map(prepareRow));
   const tmdb = createTmdb(token);
-  const notes: ReportNote[] = [...duplicates];
+  const notes: ReportNote[] = [...collisions];
   const built: Built[] = [];
   let linked = 0;
 
@@ -354,26 +348,38 @@ async function main(): Promise<void> {
   }
 
   let outcome = "";
-  if (dbUrl) {
+  let keysCheckSkipped: string | null = null;
+  if (dbUrl === null) {
+    keysCheckSkipped = "IMPORT_DB_URL is not set";
+    outcome = `Dry run without IMPORT_DB_URL: ${built.length} titles ready, database not consulted.`;
+  } else if (dryRun) {
+    // Read-only lookup. Any failure still ends in a full report (never a write).
     log(`Connecting to ${hostOf(dbUrl)}.`);
     const client = new Client({ connectionString: dbUrl });
     try {
       await client.connect();
-      if (dryRun) {
-        await client.query("begin read only");
-        const present = await existingKeys(client, built.map((b) => b.key));
-        await client.query("rollback");
-        outcome = `Dry run: ${built.length - present.size} would be inserted, ${present.size} already imported.`;
-      } else {
-        const result = await writeAll(client, built);
-        notes.push(...result.conflicts);
-        outcome = `Inserted ${result.inserted}, already existing ${result.existing}, TMDB conflicts ${result.conflicts.length}.`;
-      }
+      await client.query("begin read only");
+      const present = await existingKeys(client, built.map((b) => b.key));
+      await client.query("rollback");
+      outcome = `Dry run: ${built.length - present.size} would be inserted, ${present.size} already imported.`;
+    } catch (error) {
+      keysCheckSkipped = describeDbError(error);
+      outcome = `Dry run: existing-keys check skipped (${keysCheckSkipped}), database not consulted.`;
+      process.exitCode = 1;
     } finally {
       await client.end().catch(() => undefined);
     }
   } else {
-    outcome = `Dry run without SUPABASE_DB_URL: ${built.length} titles ready, database not consulted.`;
+    log(`Connecting to ${hostOf(dbUrl)}.`);
+    const client = new Client({ connectionString: dbUrl });
+    try {
+      await client.connect();
+      const result = await writeAll(client, built);
+      notes.push(...result.conflicts);
+      outcome = `Inserted ${result.inserted}, already existing ${result.existing}, TMDB conflicts ${result.conflicts.length}.`;
+    } finally {
+      await client.end().catch(() => undefined);
+    }
   }
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -382,11 +388,22 @@ async function main(): Promise<void> {
   notes.sort((a, b) => a.row - b.row);
   await writeFile(
     reportPath,
-    renderReport({ generatedAt: new Date().toISOString(), dryRun, totalRows: raw.length, notes }),
+    renderReport({
+      generatedAt: new Date().toISOString(),
+      dryRun,
+      totalRows: raw.length,
+      notes,
+      keysCheckSkipped,
+    }),
     "utf8",
   );
 
-  log(`Distinct titles: ${kept.length}, duplicates skipped: ${duplicates.length}, linked to TMDB: ${linked}.`);
+  const duplicates = collisions.filter((n) => n.reason === "duplicate").length;
+  const merged = collisions.filter((n) => n.reason === "season_merge").length;
+  log(
+    `Distinct titles: ${kept.length}, duplicates skipped: ${duplicates}, merged season rows: ${merged}, linked to TMDB: ${linked}.`,
+  );
+  if (keysCheckSkipped !== null) log(`Existing-keys check skipped: ${keysCheckSkipped}.`);
   log(outcome);
   log(`Report: ${reportPath} (${notes.length} entries).`);
   if (dryRun) log("Dry run: nothing written to the database.");

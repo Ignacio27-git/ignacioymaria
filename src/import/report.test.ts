@@ -10,6 +10,7 @@ const REASONS: NoteReason[] = [
   "date",
   "season",
   "duplicate",
+  "season_merge",
   "unlinked",
   "conflict",
   "kind",
@@ -69,5 +70,34 @@ describe("renderReport", () => {
       notes: [{ ...note("date", 3), original: "a|b\nc" }],
     });
     expect(md).toContain("a\\|b c");
+  });
+
+  test("merged season rows get their own section, apart from duplicates", () => {
+    const md = renderReport({
+      generatedAt: "2026-11-01T10:00:00.000Z",
+      dryRun: false,
+      totalRows: 2,
+      notes: [note("season_merge", 10), note("duplicate", 11)],
+    });
+    expect(md).toContain("## Merged season rows (interim, not imported separately) (1)");
+    expect(md).toContain("## Duplicates (not imported) (1)");
+  });
+
+  test("states why the existing-keys check was skipped, only when it was", () => {
+    const base = {
+      generatedAt: "2026-11-01T10:00:00.000Z",
+      dryRun: true,
+      totalRows: 1,
+      notes: [note("date", 3)],
+    };
+    const skipped = renderReport({
+      ...base,
+      keysCheckSkipped: "IMPORT_DB_URL is not set",
+    });
+    expect(skipped).toContain("- Existing-keys check skipped: IMPORT_DB_URL is not set");
+    expect(renderReport({ ...base, keysCheckSkipped: null })).not.toMatch(/check skipped/i);
+    expect(
+      renderReport({ ...base, notes: [], keysCheckSkipped: "authentication failed" }),
+    ).toContain("- Existing-keys check skipped: authentication failed");
   });
 });
