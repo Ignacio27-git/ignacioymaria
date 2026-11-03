@@ -388,7 +388,7 @@ migraciones, dominio y comprobación con Playwright contra la URL pública.
 
 ---
 
-## [ ] 2.3 · Importación real y copias de seguridad
+## [x] 2.3 · Importación real y copias de seguridad
 
 **Objetivo.** Cargar el Excel en producción y programar copias de seguridad exportables.
 
@@ -412,6 +412,8 @@ restaurar.
 2026-11-03 · El paso nació sin prompt (commit `d6ec5f9`), sin motivo registrado; la decisión pendiente era cómo hacer las copias. Supabase no hace copias en el plan gratuito y recomienda `supabase db dump` guardado fuera; la persona elige un workflow programado de GitHub Actions (D-90). Prompt añadido.
 
 2026-11-03 · Cambio SDD `production-import-and-backups`, con Strict TDD. Hecho (agente): `.github/workflows/backup.yml` (semanal + manual, `production`, volcados de roles, esquema y datos cifrados con `age` a un destinatario público, solo `*.age` subidos, 30 días), tests de contrato en `scripts/deploy-config.test.ts` (guardas probadas contra variantes inseguras) y, en `docs/DEPLOY.md`, el runbook de importación, de copias y de restauración (D-91). **Estado: pendiente de ensayo; el paso sigue abierto.** Pendiente de la persona: U1 confirmar que `.env.example` lista `IMPORT_DB_URL`; U2 tras fusionar, generar el par `age` y guardar la clave pública como `BACKUP_AGE_RECIPIENT` en `production` (la privada, fuera de línea en dos copias); U3 lanzar la copia de base antes de importar; U4 importar en producción una sola vez (`--dry-run`, informe, importación real, recuentos); U5 lanzar la copia posterior y comprobar tres `.age`, 30 días y logs limpios; U6 ensayar la restauración local y responder las tres preguntas abiertas de `docs/DEPLOY.md`; U7 anotar aquí fechas, recuentos y URL de la ejecución. El paso no se cierra sin U6 y U7.
+
+Cierre (2026-11-03): importación real en producción hecha por la persona. El ensayo con `--dry-run` por el *pooler* de sesión dio 269 títulos distintos (6 duplicados omitidos), 133 enlazados con TMDB y 136 sin enlazar (71 con varios candidatos, 54 sin candidato de nombre exacto, 11 con año distinto) y 33 temporadas; la persona aceptó importarlos sin enlazar. La importación real insertó 269 títulos y 33 temporadas. Ensayo de restauración: ejecución de GitHub Actions 41698960287, artifact `db-backup-20261103T185938Z-41698960287` con tres ficheros `.age` (roles 570 B, esquema 14640 B, datos 92482 B); el descifrado con la identidad privada fuera de línea funcionó. Roles: único error `permission denied for parameter log_min_messages`, esperado. Esquema con `ON_ERROR_STOP=1`: sin errores. Datos (bloques `public`, con `session_replication_role = replica`): sin errores y recuentos iguales a producción (269 títulos: 252 películas y 17 series; 33 temporadas; 2 correos permitidos). `pnpm test:db` falla sobre una restauración con datos y pasa 295/295 sobre una sin datos; `data.sql` no incluye `supabase_migrations`; los permisos y privilegios por defecto sobreviven a `drop schema public` (D-92). Descifrados y copia de la identidad borrados; base local restablecida con `pnpm db:reset`. Defecto hallado y corregido: el volcado de datos incluía `auth` y `storage` (`-s public`, D-92, con test de contrato). La persona guardó al principio solo la clave pública `age1...` en vez de la identidad con la línea secreta; documentado en `docs/DEPLOY.md`. Seguimiento pendiente: lanzar una copia nueva ya con `-s public` tras fusionar.
 
 ---
 
@@ -485,3 +487,5 @@ propio ciclo SDD.
 | 2026-11-03 | 2.2 | El paso se cierra sin el primer acceso de María (Authentication > Users = 1 en lugar de 2) | Decisión de la persona: María no usará la web hasta que esté terminada |
 | 2026-11-03 | 2.3 | Se añade el prompt que faltaba; las copias de seguridad serán un `supabase db dump` programado en GitHub Actions (D-90) | El plan gratuito de Supabase no tiene copias; era la decisión abierta que dejaba el paso sin prompt |
 | 2026-11-03 | 2.3 | La restauración usa tres ejecuciones de `psql` vía `docker exec` en lugar de `--single-transaction` (D-90); los volcados van cifrados con `age` porque el repositorio es público (D-91) | El paso de roles debe tolerar roles ya existentes y no puede ser atómico; los artifacts de un repositorio público son legibles |
+| 2026-11-03 | 2.3 | El volcado de datos se limita al esquema `public` (`-s public`); D-91 decía que `auth` quedaba fuera y no era cierto | El ensayo de restauración mostró que `supabase db dump --data-only` (CLI 2.122.0) incluía los datos de `auth.*` y `storage.*`; cifrados, sin exposición (D-92) |
+| 2026-11-03 | 2.3 | Los comandos de restauración de `docs/DEPLOY.md` se ejecutan en Git Bash; `pnpm test:db` corre sobre una restauración sin datos | PowerShell no admite la redirección `<`; los tests de pgTAP suponen `allowed_emails` vacía (D-92) |

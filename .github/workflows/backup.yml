@@ -73,7 +73,7 @@ jobs:
           trap 'rm -rf "$PLAIN"' EXIT
           pnpm exec supabase db dump --linked --role-only -f "$PLAIN/roles.sql"
           pnpm exec supabase db dump --linked -f "$PLAIN/schema.sql"
-          pnpm exec supabase db dump --linked --data-only --use-copy -f "$PLAIN/data.sql"
+          pnpm exec supabase db dump --linked --data-only --use-copy -s public -f "$PLAIN/data.sql"
           for name in roles schema data; do
             age -r "$BACKUP_AGE_RECIPIENT" -o "$OUT/$name-$STAMP.sql.age" "$PLAIN/$name.sql"
           done

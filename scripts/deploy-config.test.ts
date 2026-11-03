@@ -168,6 +168,10 @@ const guards = {
     ensure(data.length === 1, "one data dump");
     ensure(data[0].includes("--use-copy"), "data dump without --use-copy");
     ensure(
+      /(\s-s\s+public\b|\s--schema[ =]public\b)/.test(data[0]),
+      "data dump not scoped to the public schema",
+    );
+    ensure(
       dumps.filter(
         (line) =>
           !line.includes("--role-only") && !line.includes("--data-only"),
@@ -362,7 +366,7 @@ describe("deploy docs", () => {
 
   it("contains placeholders only, never real keys or connection strings", () => {
     expect(docs).not.toMatch(/age1[0-9a-z]{58}/);
-    expect(docs).not.toMatch(/AGE-SECRET-KEY/);
+    expect(docs).not.toMatch(/AGE-SECRET-KEY-1[0-9A-Z]{20,}/);
     expect(docs).not.toMatch(/postgres(ql)?:\/\/[^<]/);
   });
 

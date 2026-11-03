@@ -139,3 +139,11 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** Workflow `backup.yml` con volcados cifrados con `age` (clave pública), tests de contrato con guardas probadas contra variantes inseguras y runbook de importación, copias y restauración en `docs/DEPLOY.md`. Decisión D-91. Los pasos con secretos, la importación real y el ensayo de restauración quedan para la persona; el paso sigue abierto.
 
 **Lección:** En un repositorio público los artifacts son legibles, así que el cifrado con clave pública es la única opción que no deja un secreto de descifrado en GitHub; y una guarda de contrato solo vale si se prueba contra una variante insegura que debe fallar.
+
+### 2026-11-03 · Paso 2.3 · cierre tras el ensayo de restauración (SDD `production-import-and-backups`, seguimiento)
+
+**Prompt:** Seguimiento de `/gentle-sdd-new production-import-and-backups` — Limita el volcado de datos del workflow de copias al esquema `public` con un test de contrato escrito antes; corrige `docs/DEPLOY.md` (restauración en Git Bash, error de roles esperado, verificación por recuentos y `pnpm test:db` sobre una restauración sin datos, cadena del *pooler* de sesión, aviso de guardar la identidad `age` completa); enmienda D-91 y cierra el paso 2.3 con la evidencia del ensayo.
+
+**Resultado:** `-s public` en el volcado de datos con su test de contrato (rojo, luego verde), D-92, runbook corregido y paso 2.3 cerrado en `docs/ROADMAP.md`.
+
+**Lección:** Un ensayo de restauración real encuentra lo que la revisión no ve: el volcado de datos arrastraba `auth` y `storage` pese a la decisión escrita. Una decisión de exclusión se vigila con un test sobre la línea de comando que la implementa.
