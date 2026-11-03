@@ -427,6 +427,7 @@ propio ciclo SDD.
 - [ ] **Resumen anual.** Un *Wrapped* con lo visto en el año.
 - [ ] **Dónde verla.** Plataformas disponibles en España según TMDB.
 - [ ] **Cronología.** Vuestra historia en películas, desde *El exorcista*.
+- [ ] **Vista de tarjetas.** En la lista, alternar entre el listado actual y una cuadrícula de tarjetas con la portada, el título, las notas y la fecha de visualización.
 
 ---
 
