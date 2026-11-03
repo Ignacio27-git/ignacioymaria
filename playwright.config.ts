@@ -24,9 +24,17 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
+      // D-88: the CI smoke journey. It owns the titles table and the mailbox for
+      // its run, so it sits between "auth" and the rest (auth -> smoke -> ui -> titles).
+      name: "smoke",
+      testMatch: "**/smoke.spec.ts",
+      dependencies: ["auth"],
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       name: "ui",
       testMatch: "**/design-system.spec.ts",
-      dependencies: ["auth"],
+      dependencies: ["smoke"],
       use: { ...devices["Desktop Chrome"] },
     },
     {
