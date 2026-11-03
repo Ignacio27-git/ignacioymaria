@@ -91,6 +91,12 @@ Flujo: hoja `Pelis` -> `RawRow[]` -> `prepareRow` -> `groupSeasons` (una fila po
 
 Los proyectos de Playwright se encadenan `auth -> smoke -> ui -> titles`: `smoke` (`tests/e2e/smoke.spec.ts`) es el recorrido crítico y es dueño de la tabla `titles` y del buzón mientras corre. Seleccionar `ui` o `titles` ejecuta también `auth` y `smoke`.
 
+## Despliegue y comprobación en producción (paso 2.2)
+
+Vercel despliega solo `main` (`vercel.json`). `.github/workflows/deploy-migrations.yml` aplica las migraciones al Supabase alojado con el CLI fijado por el lockfile, en el entorno `production` de GitHub (los únicos secretos del repositorio viven ahí; `ci.yml` sigue sin ninguno, D-88 y D-89). Vercel y las migraciones corren en paralelo: las migraciones son aditivas.
+
+La comprobación en producción es una capa local aparte: `playwright.prod.config.ts` (sin `webServer` ni `globalSetup`) ejecuta solo `tests/prod/**` contra `PROD_BASE_URL`, con una sesión guardada en `playwright/.auth/prod.json` y una guarda que aborta cualquier petición que no sea GET fuera de las ventanas permitidas. No entra en `pnpm test` ni en CI. Procedimiento: `docs/DEPLOY.md`.
+
 ## Secretos
 
 - Las claves secretas solo existen en el entorno del servidor y nunca se exponen al cliente (p. ej., no usar el prefijo `NEXT_PUBLIC_` para ellas).

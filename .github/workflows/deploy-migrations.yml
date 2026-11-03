@@ -1,0 +1,46 @@
+name: Deploy migrations
+
+# D-89: applies supabase/migrations to the hosted project after a merge to main.
+# Never runs for pull requests: the production secrets live in the GitHub
+# `production` environment, whose deployment branch is restricted to main.
+on:
+  push:
+    branches: [main]
+    paths:
+      - supabase/migrations/**
+      - .github/workflows/deploy-migrations.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Pushes to the database never interleave and a running push is never cancelled.
+concurrency:
+  group: deploy-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Apply migrations to production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      # The CLI version is pinned by the lockfile, the same one used locally and in CI.
+      - run: pnpm install --frozen-lockfile
+      - name: Link the hosted project
+        run: pnpm exec supabase link --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Dry run
+        run: pnpm exec supabase db push --dry-run
+      - name: Push
+        run: pnpm exec supabase db push

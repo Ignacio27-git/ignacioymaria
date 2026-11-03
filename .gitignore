@@ -58,3 +58,6 @@ coverage/
 # Excel import: source workbook and reports (personal data)
 /import-reports/
 *.xlsx
+
+# production smoke check: saved browser session (cookies)
+/playwright/.auth/
