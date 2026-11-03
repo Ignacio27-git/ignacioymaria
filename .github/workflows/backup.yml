@@ -1,0 +1,88 @@
+name: Backup database
+
+# D-91: weekly encrypted backup of the hosted database. The repository is public,
+# so artifacts and logs are readable: dumps are encrypted to a public age
+# recipient before upload and only `*.age` files are ever uploaded. The private
+# identity never reaches GitHub. Secrets come from the `production` environment.
+on:
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Backups never interleave and a running backup is never cancelled. The group is
+# separate from deploy-migrations so a backup cannot cancel a pending migration.
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Encrypted database backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      BACKUP_AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+    steps:
+      - uses: actions/checkout@v4
+      # Fail before any dump if the public recipient is missing or malformed.
+      # The message never names or prints the value.
+      - name: Check the backup recipient
+        run: |
+          if [[ ! "$BACKUP_AGE_RECIPIENT" =~ ^age1[0-9a-z]{58}$ ]]; then
+            echo "::error::Backup recipient secret missing or malformed"
+            exit 1
+          fi
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      # The CLI version is pinned by the lockfile, the same one used locally and in CI.
+      - run: pnpm install --frozen-lockfile
+      # age is installed from a pinned release; the checksum is verified before extraction.
+      - name: Install age
+        env:
+          AGE_VERSION: v1.2.1
+          AGE_SHA256: 7df45a6cc87d4da11cc03a539a7470c15b1041ab2b396af088fe9990f7c79d50
+        run: |
+          set -euo pipefail
+          curl -fsSL -o age.tar.gz "https://github.com/FiloSottile/age/releases/download/$AGE_VERSION/age-$AGE_VERSION-linux-amd64.tar.gz"
+          echo "$AGE_SHA256  age.tar.gz" | sha256sum -c -
+          tar -xzf age.tar.gz -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/age" >> "$GITHUB_PATH"
+      - name: Link the hosted project
+        run: pnpm exec supabase link --project-ref "$SUPABASE_PROJECT_ID"
+      # Plaintext lives only in a private directory and is removed before upload.
+      # The auth schema is excluded on purpose (no app table references auth.users).
+      - name: Dump and encrypt
+        id: dump
+        run: |
+          set -euo pipefail
+          umask 077
+          STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          PLAIN="$RUNNER_TEMP/backup-plain"
+          OUT="$RUNNER_TEMP/backup-out"
+          mkdir -m 700 "$PLAIN" "$OUT"
+          trap 'rm -rf "$PLAIN"' EXIT
+          pnpm exec supabase db dump --linked --role-only -f "$PLAIN/roles.sql"
+          pnpm exec supabase db dump --linked -f "$PLAIN/schema.sql"
+          pnpm exec supabase db dump --linked --data-only --use-copy -f "$PLAIN/data.sql"
+          for name in roles schema data; do
+            age -r "$BACKUP_AGE_RECIPIENT" -o "$OUT/$name-$STAMP.sql.age" "$PLAIN/$name.sql"
+          done
+          rm -rf "$PLAIN"
+          echo "stamp=$STAMP" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ steps.dump.outputs.stamp }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/backup-out/*.age
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0

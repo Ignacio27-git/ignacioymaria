@@ -95,6 +95,8 @@ Los proyectos de Playwright se encadenan `auth -> smoke -> ui -> titles`: `smoke
 
 Vercel despliega solo `main` (`vercel.json`). `.github/workflows/deploy-migrations.yml` aplica las migraciones al Supabase alojado con el CLI fijado por el lockfile, en el entorno `production` de GitHub (los únicos secretos del repositorio viven ahí; `ci.yml` sigue sin ninguno, D-88 y D-89). Vercel y las migraciones corren en paralelo: las migraciones son aditivas.
 
+`.github/workflows/backup.yml` (paso 2.3, D-91) hace cada semana, o a mano, tres volcados del Supabase alojado con el mismo CLI fijado por el lockfile, los cifra con `age` a una clave pública y sube solo los `.age` como artifact (30 días). Usa el entorno `production`, permisos de solo lectura y su propio grupo de concurrencia. La clave privada nunca está en GitHub. Procedimiento de restauración: `docs/DEPLOY.md`.
+
 La comprobación en producción es una capa local aparte: `playwright.prod.config.ts` (sin `webServer` ni `globalSetup`) ejecuta solo `tests/prod/**` contra `PROD_BASE_URL`, con una sesión guardada en `playwright/.auth/prod.json` y una guarda que aborta cualquier petición que no sea GET fuera de las ventanas permitidas. No entra en `pnpm test` ni en CI. Procedimiento: `docs/DEPLOY.md`.
 
 ## Secretos

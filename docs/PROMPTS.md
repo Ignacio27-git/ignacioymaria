@@ -131,3 +131,11 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** `vercel.json` (solo `main`), el workflow `deploy-migrations.yml`, la comprobación local de solo lectura `tests/prod/**` con `pnpm test:prod` y `pnpm test:prod:login`, tests de contrato y el runbook `docs/DEPLOY.md`. Decisión D-89. Los pasos de paneles (Supabase, Vercel, GitHub) quedan para la persona.
 
 **Lección:** Lo que una plataforma no acepta como código se documenta como runbook ordenado y se vigila con tests de contrato lo que sí es un archivo (sin `pull_request`, `--dry-run` antes del push real, `ci.yml` sin secretos). Una guarda en ejecución es más fiable que prometer que la prueba no escribe.
+
+### 2026-11-03 · Paso 2.3 · importación real y copias de seguridad (SDD `production-import-and-backups`)
+
+**Prompt:** `/gentle-sdd-new production-import-and-backups` — Carga el Excel en el Supabase de producción con el importador existente (primero con `--dry-run`) y programa copias de seguridad exportables con GitHub Actions; documenta cómo restaurar una copia en una base local y compruébalo. Antes de decidir la frecuencia, la retención o el cifrado, pregunta.
+
+**Resultado:** Workflow `backup.yml` con volcados cifrados con `age` (clave pública), tests de contrato con guardas probadas contra variantes inseguras y runbook de importación, copias y restauración en `docs/DEPLOY.md`. Decisión D-91. Los pasos con secretos, la importación real y el ensayo de restauración quedan para la persona; el paso sigue abierto.
+
+**Lección:** En un repositorio público los artifacts son legibles, así que el cifrado con clave pública es la única opción que no deja un secreto de descifrado en GitHub; y una guarda de contrato solo vale si se prueba contra una variante insegura que debe fallar.
