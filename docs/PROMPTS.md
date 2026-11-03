@@ -113,3 +113,13 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** Tabla `title_seasons` con RLS, derivación del resumen de la serie en el dominio, casos de uso y acciones de temporada, importador por temporada sin fusión, y ficha y listas con valores derivados. Pendientes: comprobación visual con el MCP de Playwright, verificación final y la importación real contra la base local.
 
 **Lección:** Cerrar antes de la propuesta las trece decisiones de producto (derivación, filtro por la última temporada, retroceso sin temporadas, filas sin marca dentro de un grupo con marcas) evitó rehacer el diseño. Un único PR de este tamaño se sostiene solo porque cada bloque (datos, importador, UI, documentos) quedó en su propio commit.
+
+---
+
+### 2026-11-03 · Paso 2.1 · pruebas E2E de humo y CI (SDD `smoke-e2e`)
+
+**Prompt:** `/gentle-sdd-new smoke-e2e` — Escribe pruebas E2E con Playwright para los recorridos críticos: login, añadir un título, puntuarlo, marcarlo como pendiente y encontrarlo en la lista. Deben ejecutarse en CI.
+
+**Resultado:** Un recorrido serial `tests/e2e/smoke.spec.ts` con un paso por etapa, el proyecto `smoke` en la cadena `auth -> smoke -> ui -> titles` y el workflow `.github/workflows/ci.yml` con dos jobs (`checks` y `db-e2e`), sin secretos. Decisión D-88.
+
+**Lección:** Un único test serial con pasos nombrados da un fallo claro y barato, y como la tabla `titles` y el buzón de Mailpit son compartidos, hay que fijar el orden de los proyectos en vez de confiar en `fullyParallel`. Los nombres de servicios de la CLI y el comportamiento de la compilación sin base solo se confirman en la primera ejecución en GitHub.

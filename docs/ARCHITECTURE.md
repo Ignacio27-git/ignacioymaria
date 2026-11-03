@@ -85,6 +85,12 @@ Excepción: el script local `scripts/import-excel.ts` (paso 1.7, D-71) habla por
 
 Flujo: hoja `Pelis` -> `RawRow[]` -> `prepareRow` -> `groupSeasons` (una fila por temporada, duplicados, D-85; sustituye a la fusión de D-79) -> `search/multi` -> `decideMatch` -> detalles -> `planSeasons` (temporadas emitidas) -> `buildImportRow` (pasa por `createTitle`) -> una transacción de solo inserción (padre e hijas) -> informe en `import-reports/`.
 
+## Integración continua (paso 2.1)
+
+`.github/workflows/ci.yml` corre en cada `pull_request` y en cada `push` a `main`, sin secretos (D-88). Dos jobs en paralelo: `checks` (lint, typecheck, Vitest y build) y `db-e2e` (Supabase local, `pnpm test:db` y después los E2E con Chromium). El servidor de los E2E usa el doble de TMDB (`TMDB_TEST_DOUBLE=1`), así que no sale ninguna petición a TMDB.
+
+Los proyectos de Playwright se encadenan `auth -> smoke -> ui -> titles`: `smoke` (`tests/e2e/smoke.spec.ts`) es el recorrido crítico y es dueño de la tabla `titles` y del buzón mientras corre. Seleccionar `ui` o `titles` ejecuta también `auth` y `smoke`.
+
 ## Secretos
 
 - Las claves secretas solo existen en el entorno del servidor y nunca se exponen al cliente (p. ej., no usar el prefijo `NEXT_PUBLIC_` para ellas).

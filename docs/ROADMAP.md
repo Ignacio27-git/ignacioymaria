@@ -345,7 +345,7 @@ D.1 y D.2 tienen que estar terminados antes del paso 1.6.
 
 Al terminar esta fase la web está publicada y sustituye al Excel.
 
-## [ ] 2.1 · Pruebas E2E de humo
+## [x] 2.1 · Pruebas E2E de humo
 
 ```text
 /gentle-sdd-new smoke-e2e
@@ -355,6 +355,13 @@ puntuarlo, marcarlo como pendiente y encontrarlo en la lista. Deben ejecutarse e
 ```
 
 **Notas:**
+
+2026-11-03 · Cambio SDD `smoke-e2e`, con Strict TDD activo y un único PR con excepción de tamaño aceptada. Decisión D-88 en `docs/DECISIONS.md` (D-27 sustituida en lo de la CI). **Hecho:**
+- *E2E:* `tests/e2e/smoke.spec.ts`, un test serial con un `test.step` por etapa (login por Mailpit, añadir «Dune» con el doble de TMDB, puntuar, marcar Pendiente, buscar en `/pendientes`), con recarga para comprobar la persistencia. Proyecto `smoke` en `playwright.config.ts`.
+- *CI:* `.github/workflows/ci.yml` con los jobs `checks` y `db-e2e`, pgTAP antes de los E2E y subida de informe y trazas solo si falla.
+- *Comprobado en local:* lint, typecheck, `pnpm test` (1208), build, `pnpm test:db` (295, sobre base recién reiniciada) y `pnpm test:e2e` (68, con la cadena nueva). Una aserción errónea provisional en la etapa de añadir hizo fallar el test y se revirtió.
+
+**Pendiente:** (1) la primera ejecución en GitHub confirma los nombres de `-x` y los valores ficticios de la compilación (si la CLI rechaza un nombre, quitarlo); no se pudo validar con `actionlint` (Docker de terceros denegado); (2) **de la persona:** los E2E vacían la tabla `titles` de la base local, así que hay que reimportar; (3) activar la protección de rama exigiendo estos checks queda fuera de alcance.
 
 ---
 
@@ -446,3 +453,4 @@ propio ciclo SDD.
 | 2026-11-03 | 1.8 | Ficheros nuevos de UI en kebab-case (`series-summary.tsx`, `season-row.tsx`, `add-season-button.tsx`) en lugar de los PascalCase del diseño | Convención de archivos del repositorio (D-52) |
 | 2026-11-03 | 1.8 | Un primer `sdd-verify` dio FAIL en `pnpm test:e2e` por un servidor de desarrollo antiguo en el puerto 3000 que Playwright reutilizó | Fallo de entorno, no de código: tras detener ese proceso, `pnpm test:e2e` pasa 67/67 y el veredicto final es PASS con avisos |
 | 2026-11-03 | 1.8 | Reinicio auditado del registro de intentos de gentle-ai para la compuerta de archivo | Aprobado por la persona: la reparación de un fallo de entorno no tiene un candidato de código cambiado |
+| 2026-11-03 | 2.1 | La cadena de proyectos de Playwright cambia a `auth -> smoke -> ui -> titles` (`ui` depende ahora de `smoke`); `--project=ui` y `--project=titles` también ejecutan `smoke` | Con `fullyParallel`, `smoke` en paralelo chocaría con `titles` y con el buzón de Mailpit (D-88) |
