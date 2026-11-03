@@ -296,7 +296,7 @@ clara. Debe ser idempotente y generar un informe de filas dudosas para revisarla
 
 ---
 
-## [ ] 1.8 · Valoración por temporada
+## [x] 1.8 · Valoración por temporada
 
 **Objetivo.** Que cada temporada de una serie tenga su propio estado, notas y fecha, para que el importador pueda cargar una fila por temporada sin la fusión provisional de D-79.
 
@@ -322,6 +322,8 @@ fecha) y adapta el importador del Excel para cargar una fila por temporada.
 - *Documentos:* decisiones, arquitectura, `docs/DESIGN-ROADMAP.md` y este registro.
 
 **Pendiente (el paso sigue abierto):** (1) comprobación visual con el MCP de Playwright (ficha y listas, escritorio y móvil); (2) verificación final de SDD; (3) **de la persona:** ejecutar `pnpm import:excel --file <xlsx>` contra la base LOCAL (el agente no puede leer `.env.local`; confirmar antes que `IMPORT_DB_URL` apunta a 127.0.0.1:54322), comprobar que *The last of us* conserva sus dos temporadas con sus notas, que el informe ya no tiene filas fusionadas y que una segunda ejecución no cambia nada. Los E2E vacían la tabla `titles` de la base local (`clearTitles`), así que tras ejecutarlos hay que reimportar.
+
+Cierre (2026-11-03): verificación SDD con PASS con avisos y sin críticos (33/33 requisitos, 48/48 escenarios; `pnpm test` 1208, `pnpm test:db` 295, `pnpm test:import` 13, `pnpm test:e2e` 67, typecheck y lint en verde). El primer `sdd-verify` dio FAIL por un fallo de entorno (un servidor de desarrollo antiguo en el puerto 3000 que Playwright reutilizó), no por código; tras detenerlo, los E2E pasan. Importación real contra la base LOCAL: 276 filas → 269 títulos (252 películas, 17 series) y 33 temporadas, sin series sin temporadas; *The last of us* conserva sus dos temporadas con sus notas (temporada 1 con 9 y 9,9 redondeado a 10 e informado; temporada 2 con 7,5 y 8); el informe no tiene filas fusionadas; una segunda ejecución inserta 0 títulos y 0 temporadas. Seguimiento de la persona: un fallo de red de TMDB dejó un título sin enlazar, y la reejecución solo inserta, así que no lo enlaza. El registro de intentos de gentle-ai necesitó un reinicio auditado aprobado por la persona, porque reparar un fallo de entorno no tiene un candidato de código cambiado. Engram: `sdd/specs/season-ratings` creado y `sdd/specs/excel-import` actualizado (se elimina la fusión provisional); `title-management` no tiene especificación principal (precedente de 1.6). La importación en el Supabase alojado sigue pendiente del paso 2.3 (D-80).
 
 ---
 
@@ -442,3 +444,5 @@ propio ciclo SDD.
 | 2026-11-03 | 1.8 | La prueba de integración del importador (2.5) se escribió antes que su implementación (2.6) pero no se ejecutó en rojo, y los tests de informe y de fila se editaron junto al código | La cadena de typecheck estaba rota entre medias; la cobertura quedó completa (13 pruebas de integración) pero la evidencia RED de ese par no es estricta |
 | 2026-11-03 | 1.8 | Los E2E de la serie se escribieron después de los componentes (no en rojo) | Los componentes ya tenían pruebas unitarias en rojo primero; los E2E validan el flujo completo y se añadieron al cerrar el bloque de UI |
 | 2026-11-03 | 1.8 | Ficheros nuevos de UI en kebab-case (`series-summary.tsx`, `season-row.tsx`, `add-season-button.tsx`) en lugar de los PascalCase del diseño | Convención de archivos del repositorio (D-52) |
+| 2026-11-03 | 1.8 | Un primer `sdd-verify` dio FAIL en `pnpm test:e2e` por un servidor de desarrollo antiguo en el puerto 3000 que Playwright reutilizó | Fallo de entorno, no de código: tras detener ese proceso, `pnpm test:e2e` pasa 67/67 y el veredicto final es PASS con avisos |
+| 2026-11-03 | 1.8 | Reinicio auditado del registro de intentos de gentle-ai para la compuerta de archivo | Aprobado por la persona: la reparación de un fallo de entorno no tiene un candidato de código cambiado |
