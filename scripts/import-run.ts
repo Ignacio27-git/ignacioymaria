@@ -11,8 +11,9 @@ import { parseArgs } from "node:util";
 import type { Title } from "../src/domain/title";
 import { describeDbError } from "../src/import/db-error";
 import { hostOf, resolveImportEnv } from "../src/import/env";
+import { planSeasons } from "../src/import/aired";
+import { groupSeasons } from "../src/import/group";
 import { decideMatch, type MatchDecision } from "../src/import/match";
-import { resolveCollisions } from "../src/import/merge";
 import { renderReport } from "../src/import/report";
 import { buildImportRow, prepareRow, type PreparedRow } from "../src/import/row";
 import { mapSearchMulti } from "../src/import/tmdb-search";
@@ -178,38 +179,73 @@ function insertParams(key: string, title: Title): unknown[] {
   ];
 }
 
+export const FIND_PARENT_SQL = "select id, kind from public.titles where import_key = $1";
+
+export const INSERT_SEASON_SQL = `
+  insert into public.title_seasons
+    (title_id, season_number, state, watch_date, score_maria, score_ignacio)
+  values ($1, $2, $3, $4::date, $5, $6)
+  on conflict (title_id, season_number) do nothing`;
+
 export type Built = { key: string; title: Title; row: number; name: string };
 
+/**
+ * Parents and their seasons in ONE transaction, insert-only. A parent that
+ * already exists (inserted by an earlier run) is resolved by its import key, so
+ * its missing seasons still attach; nothing existing is ever modified. A parent
+ * that neither inserts nor resolves lost a TMDB id conflict and is reported.
+ */
 export async function writeAll(
   client: DbClient,
   built: Built[],
-): Promise<{ inserted: number; existing: number; conflicts: ReportNote[] }> {
+): Promise<{
+  inserted: number;
+  existing: number;
+  seasons: number;
+  conflicts: ReportNote[];
+}> {
   await client.query("begin");
   try {
-    const already = await existingKeys(client, built.map((b) => b.key));
     let inserted = 0;
     let existing = 0;
+    let seasons = 0;
     const conflicts: ReportNote[] = [];
     for (const item of built) {
-      if (already.has(item.key)) {
-        existing += 1;
-        continue;
-      }
       const result = await client.query(INSERT_SQL, insertParams(item.key, item.title));
+      let parent: { id: unknown; kind: unknown } | null = null;
       if (result.rowCount === 1) {
         inserted += 1;
+        parent = { id: result.rows[0]?.id, kind: item.title.kind };
       } else {
-        conflicts.push({
-          row: item.row,
-          name: item.name,
-          reason: "conflict",
-          original: item.title.tmdbId === null ? item.key : `TMDB id ${item.title.tmdbId} (${item.title.kind})`,
-          decision: "not inserted: another title already has this TMDB id",
-        });
+        const found = await client.query(FIND_PARENT_SQL, [item.key]);
+        if (found.rows.length > 0) {
+          existing += 1;
+          parent = { id: found.rows[0].id, kind: found.rows[0].kind };
+        } else {
+          conflicts.push({
+            row: item.row,
+            name: item.name,
+            reason: "conflict",
+            original: item.title.tmdbId === null ? item.key : `TMDB id ${item.title.tmdbId} (${item.title.kind})`,
+            decision: "not inserted: another title already has this TMDB id",
+          });
+        }
+      }
+      if (parent === null || parent.kind !== "series" || item.title.kind !== "series") continue;
+      for (const season of item.title.seasons) {
+        const written = await client.query(INSERT_SEASON_SQL, [
+          parent.id,
+          season.number,
+          season.state,
+          season.watchDate.kind === "known" ? season.watchDate.date : null,
+          season.scores.maria,
+          season.scores.ignacio,
+        ]);
+        seasons += written.rowCount ?? 0;
       }
     }
     await client.query("commit");
-    return { inserted, existing, conflicts };
+    return { inserted, existing, seasons, conflicts };
   } catch (error) {
     await client.query("rollback").catch(() => undefined);
     throw error;
@@ -242,13 +278,16 @@ export async function runImport(argv: string[], deps: RunDeps): Promise<number> 
       log(`Warning: ${themedFills} name cells use a theme fill color, treated as no fill (pending).`);
     }
 
-    const { kept, notes: collisions } = resolveCollisions(raw.map(prepareRow));
+    const { planned, notes: grouping } = groupSeasons(raw.map(prepareRow));
     const tmdb = createTmdb(token, deps.fetch);
-    const notes: ReportNote[] = [...collisions];
+    const notes: ReportNote[] = [...grouping];
     const built: Built[] = [];
+    const today = deps.now().toISOString().slice(0, 10);
     let linked = 0;
+    let plannedSeasons = 0;
 
-    for (const [index, prepared] of kept.entries()) {
+    for (const [index, title] of planned.entries()) {
+      const prepared = title.prepared;
       const candidates = await tmdb.search(prepared.name);
       const decision =
         candidates === null
@@ -266,6 +305,11 @@ export async function runImport(argv: string[], deps: RunDeps): Promise<number> 
         ? await tmdb.details(decision.candidate.kind, decision.candidate.tmdbId)
         : null;
 
+      const seasonPlan = planSeasons(title, {
+        kind: decision.kind,
+        details: details && details.kind === "series" ? details : null,
+        today,
+      });
       const result = buildImportRow(
         prepared,
         decision,
@@ -274,9 +318,18 @@ export async function runImport(argv: string[], deps: RunDeps): Promise<number> 
           actors: details.actors,
           seasonsTotal: details.kind === "series" ? details.seasonsTotal : null,
         },
+        seasonPlan.seasons,
       );
-      notes.push(...result.notes);
+      notes.push(
+        ...result.notes,
+        ...seasonPlan.notes.map((note) => ({
+          ...note,
+          row: prepared.row,
+          name: prepared.displayName,
+        })),
+      );
       if (result.ok) {
+        if (result.title.kind === "series") plannedSeasons += result.title.seasons.length;
         if (result.title.tmdbId !== null) linked += 1;
         built.push({ key: result.key, title: result.title, row: prepared.row, name: prepared.displayName });
       } else {
@@ -288,14 +341,15 @@ export async function runImport(argv: string[], deps: RunDeps): Promise<number> 
           decision: `not imported: invalid fields ${result.errors.map((e) => e.field).join(", ")}`,
         });
       }
-      if ((index + 1) % 25 === 0) log(`Processed ${index + 1}/${kept.length} distinct titles.`);
+      if ((index + 1) % 25 === 0) log(`Processed ${index + 1}/${planned.length} distinct titles.`);
     }
 
     let outcome = "";
+    let seasonsInserted: number | null = null;
     let keysCheckSkipped: string | null = null;
     if (dbUrl === null) {
       keysCheckSkipped = "IMPORT_DB_URL is not set";
-      outcome = `Dry run without IMPORT_DB_URL: ${built.length} titles ready, database not consulted.`;
+      outcome = `Dry run without IMPORT_DB_URL: ${built.length} titles ready (${plannedSeasons} seasons planned), database not consulted.`;
     } else if (dryRun) {
       // Read-only lookup. Any failure still ends in a full report (never a write).
       log(`Connecting to ${hostOf(dbUrl)}.`);
@@ -305,7 +359,7 @@ export async function runImport(argv: string[], deps: RunDeps): Promise<number> 
         await client.query("begin read only");
         const present = await existingKeys(client, built.map((b) => b.key));
         await client.query("rollback");
-        outcome = `Dry run: ${built.length - present.size} would be inserted, ${present.size} already imported.`;
+        outcome = `Dry run: ${built.length - present.size} would be inserted, ${present.size} already imported, ${plannedSeasons} seasons planned.`;
       } catch (error) {
         keysCheckSkipped = describeDbError(error);
         outcome = `Dry run: existing-keys check skipped (${keysCheckSkipped}), database not consulted.`;
@@ -320,7 +374,8 @@ export async function runImport(argv: string[], deps: RunDeps): Promise<number> 
         await client.connect();
         const result = await writeAll(client, built);
         notes.push(...result.conflicts);
-        outcome = `Inserted ${result.inserted}, already existing ${result.existing}, TMDB conflicts ${result.conflicts.length}.`;
+        seasonsInserted = result.seasons;
+        outcome = `Inserted ${result.inserted}, already existing ${result.existing}, TMDB conflicts ${result.conflicts.length}, seasons inserted ${result.seasons}.`;
       } finally {
         await client.end().catch(() => undefined);
       }
@@ -337,13 +392,13 @@ export async function runImport(argv: string[], deps: RunDeps): Promise<number> 
         totalRows: raw.length,
         notes,
         keysCheckSkipped,
+        seasonsInserted,
       }),
     );
 
-    const duplicates = collisions.filter((n) => n.reason === "duplicate").length;
-    const merged = collisions.filter((n) => n.reason === "season_merge").length;
+    const duplicates = grouping.filter((n) => n.reason === "duplicate").length;
     log(
-      `Distinct titles: ${kept.length}, duplicates skipped: ${duplicates}, merged season rows: ${merged}, linked to TMDB: ${linked}.`,
+      `Distinct titles: ${planned.length}, duplicates skipped: ${duplicates}, linked to TMDB: ${linked}.`,
     );
     if (keysCheckSkipped !== null) log(`Existing-keys check skipped: ${keysCheckSkipped}.`);
     log(outcome);

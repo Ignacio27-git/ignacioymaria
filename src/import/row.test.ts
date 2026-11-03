@@ -54,7 +54,7 @@ describe("prepareRow", () => {
   test("a season marker implies a series with highest season", () => {
     const row = prepareRow(raw({ name: "Serie X (temp 1-3)" }));
     expect(row.markerKind).toBe("series");
-    expect(row.seasonsWatched).toBe(3);
+    expect(row.seasons).toEqual([1, 2, 3]);
     expect(row.name).toBe("Serie X");
   });
 
@@ -130,6 +130,7 @@ describe("buildImportRow", () => {
       prepareRow(raw({ name: "Serie (t1)" })),
       linked("series"),
       { posterPath: "/p.jpg", actors: ["TMDB Actor"], seasonsTotal: 4 },
+      [{ number: 1, state: "pending", watchDate: { kind: "unknown" }, scores: { maria: null, ignacio: null } }],
     );
     expect(result.ok && result.title).toMatchObject({
       kind: "series",

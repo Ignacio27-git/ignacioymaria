@@ -7,6 +7,8 @@ export type ReportInput = {
   notes: readonly ReportNote[];
   /** Why the existing-keys lookup did not run (never a secret); null/absent when it ran. */
   keysCheckSkipped?: string | null;
+  /** Season rows inserted by a real run; null/absent when nothing was written. */
+  seasonsInserted?: number | null;
 };
 
 const SECTIONS: ReadonlyArray<readonly [NoteReason, string]> = [
@@ -15,7 +17,6 @@ const SECTIONS: ReadonlyArray<readonly [NoteReason, string]> = [
   ["date", "Dates that are not a full date"],
   ["season", "Season markers to review"],
   ["duplicate", "Duplicates (not imported)"],
-  ["season_merge", "Merged season rows (interim, not imported separately)"],
   ["unlinked", "Titles left unlinked from TMDB"],
   ["conflict", "TMDB conflicts (not imported)"],
   ["kind", "Kind decisions that are not certain"],
@@ -40,6 +41,7 @@ export function renderReport(input: ReportInput): string {
     `- Mode: ${input.dryRun ? "dry run, nothing was written to the database" : "real run"}`,
     `- Named rows read from Pelis: ${input.totalRows}`,
     `- Entries to review: ${input.notes.length}`,
+    ...(input.seasonsInserted == null ? [] : [`- Seasons inserted: ${input.seasonsInserted}`]),
     ...(input.keysCheckSkipped
       ? [`- Existing-keys check skipped: ${input.keysCheckSkipped}`]
       : []),

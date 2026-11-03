@@ -10,7 +10,6 @@ const REASONS: NoteReason[] = [
   "date",
   "season",
   "duplicate",
-  "season_merge",
   "unlinked",
   "conflict",
   "kind",
@@ -72,15 +71,33 @@ describe("renderReport", () => {
     expect(md).toContain("a\\|b c");
   });
 
-  test("merged season rows get their own section, apart from duplicates", () => {
+  test("has no merged-rows section; expansions, defaults and duplicates stay listed", () => {
     const md = renderReport({
       generatedAt: "2026-11-01T10:00:00.000Z",
       dryRun: false,
-      totalRows: 2,
-      notes: [note("season_merge", 10), note("duplicate", 11)],
+      totalRows: 3,
+      notes: [
+        { ...note("season", 10), decision: "range expanded to seasons 1, 2, 3" },
+        { ...note("season", 12), decision: "no season marker and not linked to TMDB, imported as season 1 only" },
+        note("duplicate", 11),
+      ],
     });
-    expect(md).toContain("## Merged season rows (interim, not imported separately) (1)");
+    expect(md).not.toMatch(/merge/i);
+    expect(md).toContain("## Season markers to review (2)");
+    expect(md).toContain("range expanded to seasons 1, 2, 3");
     expect(md).toContain("## Duplicates (not imported) (1)");
+  });
+
+  test("states the number of seasons inserted, only when known", () => {
+    const base = {
+      generatedAt: "2026-11-01T10:00:00.000Z",
+      dryRun: false,
+      totalRows: 1,
+      notes: [],
+    };
+    expect(renderReport({ ...base, seasonsInserted: 7 })).toContain("- Seasons inserted: 7");
+    expect(renderReport({ ...base, seasonsInserted: null })).not.toMatch(/seasons inserted/i);
+    expect(renderReport(base)).not.toMatch(/seasons inserted/i);
   });
 
   test("states why the existing-keys check was skipped, only when it was", () => {

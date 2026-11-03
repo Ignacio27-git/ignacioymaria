@@ -58,3 +58,17 @@ export const movieResult = (id: number, title: string, originalTitle = title): S
   original_title: originalTitle,
   release_date: "2001-05-05",
 });
+
+/** A TMDB series; `seasons` is what its details report (season_number + air_date). */
+export const seriesResult = (
+  id: number,
+  name: string,
+  seasons: { season_number: number; air_date: string | null }[] = [],
+): SearchItem => ({
+  id,
+  media_type: "tv",
+  name,
+  original_name: name,
+  first_air_date: "2010-01-01",
+  seasons,
+});

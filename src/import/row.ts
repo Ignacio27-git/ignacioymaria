@@ -8,7 +8,7 @@ import type { MatchDecision } from "./match";
 import { normalizeScore } from "./score";
 import { splitSeason } from "./season";
 import { parseSheetDate } from "./sheet-date";
-import type { MatchKind, Note, RawRow, ReportNote } from "./types";
+import type { MatchKind, Note, RawRow, ReportNote, SeasonDraft } from "./types";
 
 /** Everything decided from the sheet alone (no TMDB yet). */
 export type PreparedRow = {
@@ -20,7 +20,8 @@ export type PreparedRow = {
   /** Idempotency key: "pelis:" + folded clean name. Kind is not part of it. */
   key: string;
   markerKind: MatchKind | null;
-  seasonsWatched: number | null;
+  /** Seasons named by the marker (a range is expanded); null when unmarked. */
+  seasons: number[] | null;
   year: number | null;
   seriesHint: boolean;
   state: WatchState;
@@ -89,7 +90,7 @@ export function prepareRow(raw: RawRow): PreparedRow {
     name: season.name,
     key: `pelis:${foldKey(season.name)}`,
     markerKind: season.hasMarker ? "series" : null,
-    seasonsWatched: season.seasonsWatched,
+    seasons: season.seasons,
     year,
     seriesHint: hint,
     state: color.state,
@@ -112,13 +113,14 @@ export type BuiltRow =
   | { ok: false; key: string; errors: readonly TitleError[]; notes: ReportNote[] };
 
 /**
- * Prepared row plus the TMDB decision (and details, when linked) to a domain
- * title. The result goes through `createTitle`, so it is valid by construction.
+ * Prepared row plus the TMDB decision (and details, when linked) and the
+ * planned seasons (series only) to a domain title. The result goes through `createTitle`, so it is valid by construction.
  */
 export function buildImportRow(
   prepared: PreparedRow,
   decision: MatchDecision,
   details: TmdbEnrichment | null,
+  seasons: readonly SeasonDraft[] = [],
 ): BuiltRow {
   const notes: Note[] = [...prepared.notes, ...decision.notes];
   const candidate = decision.candidate;
@@ -137,7 +139,12 @@ export function buildImportRow(
     kind,
     state: prepared.state,
     year: prepared.year,
-    seasonsWatched: kind === "series" ? prepared.seasonsWatched : null,
+    // Deprecated title-level column: the highest season, kept for compatibility.
+    seasonsWatched:
+      kind === "series" && seasons.length > 0
+        ? Math.max(...seasons.map((s) => s.number))
+        : null,
+    seasons: kind === "series" ? seasons : undefined,
     seasonsTotal: enrichment && kind === "series" ? enrichment.seasonsTotal : null,
     tmdbId: enrichment && candidate ? candidate.tmdbId : null,
     posterPath: enrichment ? enrichment.posterPath : null,

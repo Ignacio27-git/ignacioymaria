@@ -1,3 +1,6 @@
+import type { WatchDate } from "../domain/watch-date";
+import type { WatchState } from "../domain/watch-state";
+
 /** Raw values of one named `Pelis` row, as read by the script (no rules applied). */
 export type RawRow = {
   /** 1-based sheet row number, for the report. */
@@ -19,7 +22,6 @@ export type NoteReason =
   | "date"
   | "season"
   | "duplicate"
-  | "season_merge"
   | "unlinked"
   | "conflict"
   | "kind"
@@ -42,4 +44,12 @@ export type MatchCandidate = {
   /** Localized and original names, all compared folded. */
   names: string[];
   year: number | null;
+};
+
+/** One season to write: the data of the sheet row that names it. */
+export type SeasonDraft = {
+  number: number;
+  state: WatchState;
+  watchDate: WatchDate;
+  scores: { maria: number | null; ignacio: number | null };
 };
