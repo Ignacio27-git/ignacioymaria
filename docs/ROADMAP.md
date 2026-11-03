@@ -365,7 +365,7 @@ puntuarlo, marcarlo como pendiente y encontrarlo en la lista. Deben ejecutarse e
 
 ---
 
-## [ ] 2.2 · Puesta en producción
+## [x] 2.2 · Puesta en producción
 
 ```text
 /gentle-sdd-new production-deployment
@@ -381,7 +381,10 @@ migraciones, dominio y comprobación con Playwright contra la URL pública.
 - *Comprobación en producción:* `playwright.prod.config.ts`, `tests/prod/**` (humo, token fuera del bundle, sonda no permitida, guarda de solo lectura), `scripts/prod-login.ts` y `scripts/prod/env.ts`; `pnpm test:prod` y `pnpm test:prod:login`, solo en local.
 - *Comprobado:* lint, typecheck, `pnpm test` y `playwright test -c playwright.prod.config.ts --list`. No se ejecutó contra una URL real.
 
-**Pendiente (de la persona, runbook de `docs/DEPLOY.md`):** M1 proyecto de Supabase y entorno `production` con 3 secretos; M2 fusionar y confirmar la primera ejecución (¿hace falta `--yes`?; verificar la regla `**` en una rama que no sea `main`); M3 hook Before User Created y permiso EXECUTE; M4 insertar las dos filas de `allowed_emails`; M5 plantillas, URL, SMTP de Brevo y límite de 30/h; M6 variables de Vercel Production (sin `TMDB_TEST_DOUBLE`) y redespliegue; M7 entrada de las dos personas, `pnpm test:prod:login`, `pnpm test:prod` y Authentication > Users = 2; M8 protección de rama.
+2026-11-03 · **Hecho (persona, runbook de `docs/DEPLOY.md`):** la persona ejecutó los diez pasos y da el paso por cerrado. Publicado en `https://ignacioymaria.vercel.app`. Ignacio entró por enlace mágico (Brevo); Authentication > Users muestra solo su usuario, así que la sonda con un correo no permitido no creó ninguno.
+- *Incidencias resueltas:* en el plan gratuito las plantillas de correo no se pueden editar hasta configurar el SMTP propio (el runbook se reordenó); `NEXT_PUBLIC_SUPABASE_URL` con `.com` en vez de `.co` (registro `sendMagicLink failed unknown`, sin entrada en los logs de Auth) y después una clave *publishable* que no era la del proyecto alojado (`401` en `/auth/v1/otp`, visible en API Gateway); Vercel avisa de que una variable `NEXT_PUBLIC_` marcada como sensible debería ser de tipo Config, lo que no afecta porque se leen en el servidor.
+
+**Pendiente (aceptado por la persona):** el primer acceso de María (Authentication > Users = 2) se hará cuando la web esté terminada; si falla, se resolverá entonces.
 
 ---
 
@@ -462,3 +465,5 @@ propio ciclo SDD.
 | 2026-11-03 | 1.8 | Reinicio auditado del registro de intentos de gentle-ai para la compuerta de archivo | Aprobado por la persona: la reparación de un fallo de entorno no tiene un candidato de código cambiado |
 | 2026-11-03 | 2.1 | La cadena de proyectos de Playwright cambia a `auth -> smoke -> ui -> titles` (`ui` depende ahora de `smoke`); `--project=ui` y `--project=titles` también ejecutan `smoke` | Con `fullyParallel`, `smoke` en paralelo chocaría con `titles` y con el buzón de Mailpit (D-88) |
 | 2026-11-03 | 2.2 | El CLI de Supabase en `deploy-migrations.yml` se fija con el lockfile (`pnpm exec supabase`) en vez de `supabase/setup-cli` con `version:`, como proponía la propuesta | Una sola fijación y el mismo CLI que en local y en `ci.yml` (D-89) |
+| 2026-11-03 | 2.2 | En `docs/DEPLOY.md`, el SMTP (Brevo) pasa a configurarse antes que las plantillas de correo | En el plan gratuito, Supabase no deja editar las plantillas con el proveedor de correo por defecto; con SMTP propio sí |
+| 2026-11-03 | 2.2 | El paso se cierra sin el primer acceso de María (Authentication > Users = 1 en lugar de 2) | Decisión de la persona: María no usará la web hasta que esté terminada |
