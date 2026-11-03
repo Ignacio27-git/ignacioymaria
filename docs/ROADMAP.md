@@ -392,10 +392,24 @@ migraciones, dominio y comprobación con Playwright contra la URL pública.
 
 **Objetivo.** Cargar el Excel en producción y programar copias de seguridad exportables.
 
+```text
+/gentle-sdd-new production-import-and-backups
+
+Carga el Excel en el Supabase de producción con el importador existente (`pnpm import:excel`,
+primero con --dry-run) y programa copias de seguridad exportables con GitHub Actions (D-90):
+un workflow con `schedule` y `workflow_dispatch`, en el entorno `production`, que ejecuta
+`pnpm exec supabase db dump` (roles, esquema y datos con --use-copy) y sube los ficheros como
+artifact con retención limitada. Documenta en docs/DEPLOY.md cómo restaurar una copia con
+psql en una base local y compruébalo. Antes de decidir la frecuencia, la retención o si el
+dump va cifrado, pregunta; confirma también que el repositorio es privado.
+```
+
 **Revisar.** Que el número de títulos coincide con el Excel y que una copia se puede
 restaurar.
 
 **Notas:** Espera al paso 1.8 (valoración por temporada): el importador se adaptará allí a una fila por temporada antes de cargar el alojado (D-80).
+
+2026-11-03 · El paso nació sin prompt (commit `d6ec5f9`), sin motivo registrado; la decisión pendiente era cómo hacer las copias. Supabase no hace copias en el plan gratuito y recomienda `supabase db dump` guardado fuera; la persona elige un workflow programado de GitHub Actions (D-90). Prompt añadido.
 
 ---
 
@@ -467,3 +481,4 @@ propio ciclo SDD.
 | 2026-11-03 | 2.2 | El CLI de Supabase en `deploy-migrations.yml` se fija con el lockfile (`pnpm exec supabase`) en vez de `supabase/setup-cli` con `version:`, como proponía la propuesta | Una sola fijación y el mismo CLI que en local y en `ci.yml` (D-89) |
 | 2026-11-03 | 2.2 | En `docs/DEPLOY.md`, el SMTP (Brevo) pasa a configurarse antes que las plantillas de correo | En el plan gratuito, Supabase no deja editar las plantillas con el proveedor de correo por defecto; con SMTP propio sí |
 | 2026-11-03 | 2.2 | El paso se cierra sin el primer acceso de María (Authentication > Users = 1 en lugar de 2) | Decisión de la persona: María no usará la web hasta que esté terminada |
+| 2026-11-03 | 2.3 | Se añade el prompt que faltaba; las copias de seguridad serán un `supabase db dump` programado en GitHub Actions (D-90) | El plan gratuito de Supabase no tiene copias; era la decisión abierta que dejaba el paso sin prompt |
