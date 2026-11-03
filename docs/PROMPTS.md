@@ -103,3 +103,13 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** `IMPORT_DB_URL`, módulos puros `merge`, `env` y `db-error`, sección `season_merge` y línea de omisión en el informe, y decisiones D-77 a D-80. Comprobado en local con un libro sintético.
 
 **Lección:** Las primeras pruebas con la base real destaparon dos riesgos que los datos sintéticos no cubrían: que una variable compartida apunte a otra base y que un fallo de conexión cueste el informe. Fusionar sin perder datos exige dejar las filas descartadas, con sus valores, en el informe.
+
+---
+
+### 2026-11-03 · Paso 1.8 · valoración por temporada (SDD `season-ratings`)
+
+**Prompt:** `/gentle-sdd-new season-ratings` — Permite valorar cada temporada de una serie por separado (estado, nota de cada persona y fecha) y adapta el importador del Excel para cargar una fila por temporada.
+
+**Resultado:** Tabla `title_seasons` con RLS, derivación del resumen de la serie en el dominio, casos de uso y acciones de temporada, importador por temporada sin fusión, y ficha y listas con valores derivados. Pendientes: comprobación visual con el MCP de Playwright, verificación final y la importación real contra la base local.
+
+**Lección:** Cerrar antes de la propuesta las trece decisiones de producto (derivación, filtro por la última temporada, retroceso sin temporadas, filas sin marca dentro de un grupo con marcas) evitó rehacer el diseño. Un único PR de este tamaño se sostiene solo porque cada bloque (datos, importador, UI, documentos) quedó en su propio commit.

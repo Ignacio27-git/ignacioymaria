@@ -69,11 +69,21 @@ Excepción: el script local `scripts/import-excel.ts` (paso 1.7, D-71) habla por
 - Búsqueda y unicidad en la base de datos (D-59 y D-60): `fold_search`, `name_search` e índice único parcial `(kind, tmdb_id)`.
 - Flujo de escritura: isla -> Server Action -> caso de uso (persona, validación) -> repositorio -> Supabase (RLS y trigger de notas) -> `Result<TitleView, TitleFailure>` -> isla (confirma o revierte). Flujo de lectura: página RSC -> `parseListParams` -> `list` -> `sortTitles` -> `CriticsTable`.
 
+## Valoración por temporada (paso 1.8)
+
+- Datos: la tabla `title_seasons` (D-81) cuelga de `titles` (solo series, clave `(title_id, season_number)`, borrado en cascada). `TITLE_SELECT` del repositorio incrusta las temporadas con PostgREST (`title_seasons(SEASON_COLUMNS)`), así que una lectura trae título y temporadas; el repositorio gana `insertSeason` y `updateSeason`.
+- Dominio (puro): `season.ts` (`Season`, `createSeason`, `nextSeasonNumber`) y `summary.ts` (`titleSummary`, D-82); `Series.seasons` en `title.ts`; `titleAverage` y `sortTitles` delegan en el resumen. Toda lectura de estado, fecha y notas de una serie pasa por `titleSummary`.
+- Servidor: `toView` (`shared.ts`) calcula `TitleView.summary` y `average` en el servidor, de modo que la UI nunca deriva nada (D-53). Casos de uso nuevos `update-season.ts` y `add-season.ts`; `update-field.ts` rechaza (`derived_for_series`) editar a nivel de título lo que se deriva; `create.ts` inserta la temporada 1 de una serie nueva; `list.ts` prefiltra en SQL y filtra las series por estado derivado (D-83); `delete.ts` devuelve el estado derivado para redirigir a la lista correcta.
+- Server Actions: `updateSeasonFieldAction(id, número, parche)` y `addSeasonAction(id)`, ambas `Result<TitleView, TitleFailure>`.
+- UI, `src/app/(catalog)/titulo/[id]/`: `FichaEditor` recibe `series` solo para series. Con temporadas pinta `SeriesSummary` (resumen de solo lectura), una `SeasonRow` plegable por temporada y `AddSeasonButton`; sin temporadas conserva los editores de título hasta añadir la primera. Las islas de estado, fecha y nota reciben una prop `save`, así que sirven igual para el título y para una temporada. `titles-list.tsx` pinta estado, fecha, notas y media desde `row.summary`.
+- Importador: `src/import/season.ts` (marca a lista de temporadas), `group.ts` (agrupa por serie y resuelve duplicados) y `aired.ts` (temporadas emitidas con TMDB); `writeAll` inserta padre e hijas en una transacción (D-85). `merge.ts` ya no existe.
+- Flujo de escritura de una temporada: `SeasonRow` -> `useFieldSave` -> `updateSeasonFieldAction` -> `updateSeasonField` (persona, validación) -> repositorio (RLS y disparador de notas de `title_seasons`) -> `findById` -> `toView` -> la fila y el resumen adoptan la respuesta.
+
 ## Importador del Excel (paso 1.7)
 
 `scripts/import-excel.ts` es la raíz de composición del importador (adaptador fino; el flujo completo está en `scripts/import-run.ts`, `runImport(argv, deps)`, con las dependencias externas inyectables para los tests): lee el libro con `exceljs`, consulta TMDB con su propio `fetch` y escribe en Postgres con `pg` y `IMPORT_DB_URL` (excepción a D-42 en D-71; la variable de base de datos la sustituye D-77 y `SUPABASE_DB_URL` no se lee). Es un script local, fuera de `src/`; no se despliega ni lo importa la aplicación. Toda la lógica de reglas está en `src/import/`, que son módulos puros: importan solo rutas relativas y pueden usar el dominio, pero nunca `src/server` ni `server-only` (lo vigila `src/import/purity.test.ts`). La única pieza de `src/server/tmdb` que usa el script es `mapDetails` con sus tipos, también puros.
 
-Flujo: hoja `Pelis` -> `RawRow[]` -> `prepareRow` -> `resolveCollisions` (fusión provisional de temporadas, D-79) -> `search/multi` -> `decideMatch` -> detalles -> `buildImportRow` (pasa por `createTitle`) -> una transacción de solo inserción -> informe en `import-reports/`.
+Flujo: hoja `Pelis` -> `RawRow[]` -> `prepareRow` -> `groupSeasons` (una fila por temporada, duplicados, D-85; sustituye a la fusión de D-79) -> `search/multi` -> `decideMatch` -> detalles -> `planSeasons` (temporadas emitidas) -> `buildImportRow` (pasa por `createTitle`) -> una transacción de solo inserción (padre e hijas) -> informe en `import-reports/`.
 
 ## Secretos
 
@@ -87,7 +97,7 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | Ruta | Contenido |
 |---|---|
 | `src/app/` | Rutas y UI (App Router) |
-| `src/domain/` | Dominio puro: `result`, `score`, `average`, `watch-state`, `watch-date`, `title` e `index.ts` (barrel, se importa como `@/domain`) |
+| `src/domain/` | Dominio puro: `result`, `score`, `average`, `watch-state`, `watch-date`, `title`, `season`, `summary` e `index.ts` (barrel, se importa como `@/domain`) |
 | `src/server/` | Servidor e integraciones |
 | `src/lib/supabase/` | Cliente de servidor, helper del proxy, variables de entorno y rutas públicas (sin cliente de navegador) |
 | `src/server/auth/` | Casos de uso de acceso: `sendMagicLink`, `signOut`, `getCurrentPerson` y `scoreColumnFor` |
@@ -104,12 +114,12 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | `src/server/theme/` | Lectura de la cookie `theme` en el servidor |
 | `src/server/specimen/` | Datos de muestra de `/sistema` (`server-only`) |
 | `src/test/` | Ayudantes de tests unitarios (`axe.ts` con `expectNoAxeViolations`, `score.ts`) |
-| `src/import/` | Reglas puras del importador del Excel (paso 1.7): `color`, `sheet-date`, `season`, `score`, `tmdb-search`, `match`, `row`, `merge`, `env`, `db-error`, `report` y `types` |
+| `src/import/` | Reglas puras del importador del Excel (paso 1.7): `color`, `sheet-date`, `season`, `group`, `aired`, `score`, `tmdb-search`, `match`, `row`, `env`, `db-error`, `report` y `types` |
 | `scripts/` | Scripts locales: `import-excel.ts` (`pnpm import:excel`), con acceso a TMDB y a Postgres; fuera de la aplicación |
 | `src/proxy.ts` | Proxy de Next.js: refresca la sesión y protege las rutas |
-| `supabase/migrations/` | Migraciones versionadas: `allowlist` y `titles` (paso 1.3) y `couple_auth` (paso 1.4: `person`, `current_person()`, hook de registro y trigger de notas) y `tmdb_fields` (paso 1.5: `tmdb_id`, `poster_path` y `seasons_total`), `title_search_unique` (paso 1.6: `fold_search`, `name_search` e índice único) y `titles_import_key` (paso 1.7: `import_key`) |
+| `supabase/migrations/` | Migraciones versionadas: `allowlist` y `titles` (paso 1.3) y `couple_auth` (paso 1.4: `person`, `current_person()`, hook de registro y trigger de notas) y `tmdb_fields` (paso 1.5: `tmdb_id`, `poster_path` y `seasons_total`), `title_search_unique` (paso 1.6: `fold_search`, `name_search` e índice único) `titles_import_key` (paso 1.7: `import_key`) y `title_seasons` (paso 1.8: tabla de temporadas) |
 | `supabase/templates/` | Plantilla del correo de acceso (`sign-in.html`) |
-| `supabase/tests/database/` | Tests pgTAP (`pnpm test:db`): `titles_constraints`, `access_control`, `couple_auth`, `tmdb_fields`, `title_search_unique` y `titles_import_key`; solo en local |
+| `supabase/tests/database/` | Tests pgTAP (`pnpm test:db`): `titles_constraints`, `access_control`, `couple_auth`, `tmdb_fields`, `title_search_unique`, `titles_import_key` y `title_seasons`; solo en local |
 | `supabase/config.toml` | Configuración de la CLI de Supabase (proyecto `ignacioymaria`, sin semilla) |
 | `tests/e2e/` | Pruebas E2E (Playwright): `auth.spec.ts` con ayudantes de Mailpit y `pg`, `design-system.spec.ts` (`/sistema` en ambos temas y anchos) `titles.spec.ts` con `titles-db.ts` (gestión de títulos con el doble de TMDB) y `session.ts` (ayudantes de sesión compartidos); `globalSetup` inserta las dos cuentas de prueba |
 | `vitest.config.mts` | Configuración de Vitest (jsdom, solo `src/**/*.test.{ts,tsx}`) |

@@ -313,6 +313,16 @@ fecha) y adapta el importador del Excel para cargar una fila por temporada.
 
 **Notas:** Paso nuevo del 2026-11-02 (#853). La importación real en el Supabase alojado (2.3) espera a este paso.
 
+2026-11-03 · Cambio SDD `season-ratings`, con Strict TDD activo y un único PR con excepción de tamaño aceptada. Decisiones D-81 a D-87 (D-79 sustituida; D-72 y D-63 enmendadas) en `docs/DECISIONS.md`. **Hecho** (6 commits sin empujar):
+- *Datos* (`63f0ef6`): migración `title_seasons` con RLS y nota solo de su dueño, y su pgTAP; sin migración de datos (D-87).
+- *Dominio* (`fabfb27`): `Season`, `createSeason`, `nextSeasonNumber` y `titleSummary`, con retroceso a los valores de título para películas y series sin temporadas.
+- *Servidor* (`daa2663`, `52d8835`): el repositorio incrusta las temporadas y la vista lleva `summary`; casos de uso `update-season` y `add-season`; el alta de una serie crea la temporada 1; el filtro de listas usa el estado derivado; las Server Actions `updateSeasonFieldAction` y `addSeasonAction`.
+- *Importador* (`b09f45e`): una fila por temporada con rangos, duplicados y temporadas emitidas de TMDB; se elimina la fusión de D-79; padre e hijas en una transacción e idempotente (`pnpm test:import`, 13 pruebas).
+- *UI* (`29969ff`): resumen de solo lectura, fila plegable por temporada, «Añadir temporada» y listas con valores derivados; E2E del flujo de serie (6 escenarios) y ficha de serie en el recorrido de axe a tres anchos y dos temas.
+- *Documentos:* decisiones, arquitectura, `docs/DESIGN-ROADMAP.md` y este registro.
+
+**Pendiente (el paso sigue abierto):** (1) comprobación visual con el MCP de Playwright (ficha y listas, escritorio y móvil); (2) verificación final de SDD; (3) **de la persona:** ejecutar `pnpm import:excel --file <xlsx>` contra la base LOCAL (el agente no puede leer `.env.local`; confirmar antes que `IMPORT_DB_URL` apunta a 127.0.0.1:54322), comprobar que *The last of us* conserva sus dos temporadas con sus notas, que el informe ya no tiene filas fusionadas y que una segunda ejecución no cambia nada. Los E2E vacían la tabla `titles` de la base local (`clearTitles`), así que tras ejecutarlos hay que reimportar.
+
 ---
 
 # Fase D — Diseño
@@ -427,3 +437,8 @@ propio ciclo SDD.
 | 2026-11-02 | 1.7 | Nuevo paso 1.8 «Valoración por temporada» antes de la importación real (2.3), que espera a este paso | La base solo guarda una nota por persona y título (D-80). La numeración 1.8 es del agente: la persona puede reubicarlo |
 | 2026-11-02 | 1.7 | (Sustituida por la fila siguiente.) No se extrajo un helper de resultado de ejecución del script: la lógica testeable nueva está en `env.ts` y `db-error.ts`, y el pegamento del script se comprobó con ejecuciones locales (libro sintético, token falso) | Lo que queda son unas diez líneas de try/catch sin reglas propias |
 | 2026-11-02 | 1.7 | Se extrajo la costura `runImport(argv, deps)` a `scripts/import-run.ts` y se añadió `pnpm test:import` (integración contra la base local, fuera de `pnpm test`); `vitest.config.mts` incluye también `scripts/**/*.test.ts` | `sdd-verify` dejó 7 escenarios sin test automático; el fallo de inserción se simula con un envoltorio del cliente que ejecuta un `insert` real con `null` en un campo obligatorio dentro de la misma transacción |
+| 2026-11-03 | 1.8 | Un único PR con excepción de tamaño aceptada para `season-ratings` (previsto ~1600 a 2150 líneas; real unas 4400 añadidas y 520 borradas en 74 archivos, tests y documentos incluidos), entregado en cuatro bloques de trabajo con commits propios | El usuario aceptó no dividir el cambio (`delivery_strategy` `exception-ok`, presupuesto de revisión de 800 líneas superado) |
+| 2026-11-03 | 1.8 | Cambios de comportamiento hallados por los bloques: la marca `t2` sola ya no emite aviso; `deleteTitle` y `updateTitleField` hacen una lectura previa extra (`findById`) para devolver el estado derivado y rechazar los campos derivados de una serie con temporadas | Consecuencia de D-82 y D-84; los tests que afirmaban «sin lectura previa» se ajustaron |
+| 2026-11-03 | 1.8 | La prueba de integración del importador (2.5) se escribió antes que su implementación (2.6) pero no se ejecutó en rojo, y los tests de informe y de fila se editaron junto al código | La cadena de typecheck estaba rota entre medias; la cobertura quedó completa (13 pruebas de integración) pero la evidencia RED de ese par no es estricta |
+| 2026-11-03 | 1.8 | Los E2E de la serie se escribieron después de los componentes (no en rojo) | Los componentes ya tenían pruebas unitarias en rojo primero; los E2E validan el flujo completo y se añadieron al cerrar el bloque de UI |
+| 2026-11-03 | 1.8 | Ficheros nuevos de UI en kebab-case (`series-summary.tsx`, `season-row.tsx`, `add-season-button.tsx`) en lugar de los PascalCase del diseño | Convención de archivos del repositorio (D-52) |

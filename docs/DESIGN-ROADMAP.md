@@ -66,6 +66,21 @@ Esqueleto de los pasos de diseño `D.n` de la Fase D de `docs/ROADMAP.md`. Aquí
 
 ---
 
+## [~] Ficha de serie y listas por temporada (paso 1.8)
+
+Cambio visual del paso 1.8 de `docs/ROADMAP.md` (cambio SDD `season-ratings`), fuera de la numeración `D.n` porque es una ampliación de la ficha y de las listas de 1.6.
+
+**Notas:** 2026-11-03 · Construido con el lenguaje visual existente (tabla de críticos, solo reglas, sin radio ni sombra, estado como cuadrado pintado, una única inversión: la media).
+- **Ficha de una serie con temporadas.** Arriba, `Resumen` de solo lectura: las notas de María e Ignacio en columnas iguales, la `AverageBox` (única pieza invertida), el estado de la última temporada con su cuadrado pintado y la fecha; una línea en tinta atenuada explica que se calcula con las temporadas. Debajo, una sección `Temporadas` cerrada por una regla de tinta de 2 px y una fila por temporada.
+- **Fila de temporada.** Es un `<details>` nativo (teclado y lectores de pantalla sin trabajo extra) con una línea plegada siempre visible: `Temporada N` en condensada, estado, fecha y las dos notas a la derecha. Dentro, los editores de siempre (selector de estado, fecha con «Hoy» y «No sé cuándo», panel de nota) reutilizados con una prop `save`. Cualquiera de las dos personas edita estado y fecha; cada una, solo su nota (la de la otra se lee en la línea plegada). Solo la última temporada nace abierta, para que una serie de ocho temporadas no se convierta en un muro de controles.
+- **Añadir temporada.** Botón primario (regla de 2 px y 4 px inferior) con el número que va a crear (`Añadir temporada 3`), desactivado mientras guarda, con aviso `role="status"` («Temporada 3 añadida.») y alerta propia si falla. La nueva fila nace abierta, pendiente, sin fecha ni notas.
+- **Serie sin temporadas.** Conserva los editores de título de siempre y ofrece `Añadir temporada 1`.
+- **Listas.** Estado, fecha, notas y media de una serie salen del resumen derivado; las medias fuera de la rejilla de 0,25 (7,13) caben en las columnas de 44 px. Una película no cambia.
+- **Pruebas.** Componentes con axe (resumen, fila, botón, ficha completa), E2E del flujo (nota propia, estado, fecha, añadir temporada, la serie pasa a Pendientes) y la ficha de una serie añadida al recorrido de axe, desbordamiento e hidratación a 1280, 1440 y 390 px en ambos temas.
+- **Pendiente.** Comprobación visual con el MCP de Playwright (escritorio y móvil, ambos temas) y sus correcciones, que hace el orquestador.
+
+---
+
 # Registro de desviaciones
 
 | Fecha | Paso | Qué cambió | Por qué |
@@ -75,3 +90,6 @@ Esqueleto de los pasos de diseño `D.n` de la Fase D de `docs/ROADMAP.md`. Aquí
 | 2026-10-30 | D.2 | Componente extra `AddAction` («Añadir»), fuera de los nueve previstos | Lo pidió la revisión final de `impeccable`; su anclaje en escritorio queda para el 1.6 |
 | 2026-10-30 | D.2 | Un único PR de unas 4200 líneas añadidas (65 archivos) con excepción de tamaño | Aceptado por el usuario antes de la propuesta; los tests son buena parte del diff |
 | 2026-11-01 | D.2 | `ScoreFigure` acepta `number \| null` (antes solo número) | Las listas y la ficha muestran títulos sin nota; se aprobó en el paso 1.6 |
+| 2026-11-03 | 1.8 | Entrada propia «Ficha de serie y listas por temporada» fuera de la numeración `D.n`, y la comprobación con el MCP de Playwright queda para el orquestador | Es una ampliación visual de la ficha y las listas de 1.6; el agente de implementación no tiene herramientas de navegador |
+| 2026-11-03 | 1.8 | `CriticsTableRow` acepta `number \| null` en las notas (antes `Score`), como ya hacía `ScoreFigure` | La media de las notas de temporada puede salirse de la rejilla de 0,25 (D-82) |
+| 2026-11-03 | 1.8 | Las filas de temporada son `<details>` plegables con la última abierta, en lugar de una lista de editores siempre visibles | Una serie de ocho temporadas con seis estados, fecha y panel de nota por temporada serían miles de píxeles de ficha; la línea plegada conserva estado, fecha y notas a la vista |
