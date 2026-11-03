@@ -411,6 +411,8 @@ restaurar.
 
 2026-11-03 · El paso nació sin prompt (commit `d6ec5f9`), sin motivo registrado; la decisión pendiente era cómo hacer las copias. Supabase no hace copias en el plan gratuito y recomienda `supabase db dump` guardado fuera; la persona elige un workflow programado de GitHub Actions (D-90). Prompt añadido.
 
+2026-11-03 · Cambio SDD `production-import-and-backups`, con Strict TDD. Hecho (agente): `.github/workflows/backup.yml` (semanal + manual, `production`, volcados de roles, esquema y datos cifrados con `age` a un destinatario público, solo `*.age` subidos, 30 días), tests de contrato en `scripts/deploy-config.test.ts` (guardas probadas contra variantes inseguras) y, en `docs/DEPLOY.md`, el runbook de importación, de copias y de restauración (D-91). **Estado: pendiente de ensayo; el paso sigue abierto.** Pendiente de la persona: U1 confirmar que `.env.example` lista `IMPORT_DB_URL`; U2 tras fusionar, generar el par `age` y guardar la clave pública como `BACKUP_AGE_RECIPIENT` en `production` (la privada, fuera de línea en dos copias); U3 lanzar la copia de base antes de importar; U4 importar en producción una sola vez (`--dry-run`, informe, importación real, recuentos); U5 lanzar la copia posterior y comprobar tres `.age`, 30 días y logs limpios; U6 ensayar la restauración local y responder las tres preguntas abiertas de `docs/DEPLOY.md`; U7 anotar aquí fechas, recuentos y URL de la ejecución. El paso no se cierra sin U6 y U7.
+
 ---
 
 # Fase 3 — Funcionalidades divertidas
@@ -482,3 +484,4 @@ propio ciclo SDD.
 | 2026-11-03 | 2.2 | En `docs/DEPLOY.md`, el SMTP (Brevo) pasa a configurarse antes que las plantillas de correo | En el plan gratuito, Supabase no deja editar las plantillas con el proveedor de correo por defecto; con SMTP propio sí |
 | 2026-11-03 | 2.2 | El paso se cierra sin el primer acceso de María (Authentication > Users = 1 en lugar de 2) | Decisión de la persona: María no usará la web hasta que esté terminada |
 | 2026-11-03 | 2.3 | Se añade el prompt que faltaba; las copias de seguridad serán un `supabase db dump` programado en GitHub Actions (D-90) | El plan gratuito de Supabase no tiene copias; era la decisión abierta que dejaba el paso sin prompt |
+| 2026-11-03 | 2.3 | La restauración usa tres ejecuciones de `psql` vía `docker exec` en lugar de `--single-transaction` (D-90); los volcados van cifrados con `age` porque el repositorio es público (D-91) | El paso de roles debe tolerar roles ya existentes y no puede ser atómico; los artifacts de un repositorio público son legibles |
