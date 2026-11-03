@@ -37,7 +37,8 @@ const isWatched = (state: WatchState) =>
 /**
  * Updates exactly one field of a title (TC-6). The patch comes from the
  * client and is validated with the domain; the score column is derived from
- * the session, never from the payload.
+ * the session, never from the payload. State, date and scores of a series
+ * with seasons are derived from them and cannot be edited here.
  */
 export async function updateTitleField(
   id: unknown,
@@ -58,14 +59,6 @@ export async function updateTitleField(
     case "state": {
       if (!isWatchState(value)) return invalid("state", "invalid_state");
       columns = { state: value };
-      if (isWatched(value)) {
-        // A2: a watched title with an unknown date gets today in the same write.
-        const current = await repository.findById(id);
-        if (!current.ok) return current;
-        if (current.value.title.watchDate.kind === "unknown") {
-          columns.watch_date = todayIso();
-        }
-      }
       break;
     }
     case "watchDate": {
@@ -97,6 +90,26 @@ export async function updateTitleField(
     }
     default:
       return invalid("field", "unknown_field");
+  }
+
+  if (field === "state" || field === "watchDate" || field === "myScore") {
+    const current = await repository.findById(id);
+    if (!current.ok) return current;
+    // A series with seasons derives these values from them (R5.8).
+    if (
+      current.value.title.kind === "series" &&
+      current.value.title.seasons.length > 0
+    ) {
+      return invalid(field, "derived_for_series");
+    }
+    // A2: a watched title with an unknown date gets today in the same write.
+    if (
+      field === "state" &&
+      isWatched(value as WatchState) &&
+      current.value.title.watchDate.kind === "unknown"
+    ) {
+      columns.watch_date = todayIso();
+    }
   }
 
   const updated = await repository.update(id, columns);

@@ -20,6 +20,8 @@ beforeEach(() => {
     ok: true,
     value: makeRecord({ name: row.name, kind: row.kind, state: row.state }),
   }));
+  repo.insertSeason.mockResolvedValue({ ok: true, value: null });
+  repo.findById.mockImplementation(async () => ({ ok: true, value: makeRecord() }));
 });
 
 afterEach(() => {
@@ -167,5 +169,87 @@ describe("addTitle (TC-4)", () => {
       ok: false,
       error: { kind: "duplicate", existingId: "abc" },
     });
+  });
+});
+
+describe("season 1 on create (R5.4, S28, S29)", () => {
+  const seriesRecord = (seasons: unknown[] = []) =>
+    makeRecord(
+      { name: "Dark", kind: "series", state: "watched", seasons },
+      { id: "22222222-2222-4222-8222-222222222222" },
+    );
+
+  beforeEach(() => {
+    repo.insert.mockResolvedValue({ ok: true, value: seriesRecord() });
+    repo.insertSeason.mockResolvedValue({ ok: true, value: null });
+  });
+
+  test("S28: a series gets season 1 with the chosen state and date, no scores", async () => {
+    repo.findById.mockResolvedValue({
+      ok: true,
+      value: seriesRecord([{ number: 1, state: "watched" }]),
+    });
+
+    const result = await addTitle({
+      name: "Dark",
+      kind: "series",
+      state: "watched",
+      watchDate: { kind: "known", date: "2026-10-30" },
+    });
+
+    expect(repo.insertSeason).toHaveBeenCalledWith({
+      title_id: "22222222-2222-4222-8222-222222222222",
+      season_number: 1,
+      state: "watched",
+      watch_date: "2026-10-30",
+    });
+    expect(result.ok && result.value.title).toMatchObject({
+      seasons: [{ number: 1 }],
+    });
+  });
+
+  test("a pending series without a date gets a pending season 1 with a null date", async () => {
+    repo.findById.mockResolvedValue({ ok: true, value: seriesRecord() });
+
+    await addTitle({ name: "Dark", kind: "series" });
+
+    expect(repo.insertSeason).toHaveBeenCalledWith({
+      title_id: "22222222-2222-4222-8222-222222222222",
+      season_number: 1,
+      state: "pending",
+      watch_date: null,
+    });
+  });
+
+  test("S29: if the season insert fails the title is still returned", async () => {
+    repo.insertSeason.mockResolvedValue({ ok: false, error: { kind: "unavailable" } });
+
+    const result = await addTitle({ name: "Dark", kind: "series", state: "watched" });
+
+    expect(result.ok && result.value.title.name).toBe("Dark");
+    expect(result.ok && result.value.summary.state).toBe("watched");
+    expect(repo.findById).not.toHaveBeenCalled();
+  });
+
+  test("if re-reading after the season insert fails the inserted title is returned", async () => {
+    repo.findById.mockResolvedValue({ ok: false, error: { kind: "unavailable" } });
+
+    const result = await addTitle({ name: "Dark", kind: "series" });
+
+    expect(result.ok && result.value.title.name).toBe("Dark");
+  });
+
+  test("a movie never gets a season", async () => {
+    await addTitle({ name: "Dune", kind: "movie" });
+
+    expect(repo.insertSeason).not.toHaveBeenCalled();
+  });
+
+  test("a failed title insert writes no season", async () => {
+    repo.insert.mockResolvedValue({ ok: false, error: { kind: "duplicate", existingId: null } });
+
+    await addTitle({ name: "Dark", kind: "series", tmdbId: 1 });
+
+    expect(repo.insertSeason).not.toHaveBeenCalled();
   });
 });

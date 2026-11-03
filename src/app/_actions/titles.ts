@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { todayIso, type Result, type WatchState } from "@/domain";
 import { LIST_STATES } from "@/lib/titles/list-params";
 import { searchAddCandidates, type AddCandidate } from "@/server/titles/add-candidates";
+import { addSeason } from "@/server/titles/add-season";
 import { addTitle } from "@/server/titles/create";
 import { deleteTitle } from "@/server/titles/delete";
 import type {
@@ -14,6 +15,10 @@ import type {
   TitleView,
 } from "@/server/titles/types";
 import { updateTitleField, type FieldPatch } from "@/server/titles/update-field";
+import {
+  updateSeasonField,
+  type SeasonFieldPatch,
+} from "@/server/titles/update-season";
 import { getTmdbDetails } from "@/server/tmdb/lookup";
 import type { TmdbFailure, TmdbKind } from "@/server/tmdb/types";
 
@@ -41,6 +46,20 @@ export async function updateTitleFieldAction(
   patch: FieldPatch,
 ): Promise<Result<TitleView, TitleFailure>> {
   return updateTitleField(id, patch);
+}
+
+export async function updateSeasonFieldAction(
+  id: string,
+  seasonNumber: number,
+  patch: SeasonFieldPatch,
+): Promise<Result<TitleView, TitleFailure>> {
+  return updateSeasonField(id, seasonNumber, patch);
+}
+
+export async function addSeasonAction(
+  id: string,
+): Promise<Result<TitleView, TitleFailure>> {
+  return addSeason(id);
 }
 
 export async function searchAddCandidatesAction(

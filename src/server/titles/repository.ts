@@ -83,9 +83,11 @@ export function createTitlesRepository(client: SupabaseClient) {
     },
 
     async list(query: ListQuery): Promise<Result<TitleRecord[], TitleFailure>> {
+      // Series are prefiltered by the domain on their derived state (their
+      // title-level state may be stale), so every series comes back.
       let builder = titles()
         .select(TITLE_SELECT)
-        .in("state", [...query.states]);
+        .or(`kind.eq.series,state.in.(${query.states.join(",")})`);
       const folded = foldSearch(query.q.trim());
       if (folded !== "") {
         builder = builder.ilike("name_search", `%${escapeLike(folded)}%`);

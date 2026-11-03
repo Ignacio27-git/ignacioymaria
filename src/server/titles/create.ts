@@ -2,7 +2,7 @@ import "server-only";
 
 import { createTitle, err, ok, type Result } from "@/domain";
 
-import { titleToInsert } from "./mapper";
+import { seasonToInsert, titleToInsert } from "./mapper";
 import { getTitlesRepository } from "./repository";
 import { requirePerson, toView } from "./shared";
 import type { TitleFailure, TitleView } from "./types";
@@ -52,8 +52,21 @@ export async function addTitle(
     });
   }
 
-  const inserted = await (
-    await getTitlesRepository()
-  ).insert(titleToInsert(created.value));
-  return inserted.ok ? ok(toView(inserted.value)) : inserted;
+  const repository = await getTitlesRepository();
+  const inserted = await repository.insert(titleToInsert(created.value));
+  if (!inserted.ok) return inserted;
+  if (created.value.kind !== "series") return ok(toView(inserted.value));
+
+  // A series starts with season 1 carrying the chosen state and date. If this
+  // fails the title stays and shows its title-level values (R5.4).
+  const season = await repository.insertSeason(
+    seasonToInsert(inserted.value.id, {
+      number: 1,
+      state: created.value.state,
+      watchDate: created.value.watchDate,
+    }),
+  );
+  if (!season.ok) return ok(toView(inserted.value));
+  const fresh = await repository.findById(inserted.value.id);
+  return ok(toView(fresh.ok ? fresh.value : inserted.value));
 }

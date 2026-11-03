@@ -5,7 +5,7 @@ import { getCurrentPerson } from "@/server/auth/current-person";
 
 import { deleteTitle } from "./delete";
 import { getTitlesRepository } from "./repository";
-import { fakeRepository, TITLE_ID } from "./test-helpers";
+import { fakeRepository, makeRecord, TITLE_ID } from "./test-helpers";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/server/auth/current-person", () => ({ getCurrentPerson: vi.fn() }));
@@ -16,6 +16,10 @@ const repo = fakeRepository();
 beforeEach(() => {
   vi.mocked(getCurrentPerson).mockResolvedValue("ignacio");
   vi.mocked(getTitlesRepository).mockResolvedValue(repo as never);
+  repo.findById.mockResolvedValue({
+    ok: true,
+    value: makeRecord({ state: "watched" }),
+  });
   repo.remove.mockResolvedValue({ ok: true, value: { state: "watched" } });
 });
 
@@ -33,7 +37,7 @@ test("S1: either person deletes by id and gets the removed state back", async ()
 });
 
 test("S2: an unknown id is not_found", async () => {
-  repo.remove.mockResolvedValue({ ok: false, error: { kind: "not_found" } });
+  repo.findById.mockResolvedValue({ ok: false, error: { kind: "not_found" } });
 
   expect(await deleteTitle(TITLE_ID)).toEqual({
     ok: false,
@@ -57,4 +61,34 @@ test("without a person it answers unauthorized and touches nothing", async () =>
     error: { kind: "unauthorized" },
   });
   expect(getTitlesRepository).not.toHaveBeenCalled();
+});
+
+test("R5.7: a series with seasons returns its derived state for the redirect", async () => {
+  repo.findById.mockResolvedValue({
+    ok: true,
+    value: makeRecord({
+      kind: "series",
+      state: "watched",
+      seasons: [
+        { number: 1, state: "watched" },
+        { number: 2, state: "pending" },
+      ],
+    }),
+  });
+  repo.remove.mockResolvedValue({ ok: true, value: { state: "watched" } });
+
+  expect(await deleteTitle(TITLE_ID)).toEqual({
+    ok: true,
+    value: { state: "pending" },
+  });
+  expect(repo.remove).toHaveBeenCalledWith(TITLE_ID);
+});
+
+test("a delete failure after the lookup is returned as is", async () => {
+  repo.remove.mockResolvedValue({ ok: false, error: { kind: "forbidden" } });
+
+  expect(await deleteTitle(TITLE_ID)).toEqual({
+    ok: false,
+    error: { kind: "forbidden" },
+  });
 });

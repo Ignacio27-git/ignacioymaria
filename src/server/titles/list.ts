@@ -1,6 +1,12 @@
 import "server-only";
 
-import { ok, sortTitles, type Result, type TitleList } from "@/domain";
+import {
+  ok,
+  sortTitles,
+  titleSummary,
+  type Result,
+  type TitleList,
+} from "@/domain";
 import {
   parseListParams,
   type RawSearchParams,
@@ -13,8 +19,9 @@ import type { TitleFailure, TitleView } from "./types";
 /**
  * The full filtered list, sorted (TC-8, TC-9). The URL state is parsed here
  * too, so invalid values fall back to defaults and never reach the database.
- * Filtering is in SQL; ordering is the domain's because the average is not
- * stored (D-19).
+ * Name search and the state of movies are filtered in SQL; a series is
+ * filtered here by its derived state (the highest season's, R5.7) and ordering
+ * is the domain's because the average is not stored (D-19).
  */
 export async function listTitles(
   list: TitleList,
@@ -27,5 +34,8 @@ export async function listTitles(
   const found = await (await getTitlesRepository()).list({ states, q });
   if (!found.ok) return found;
 
-  return ok(sortTitles(found.value, order, list).map(toView));
+  const inStates = found.value.filter((record) =>
+    states.includes(titleSummary(record.title).state),
+  );
+  return ok(sortTitles(inStates, order, list).map(toView));
 }

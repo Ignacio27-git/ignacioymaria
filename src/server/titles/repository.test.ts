@@ -48,6 +48,7 @@ function stubClient(...replies: Reply[]) {
         "delete",
         "eq",
         "in",
+        "or",
         "ilike",
         "order",
       ]) {
@@ -212,7 +213,7 @@ describe("list", () => {
 
     expect(queries[0]?.calls).toEqual([
       ["select", TITLE_SELECT],
-      ["in", "state", ["watched", "watched_awful"]],
+      ["or", "kind.eq.series,state.in.(watched,watched_awful)"],
       ["ilike", "name_search", "%amel\\_\\%%"],
       ["order", "created_at", { ascending: false }],
     ]);

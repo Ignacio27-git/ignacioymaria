@@ -5,16 +5,20 @@ import { redirect } from "next/navigation";
 
 import { getCurrentPerson } from "@/server/auth/current-person";
 import { searchAddCandidates } from "@/server/titles/add-candidates";
+import { addSeason } from "@/server/titles/add-season";
 import { addTitle } from "@/server/titles/create";
 import { deleteTitle } from "@/server/titles/delete";
 import { updateTitleField } from "@/server/titles/update-field";
+import { updateSeasonField } from "@/server/titles/update-season";
 import { getTmdbDetails } from "@/server/tmdb/lookup";
 
 import {
   addFromTmdbAction,
+  addSeasonAction,
   addManualAction,
   deleteTitleAction,
   searchAddCandidatesAction,
+  updateSeasonFieldAction,
   updateTitleFieldAction,
 } from "./titles";
 
@@ -26,6 +30,8 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/server/auth/current-person", () => ({ getCurrentPerson: vi.fn() }));
 vi.mock("@/server/titles/add-candidates", () => ({ searchAddCandidates: vi.fn() }));
+vi.mock("@/server/titles/add-season", () => ({ addSeason: vi.fn() }));
+vi.mock("@/server/titles/update-season", () => ({ updateSeasonField: vi.fn() }));
 vi.mock("@/server/titles/create", () => ({ addTitle: vi.fn() }));
 vi.mock("@/server/titles/delete", () => ({ deleteTitle: vi.fn() }));
 vi.mock("@/server/titles/update-field", () => ({ updateTitleField: vi.fn() }));
@@ -290,5 +296,47 @@ describe("deleteTitleAction", () => {
     });
 
     expect(target).toBeNull();
+  });
+});
+
+describe("season actions (R5.2, R5.3)", () => {
+  test("updateSeasonFieldAction forwards ids and patch untouched and returns the result unchanged", async () => {
+    const result = { ok: true, value: view } as never;
+    vi.mocked(updateSeasonField).mockResolvedValue(result);
+    const patch = { field: "myScore", value: 9.5 } as const;
+
+    expect(await updateSeasonFieldAction(ID, 2, patch)).toBe(result);
+    expect(updateSeasonField).toHaveBeenCalledWith(ID, 2, patch);
+  });
+
+  test("updateSeasonFieldAction returns a failure as a value, never throws", async () => {
+    vi.mocked(updateSeasonField).mockResolvedValue({
+      ok: false,
+      error: { kind: "forbidden" },
+    });
+
+    expect(
+      await updateSeasonFieldAction(ID, 1, { field: "myScore", value: 5 }),
+    ).toEqual({ ok: false, error: { kind: "forbidden" } });
+  });
+
+  test("addSeasonAction forwards the id and returns the fresh view", async () => {
+    const result = { ok: true, value: view } as never;
+    vi.mocked(addSeason).mockResolvedValue(result);
+
+    expect(await addSeasonAction(ID)).toBe(result);
+    expect(addSeason).toHaveBeenCalledWith(ID);
+  });
+
+  test("addSeasonAction returns a failure as a value", async () => {
+    vi.mocked(addSeason).mockResolvedValue({
+      ok: false,
+      error: { kind: "not_found" },
+    });
+
+    expect(await addSeasonAction(ID)).toEqual({
+      ok: false,
+      error: { kind: "not_found" },
+    });
   });
 });

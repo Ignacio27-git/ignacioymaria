@@ -164,11 +164,10 @@ describe("state and the A2 auto date", () => {
   });
 
   test.each(["pending", "urgent"])(
-    "A2: non-watched state %s never touches the date nor reads the row",
+    "A2: non-watched state %s never touches the date",
     async (state) => {
       await updateTitleField(TITLE_ID, { field: "state", value: state });
 
-      expect(repo.findById).not.toHaveBeenCalled();
       expect(repo.update).toHaveBeenCalledWith(TITLE_ID, { state });
     },
   );
@@ -202,7 +201,6 @@ describe("watchDate", () => {
     });
 
     expect(repo.update).toHaveBeenCalledWith(TITLE_ID, { watch_date: null });
-    expect(repo.findById).not.toHaveBeenCalled();
   });
 
   test("TD-6 S4: an invalid date is invalid_input with no write", async () => {
@@ -242,6 +240,60 @@ describe("observations", () => {
       field: "observations",
       value: 3,
     });
+
+    expect(!result.ok && result.error.kind).toBe("invalid_input");
+    expect(repo.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("derived fields of a series with seasons (R5.8, S35, S30)", () => {
+  const withSeasons = () =>
+    makeRecord({
+      kind: "series",
+      state: "watched",
+      seasons: [{ number: 1, state: "watched" }],
+    });
+
+  test.each([
+    [{ field: "state", value: "pending" }, "state"],
+    [{ field: "watchDate", value: { kind: "known", date: "2026-01-02" } }, "watchDate"],
+    [{ field: "myScore", value: 8 }, "myScore"],
+  ])("S35: %j is rejected as derived_for_series with no write", async (patch, field) => {
+    repo.findById.mockResolvedValue({ ok: true, value: withSeasons() });
+
+    expect(await updateTitleField(TITLE_ID, patch)).toEqual({
+      ok: false,
+      error: {
+        kind: "invalid_input",
+        errors: [{ field, code: "derived_for_series" }],
+      },
+    });
+    expect(repo.update).not.toHaveBeenCalled();
+  });
+
+  test("observations stay editable on a series with seasons", async () => {
+    repo.findById.mockResolvedValue({ ok: true, value: withSeasons() });
+
+    await updateTitleField(TITLE_ID, { field: "observations", value: "hola" });
+
+    expect(repo.update).toHaveBeenCalledWith(TITLE_ID, { observations: "hola" });
+  });
+
+  test("a series without seasons and a movie still edit title-level fields", async () => {
+    repo.findById.mockResolvedValue({
+      ok: true,
+      value: makeRecord({ kind: "series" }),
+    });
+    await updateTitleField(TITLE_ID, { field: "myScore", value: 8 });
+    expect(repo.update).toHaveBeenLastCalledWith(TITLE_ID, { score_maria: 8 });
+
+    repo.findById.mockResolvedValue({ ok: true, value: makeRecord() });
+    await updateTitleField(TITLE_ID, { field: "state", value: "pending" });
+    expect(repo.update).toHaveBeenLastCalledWith(TITLE_ID, { state: "pending" });
+  });
+
+  test("invalid input is still rejected before any read", async () => {
+    const result = await updateTitleField(TITLE_ID, { field: "myScore", value: 11 });
 
     expect(!result.ok && result.error.kind).toBe("invalid_input");
     expect(repo.update).not.toHaveBeenCalled();

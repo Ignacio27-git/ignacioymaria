@@ -155,3 +155,119 @@ describe("order (TC-9)", () => {
     expect(result.ok && result.value[0]?.title.name).toBe("u");
   });
 });
+
+describe("series membership by derived state (R5.7, S31, S32)", () => {
+  const series = (
+    name: string,
+    id: string,
+    seasons: { number: number; state: string }[],
+    extra: Record<string, unknown> = {},
+  ) => makeRecord({ name, kind: "series", seasons, ...extra }, { id });
+  const names = (r: Awaited<ReturnType<typeof listTitles>>) =>
+    r.ok ? r.value.map((v) => v.title.name).sort() : null;
+
+  test("S31: season 1 Vista and season 2 Viendo is not in Vistas", async () => {
+    repo.list.mockResolvedValue({
+      ok: true,
+      value: [
+        series("both", "00000000-0000-4000-8000-000000000001", [
+          { number: 1, state: "watched" },
+          { number: 2, state: "pending" },
+        ]),
+      ],
+    });
+
+    expect(names(await listTitles("vistas", {}))).toEqual([]);
+    expect(names(await listTitles("pendientes", {}))).toEqual(["both"]);
+  });
+
+  test("S32: the highest season Vista puts the series in Vistas, not Pendientes", async () => {
+    repo.list.mockResolvedValue({
+      ok: true,
+      value: [
+        series(
+          "done",
+          "00000000-0000-4000-8000-000000000001",
+          [
+            { number: 1, state: "pending" },
+            { number: 2, state: "watched_rewatch" },
+          ],
+          { state: "pending" },
+        ),
+      ],
+    });
+
+    expect(names(await listTitles("vistas", {}))).toEqual(["done"]);
+    expect(names(await listTitles("pendientes", {}))).toEqual([]);
+  });
+
+  test("a selected state filters series by their derived state", async () => {
+    repo.list.mockResolvedValue({
+      ok: true,
+      value: [
+        series("rw", "00000000-0000-4000-8000-000000000001", [
+          { number: 1, state: "watched_rewatch" },
+        ]),
+        series("plain", "00000000-0000-4000-8000-000000000002", [
+          { number: 1, state: "watched" },
+        ]),
+        makeRecord(
+          { name: "movie", state: "watched_rewatch" },
+          { id: "00000000-0000-4000-8000-000000000003" },
+        ),
+      ],
+    });
+
+    expect(
+      names(await listTitles("vistas", { estado: "watched_rewatch" })),
+    ).toEqual(["movie", "rw"]);
+  });
+
+  test("a series without seasons is filtered by its title-level state", async () => {
+    repo.list.mockResolvedValue({
+      ok: true,
+      value: [
+        series("legacy", "00000000-0000-4000-8000-000000000001", [], {
+          state: "watched",
+        }),
+      ],
+    });
+
+    expect(names(await listTitles("vistas", {}))).toEqual(["legacy"]);
+    expect(names(await listTitles("pendientes", {}))).toEqual([]);
+  });
+
+  test("S33: nota sorts series by the derived average and the DTO carries it", async () => {
+    repo.list.mockResolvedValue({
+      ok: true,
+      value: [
+        makeRecord(
+          {
+            name: "low",
+            kind: "series",
+            seasons: [{ number: 1, state: "watched", scores: { maria: 4 } }],
+          },
+          { id: "00000000-0000-4000-8000-000000000001" },
+        ),
+        makeRecord(
+          {
+            name: "high",
+            kind: "series",
+            seasons: [
+              { number: 1, state: "watched", scores: { maria: 9 } },
+              { number: 2, state: "watched", scores: { maria: 7, ignacio: 8 } },
+            ],
+          },
+          { id: "00000000-0000-4000-8000-000000000002" },
+        ),
+      ],
+    });
+
+    const result = await listTitles("vistas", { orden: "nota" });
+
+    expect(result.ok && result.value.map((v) => [v.title.name, v.average])).toEqual([
+      ["high", 8],
+      ["low", 4],
+    ]);
+  });
+});
