@@ -168,6 +168,10 @@ const guards = {
     ensure(data.length === 1, "one data dump");
     ensure(data[0].includes("--use-copy"), "data dump without --use-copy");
     ensure(
+      /(\s-s\s+public\b|\s--schema[ =]public\b)/.test(data[0]),
+      "data dump not scoped to the public schema",
+    );
+    ensure(
       dumps.filter(
         (line) =>
           !line.includes("--role-only") && !line.includes("--data-only"),
