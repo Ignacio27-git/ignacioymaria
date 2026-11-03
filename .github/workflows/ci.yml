@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A newer push cancels the run of a pull request; runs on main always finish.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    name: Lint, typecheck, unit tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Non-secret placeholders: the build needs the names, never a real server.
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-build-placeholder
+      SITE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  db-e2e:
+    name: Database tests and E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Only what the app needs: Postgres, auth, the REST API, the gateway and the mailbox.
+      - name: Start local Supabase
+        run: pnpm exec supabase start -x realtime,storage-api,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      # The CLI names its key PUBLISHABLE_KEY or ANON_KEY depending on the version.
+      # Service-role and secret keys are never exported.
+      - name: Export environment from the local stack
+        run: |
+          set -euo pipefail
+          pnpm exec supabase status -o env | grep -E '^[A-Z_0-9]+=' > "$RUNNER_TEMP/supabase.env"
+          set -a
+          . "$RUNNER_TEMP/supabase.env"
+          set +a
+          rm "$RUNNER_TEMP/supabase.env"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${PUBLISHABLE_KEY:-$ANON_KEY}"
+            echo "SUPABASE_DB_URL=$DB_URL"
+            echo "MAILPIT_URL=${MAILPIT_URL:-${INBUCKET_URL:-http://127.0.0.1:54324}}"
+            echo "SITE_URL=http://127.0.0.1:3000"
+          } >> "$GITHUB_ENV"
+
+      # Before E2E: the pgTAP suite expects an empty allowed_emails, and the E2E
+      # global setup inserts the test accounts.
+      - name: Database tests (pgTAP)
+        run: pnpm test:db
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Install Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Install Chromium system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      # TMDB_TEST_DOUBLE is set by playwright.config.ts: no TMDB key is needed.
+      - name: E2E tests
+        run: pnpm test:e2e
+
+      - name: Upload the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
