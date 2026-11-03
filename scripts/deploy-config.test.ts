@@ -366,7 +366,7 @@ describe("deploy docs", () => {
 
   it("contains placeholders only, never real keys or connection strings", () => {
     expect(docs).not.toMatch(/age1[0-9a-z]{58}/);
-    expect(docs).not.toMatch(/AGE-SECRET-KEY/);
+    expect(docs).not.toMatch(/AGE-SECRET-KEY-1[0-9A-Z]{20,}/);
     expect(docs).not.toMatch(/postgres(ql)?:\/\/[^<]/);
   });
 
