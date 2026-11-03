@@ -26,6 +26,7 @@ const CATALOG: readonly TmdbDetails[] = [
     posterPath: "/dune-prophecy.jpg",
     actors: ["Emily Watson", "Olivia Williams"],
     seasonsTotal: 1,
+    seasons: [],
   },
   {
     // No poster: exercises the placeholder.
@@ -44,6 +45,7 @@ const CATALOG: readonly TmdbDetails[] = [
     posterPath: "/dark.jpg",
     actors: ["Louis Hofmann"],
     seasonsTotal: 3,
+    seasons: [],
   },
   {
     tmdbId: 603,

@@ -5,9 +5,10 @@ import {
   UNKNOWN_WATCH_DATE,
   type Result,
   type Title,
+  type WatchDate,
 } from "@/domain";
 
-import type { TitleInsert, TitleRow } from "./row";
+import type { SeasonInsert, SeasonRow, TitleInsert, TitleRow } from "./row";
 import type { TitleFailure, TitleRecord } from "./types";
 
 const unavailable = err<TitleFailure>({ kind: "unavailable" });
@@ -21,6 +22,21 @@ function toNumber(value: number | string | null | undefined): number | null {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function seasonRowToInput(season: SeasonRow) {
+  return {
+    number: season.season_number,
+    state: season.state,
+    watchDate:
+      season.watch_date === null || season.watch_date === undefined
+        ? UNKNOWN_WATCH_DATE
+        : { kind: "known", date: season.watch_date },
+    scores: {
+      maria: toNumber(season.score_maria),
+      ignacio: toNumber(season.score_ignacio),
+    },
+  };
 }
 
 /**
@@ -49,6 +65,8 @@ export function rowToRecord(row: unknown): Result<TitleRecord, TitleFailure> {
     posterPath: r.poster_path,
     seasonsWatched: r.seasons_watched,
     seasonsTotal: r.seasons_total,
+    // Only series carry seasons; a movie's embed is ignored.
+    ...(r.kind === "series" ? { seasons: (r.title_seasons ?? []).map(seasonRowToInput) } : {}),
     scores: {
       maria: toNumber(r.score_maria),
       ignacio: toNumber(r.score_ignacio),
@@ -79,5 +97,19 @@ export function titleToInsert(title: Title): TitleInsert {
     seasons_total: series ? title.seasonsTotal : null,
     tmdb_id: title.tmdbId,
     poster_path: title.posterPath,
+  };
+}
+
+/** The first insert of a season: scores are never set at creation. */
+export function seasonToInsert(
+  titleId: string,
+  season: { number: number; state: string; watchDate: WatchDate },
+): SeasonInsert {
+  return {
+    title_id: titleId,
+    season_number: season.number,
+    state: season.state,
+    watch_date:
+      season.watchDate.kind === "known" ? season.watchDate.date : null,
   };
 }

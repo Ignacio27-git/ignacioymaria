@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
 
-import { err, ok } from "@/domain";
+import { err, ok, titleSummary } from "@/domain";
 import type { TitleInput } from "@/domain";
 import { makeRecord } from "@/server/titles/test-helpers";
 import type { TitleView } from "@/server/titles/types";
@@ -32,7 +32,8 @@ function view(
 ): TitleView {
   nextId += 1;
   const id = `00000000-0000-4000-8000-${String(nextId).padStart(12, "0")}`;
-  return { ...makeRecord(input, { id, createdAt }), average };
+  const record = makeRecord(input, { id, createdAt });
+  return { ...record, summary: titleSummary(record.title), average };
 }
 
 beforeEach(() => {

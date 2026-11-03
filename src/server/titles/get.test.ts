@@ -73,3 +73,57 @@ test("without a person it answers unauthorized and touches nothing", async () =>
   });
   expect(getTitlesRepository).not.toHaveBeenCalled();
 });
+
+test("R3.5 S21: the view carries the summary; a series with seasons is derived server-side", async () => {
+  repo.findById.mockResolvedValue({
+    ok: true,
+    value: makeRecord({
+      kind: "series",
+      state: "watched",
+      scores: { maria: 1 },
+      seasons: [
+        { number: 1, state: "watched", scores: { maria: 8 } },
+        { number: 2, state: "pending", scores: { maria: 6, ignacio: 5 } },
+      ],
+    }),
+  });
+
+  const result = await getTitle(TITLE_ID);
+
+  expect(result.ok && result.value.summary).toEqual({
+    state: "pending",
+    watchDate: { kind: "unknown" },
+    scores: { maria: 7, ignacio: 5 },
+    average: 6,
+  });
+  expect(result.ok && result.value.average).toBe(6);
+});
+
+test("S21: a series without seasons and a movie summarise their own values", async () => {
+  repo.findById.mockResolvedValueOnce({
+    ok: true,
+    value: makeRecord({
+      kind: "series",
+      state: "watched",
+      watchDate: { kind: "known", date: "2024-04-04" },
+      scores: { maria: 8, ignacio: 6 },
+    }),
+  });
+  const series = await getTitle(TITLE_ID);
+  expect(series.ok && series.value.summary).toEqual({
+    state: "watched",
+    watchDate: { kind: "known", date: "2024-04-04" },
+    scores: { maria: 8, ignacio: 6 },
+    average: 7,
+  });
+
+  repo.findById.mockResolvedValueOnce({
+    ok: true,
+    value: makeRecord({ scores: { ignacio: 4 } }),
+  });
+  const movie = await getTitle(TITLE_ID);
+  expect(movie.ok && movie.value.summary.scores).toEqual({
+    maria: null,
+    ignacio: 4,
+  });
+});

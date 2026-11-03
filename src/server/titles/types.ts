@@ -1,4 +1,4 @@
-import type { Result, Title } from "@/domain";
+import type { Result, Title, TitleSummary } from "@/domain";
 
 /** A stored title with the persistence metadata the server needs. */
 export interface TitleRecord {
@@ -9,10 +9,12 @@ export interface TitleRecord {
 }
 
 /**
- * What crosses the server boundary to the UI: the record plus the average,
- * already resolved so the UI never calls domain functions (D-53).
+ * What crosses the server boundary to the UI: the record plus the summary
+ * (derived state, date, scores) and the average, already resolved so the UI
+ * never calls domain functions (D-53).
  */
 export interface TitleView extends TitleRecord {
+  readonly summary: TitleSummary;
   readonly average: number | null;
 }
 

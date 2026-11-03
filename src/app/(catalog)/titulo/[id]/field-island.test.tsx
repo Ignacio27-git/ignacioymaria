@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { expect, test, vi } from "vitest";
 
-import { err, ok, type Result } from "@/domain";
+import { err, ok, type Result, titleSummary } from "@/domain";
 import { makeRecord } from "@/server/titles/test-helpers";
 import type { TitleFailure, TitleView } from "@/server/titles/types";
 import { expectNoAxeViolations } from "@/test/axe";
@@ -12,7 +12,12 @@ import { useFieldSave } from "./use-field-save";
 
 type SaveResult = Result<TitleView, TitleFailure>;
 
-const VIEW: TitleView = { ...makeRecord(), average: null };
+const RECORD = makeRecord();
+const VIEW: TitleView = {
+  ...RECORD,
+  summary: titleSummary(RECORD.title),
+  average: null,
+};
 const SAVED: SaveResult = ok(VIEW);
 const FAILED: SaveResult = err({ kind: "unavailable" });
 

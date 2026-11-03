@@ -13,7 +13,13 @@ import { createClient } from "@/lib/supabase/server";
 
 import { mapPostgrestError } from "./errors";
 import { rowToRecord } from "./mapper";
-import { TITLE_COLUMNS, type TitleInsert, type TitlePatch } from "./row";
+import {
+  TITLE_SELECT,
+  type SeasonInsert,
+  type SeasonPatch,
+  type TitleInsert,
+  type TitlePatch,
+} from "./row";
 import type { TitleFailure, TitleRecord } from "./types";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -53,7 +59,7 @@ export function createTitlesRepository(client: SupabaseClient) {
 
   return {
     async insert(row: TitleInsert): Promise<Result<TitleRecord, TitleFailure>> {
-      const response = await titles().insert(row).select(TITLE_COLUMNS).single();
+      const response = await titles().insert(row).select(TITLE_SELECT).single();
       if (response.error?.code === "23505" && row.tmdb_id !== null) {
         // The pair already exists: tell the caller which row holds it.
         const existing = await titles()
@@ -72,13 +78,13 @@ export function createTitlesRepository(client: SupabaseClient) {
 
     async findById(id: string): Promise<Result<TitleRecord, TitleFailure>> {
       return toRecord(
-        await titles().select(TITLE_COLUMNS).eq("id", id).single(),
+        await titles().select(TITLE_SELECT).eq("id", id).single(),
       );
     },
 
     async list(query: ListQuery): Promise<Result<TitleRecord[], TitleFailure>> {
       let builder = titles()
-        .select(TITLE_COLUMNS)
+        .select(TITLE_SELECT)
         .in("state", [...query.states]);
       const folded = foldSearch(query.q.trim());
       if (folded !== "") {
@@ -105,9 +111,37 @@ export function createTitlesRepository(client: SupabaseClient) {
         await titles()
           .update(patch)
           .eq("id", id)
-          .select(TITLE_COLUMNS)
+          .select(TITLE_SELECT)
           .single(),
       );
+    },
+
+    /** Inserts one season; the caller re-reads the title for the new state. */
+    async insertSeason(
+      row: SeasonInsert,
+    ): Promise<Result<null, TitleFailure>> {
+      const response = await client.from("title_seasons").insert(row);
+      return response.error
+        ? err(mapPostgrestError(response.error))
+        : ok(null);
+    },
+
+    /** Updates exactly the given columns of one season (RLS and the ownership trigger apply). */
+    async updateSeason(
+      titleId: string,
+      seasonNumber: number,
+      patch: SeasonPatch,
+    ): Promise<Result<null, TitleFailure>> {
+      const response = await client
+        .from("title_seasons")
+        .update(patch)
+        .eq("title_id", titleId)
+        .eq("season_number", seasonNumber)
+        .select("season_number")
+        .single();
+      return response.error
+        ? err(mapPostgrestError(response.error))
+        : ok(null);
     },
 
     /** Deletes by id; resolves to the state the row had, for the redirect. */

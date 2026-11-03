@@ -3,8 +3,8 @@ import { describe, expect, test, vi } from "vitest";
 
 import { createTitle, UNKNOWN_WATCH_DATE } from "@/domain";
 
-import { rowToRecord, titleToInsert } from "./mapper";
-import { TITLE_COLUMNS, type TitleRow } from "./row";
+import { rowToRecord, seasonToInsert, titleToInsert } from "./mapper";
+import { SEASON_COLUMNS, TITLE_COLUMNS, TITLE_SELECT, type TitleRow } from "./row";
 
 vi.mock("server-only", () => ({}));
 
@@ -21,6 +21,7 @@ const movieRow: TitleRow = {
   score_ignacio: null,
   seasons_watched: null,
   seasons_total: null,
+  title_seasons: [],
   tmdb_id: 194,
   poster_path: "/a.jpg",
   created_at: "2026-10-30T10:00:00+00:00",
@@ -101,6 +102,120 @@ describe("rowToRecord (TC-1)", () => {
     expect(rowToRecord(row)).toEqual({
       ok: false,
       error: { kind: "unavailable" },
+    });
+  });
+});
+
+describe("rowToRecord seasons (R3.5, S21)", () => {
+  const seriesRow: TitleRow = { ...movieRow, kind: "series", seasons_total: 3 };
+
+  test("maps the embedded seasons, sorted, with numeric-string scores", () => {
+    const result = rowToRecord({
+      ...seriesRow,
+      title_seasons: [
+        {
+          season_number: 2,
+          state: "pending",
+          watch_date: null,
+          score_maria: null,
+          score_ignacio: null,
+        },
+        {
+          season_number: 1,
+          state: "watched",
+          watch_date: "2026-02-03",
+          score_maria: "8.25",
+          score_ignacio: 6,
+        },
+      ],
+    });
+
+    expect(result.ok && result.value.title).toMatchObject({
+      kind: "series",
+      seasons: [
+        {
+          number: 1,
+          state: "watched",
+          watchDate: { kind: "known", date: "2026-02-03" },
+          scores: { maria: 8.25, ignacio: 6 },
+        },
+        {
+          number: 2,
+          state: "pending",
+          watchDate: { kind: "unknown" },
+          scores: { maria: null, ignacio: null },
+        },
+      ],
+    });
+  });
+
+  test.each([[[]], [null], [undefined]])(
+    "a series with %j seasons has none (zero-season fallback)",
+    (title_seasons) => {
+      const result = rowToRecord({ ...seriesRow, title_seasons });
+
+      expect(result.ok && result.value.title).toMatchObject({
+        kind: "series",
+        seasons: [],
+        state: "watched",
+      });
+    },
+  );
+
+  test("a movie ignores the embed and has no seasons", () => {
+    const result = rowToRecord(movieRow);
+
+    expect(result.ok && "seasons" in result.value.title).toBe(false);
+  });
+
+  test("an invalid season (off-grid score) fails the whole row", () => {
+    expect(
+      rowToRecord({
+        ...seriesRow,
+        title_seasons: [
+          {
+            season_number: 1,
+            state: "watched",
+            watch_date: null,
+            score_maria: 7.3,
+            score_ignacio: null,
+          },
+        ],
+      }),
+    ).toEqual({ ok: false, error: { kind: "unavailable" } });
+  });
+
+  test("the select embeds exactly the season columns", () => {
+    expect(TITLE_SELECT).toBe(
+      `${TITLE_COLUMNS}, title_seasons(${SEASON_COLUMNS})`,
+    );
+    expect(SEASON_COLUMNS).toBe(
+      "season_number, state, watch_date, score_maria, score_ignacio",
+    );
+  });
+});
+
+describe("seasonToInsert", () => {
+  test("maps the fields of a new season and nulls the unknown date", () => {
+    expect(
+      seasonToInsert("t-1", { number: 3, state: "pending", watchDate: UNKNOWN_WATCH_DATE }),
+    ).toEqual({
+      title_id: "t-1",
+      season_number: 3,
+      state: "pending",
+      watch_date: null,
+    });
+    expect(
+      seasonToInsert("t-1", {
+        number: 1,
+        state: "watched",
+        watchDate: { kind: "known", date: "2026-01-02" },
+      }),
+    ).toEqual({
+      title_id: "t-1",
+      season_number: 1,
+      state: "watched",
+      watch_date: "2026-01-02",
     });
   });
 });

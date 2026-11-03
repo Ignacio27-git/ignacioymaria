@@ -14,6 +14,13 @@ export type TmdbCandidate = {
   posterPath: string | null;
 };
 
+/** A season as TMDB reports it; `airDate` is YYYY-MM-DD or null when unknown. */
+export type TmdbSeason = { number: number; airDate: string | null };
+
 export type TmdbDetails = Omit<TmdbCandidate, "kind"> & {
   actors: readonly string[];
-} & ({ kind: "movie" } | { kind: "series"; seasonsTotal: number | null });
+} & ({ kind: "movie" } | {
+      kind: "series";
+      seasonsTotal: number | null;
+      seasons: readonly TmdbSeason[];
+    });

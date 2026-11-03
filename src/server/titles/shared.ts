@@ -1,6 +1,6 @@
 import "server-only";
 
-import { err, ok, titleAverage, type Person, type Result } from "@/domain";
+import { err, ok, titleSummary, type Person, type Result } from "@/domain";
 import { getCurrentPerson } from "@/server/auth/current-person";
 
 import type { TitleFailure, TitleRecord, TitleView } from "./types";
@@ -18,9 +18,10 @@ export async function requirePerson(): Promise<Result<Person, TitleFailure>> {
   return person === null ? err({ kind: "unauthorized" }) : ok(person);
 }
 
-/** Record -> DTO with the average resolved on the server (D-53). */
+/** Record -> DTO with the summary and average resolved on the server (D-53). */
 export function toView(record: TitleRecord): TitleView {
-  return { ...record, average: titleAverage(record.title) };
+  const summary = titleSummary(record.title);
+  return { ...record, summary, average: summary.average };
 }
 
 export const NOT_FOUND = err<TitleFailure>({ kind: "not_found" });

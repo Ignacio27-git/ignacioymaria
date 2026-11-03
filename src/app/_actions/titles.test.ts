@@ -131,6 +131,7 @@ describe("addFromTmdbAction", () => {
         posterPath: null,
         actors: [],
         seasonsTotal: 3,
+        seasons: [],
       },
     });
 

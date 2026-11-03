@@ -1,4 +1,9 @@
-import type { TmdbCandidate, TmdbDetails, TmdbKind } from "./types";
+import type {
+  TmdbCandidate,
+  TmdbDetails,
+  TmdbKind,
+  TmdbSeason,
+} from "./types";
 
 /** Pure mapping from TMDB JSON to our DTOs. Every input is untrusted. */
 
@@ -82,6 +87,23 @@ function orderOf(member: Json): number {
   return typeof member.order === "number" ? member.order : Infinity;
 }
 
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Season number and air date as TMDB reports them; unusable entries are skipped. */
+function seasonsOf(payload: Json): TmdbSeason[] {
+  if (!Array.isArray(payload.seasons)) return [];
+  return (payload.seasons as unknown[])
+    .filter(isObject)
+    .filter((s) => Number.isInteger(s.season_number))
+    .map((s) => ({
+      number: s.season_number as number,
+      airDate:
+        typeof s.air_date === "string" && ISO_DAY.test(s.air_date)
+          ? s.air_date
+          : null,
+    }));
+}
+
 /** Null when the payload has no usable id or name (treated as unavailable). */
 export function mapDetails(kind: TmdbKind, payload: unknown): TmdbDetails | null {
   if (!isObject(payload)) return null;
@@ -94,5 +116,5 @@ export function mapDetails(kind: TmdbKind, payload: unknown): TmdbDetails | null
     Number.isInteger(seasons) && (seasons as number) >= 1
       ? (seasons as number)
       : null;
-  return { ...base, kind, actors, seasonsTotal };
+  return { ...base, kind, actors, seasonsTotal, seasons: seasonsOf(payload) };
 }

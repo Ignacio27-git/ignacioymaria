@@ -174,7 +174,38 @@ describe("mapDetails", () => {
       posterPath: null,
       actors: ["Actor 0", "Actor 1", "Actor 2"],
       seasonsTotal: 5,
+      seasons: [],
     });
+  });
+
+  test("series: seasons list number and air date, skipping unusable entries", () => {
+    const details = mapDetails("series", {
+      id: 1,
+      name: "S",
+      seasons: [
+        { season_number: 0, air_date: "2010-01-01" },
+        { season_number: 1, air_date: "2011-04-17" },
+        { season_number: 2, air_date: null },
+        { season_number: 3 },
+        { season_number: "4", air_date: "2014-01-01" },
+        { season_number: 5, air_date: "not a date" },
+        null,
+      ],
+    });
+    expect(details && "seasons" in details && details.seasons).toEqual([
+      { number: 0, airDate: "2010-01-01" },
+      { number: 1, airDate: "2011-04-17" },
+      { number: 2, airDate: null },
+      { number: 3, airDate: null },
+      { number: 5, airDate: null },
+    ]);
+  });
+
+  test("series: a missing or non-array seasons field gives an empty list", () => {
+    for (const seasons of [undefined, "x", {}]) {
+      const details = mapDetails("series", { id: 1, name: "S", seasons });
+      expect(details && "seasons" in details && details.seasons).toEqual([]);
+    }
   });
 
   test.each([undefined, 0, -1, 2.5, "3"])(

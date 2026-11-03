@@ -14,6 +14,8 @@ export function fakeRepository() {
     update: vi.fn(),
     remove: vi.fn(),
     findIdsByTmdb: vi.fn(),
+    insertSeason: vi.fn(),
+    updateSeason: vi.fn(),
   } satisfies Record<keyof TitlesRepository, unknown>;
 }
 

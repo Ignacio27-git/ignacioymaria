@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { createClient } from "@/lib/supabase/server";
 
-import { TITLE_COLUMNS, type TitleInsert, type TitleRow } from "./row";
+import { TITLE_SELECT, type TitleInsert, type TitleRow } from "./row";
 import {
   createTitlesRepository,
   getTitlesRepository,
@@ -119,7 +119,7 @@ describe("insert", () => {
 
     expect(queries[0]).toEqual({
       table: "titles",
-      calls: [["insert", insertRow], ["select", TITLE_COLUMNS], ["single"]],
+      calls: [["insert", insertRow], ["select", TITLE_SELECT], ["single"]],
     });
     expect(result.ok && result.value.id).toBe(row.id);
     expect(result.ok && result.value.title.scores.maria).toBe(7.25);
@@ -184,7 +184,7 @@ describe("findById", () => {
     const result = await createTitlesRepository(client).findById(row.id);
 
     expect(queries[0]?.calls).toEqual([
-      ["select", TITLE_COLUMNS],
+      ["select", TITLE_SELECT],
       ["eq", "id", row.id],
       ["single"],
     ]);
@@ -211,7 +211,7 @@ describe("list", () => {
     });
 
     expect(queries[0]?.calls).toEqual([
-      ["select", TITLE_COLUMNS],
+      ["select", TITLE_SELECT],
       ["in", "state", ["watched", "watched_awful"]],
       ["ilike", "name_search", "%amel\\_\\%%"],
       ["order", "created_at", { ascending: false }],
@@ -270,7 +270,7 @@ describe("update", () => {
     expect(queries[0]?.calls).toEqual([
       ["update", { score_maria: 8.5 }],
       ["eq", "id", row.id],
-      ["select", TITLE_COLUMNS],
+      ["select", TITLE_SELECT],
       ["single"],
     ]);
     expect(result.ok).toBe(true);
@@ -284,6 +284,85 @@ describe("update", () => {
 
     expect(
       await createTitlesRepository(client).update(row.id, { state: "pending" }),
+    ).toEqual({ ok: false, error: { kind } });
+  });
+});
+
+describe("season writes", () => {
+  test("insertSeason inserts the season row without selecting", async () => {
+    const { client, queries } = stubClient({});
+
+    const result = await createTitlesRepository(client).insertSeason({
+      title_id: row.id,
+      season_number: 1,
+      state: "watched",
+      watch_date: "2026-01-02",
+    });
+
+    expect(queries[0]).toEqual({
+      table: "title_seasons",
+      calls: [
+        [
+          "insert",
+          {
+            title_id: row.id,
+            season_number: 1,
+            state: "watched",
+            watch_date: "2026-01-02",
+          },
+        ],
+      ],
+    });
+    expect(result).toEqual({ ok: true, value: null });
+  });
+
+  test.each([
+    ["23505", "duplicate"],
+    ["42501", "forbidden"],
+    ["XX000", "unavailable"],
+  ])("insertSeason maps %s to %s", async (code, kind) => {
+    const { client } = stubClient({ error: { code } });
+
+    expect(
+      await createTitlesRepository(client).insertSeason({
+        title_id: row.id,
+        season_number: 1,
+        state: "pending",
+        watch_date: null,
+      }),
+    ).toMatchObject({ ok: false, error: { kind } });
+  });
+
+  test("updateSeason writes the given columns of one season and needs one row", async () => {
+    const { client, queries } = stubClient({ data: { season_number: 2 } });
+
+    const result = await createTitlesRepository(client).updateSeason(row.id, 2, {
+      score_maria: 9.5,
+    });
+
+    expect(queries[0]).toEqual({
+      table: "title_seasons",
+      calls: [
+        ["update", { score_maria: 9.5 }],
+        ["eq", "title_id", row.id],
+        ["eq", "season_number", 2],
+        ["select", "season_number"],
+        ["single"],
+      ],
+    });
+    expect(result).toEqual({ ok: true, value: null });
+  });
+
+  test.each([
+    ["PGRST116", "not_found"],
+    ["42501", "forbidden"],
+  ])("updateSeason maps %s to %s", async (code, kind) => {
+    const { client } = stubClient({ error: { code } });
+
+    expect(
+      await createTitlesRepository(client).updateSeason(row.id, 1, {
+        state: "pending",
+      }),
     ).toEqual({ ok: false, error: { kind } });
   });
 });

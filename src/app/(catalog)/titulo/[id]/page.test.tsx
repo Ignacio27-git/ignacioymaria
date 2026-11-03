@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
 
-import { err, ok } from "@/domain";
+import { err, ok, titleSummary } from "@/domain";
 import type { TitleInput } from "@/domain";
 import { makeRecord, TITLE_ID } from "@/server/titles/test-helpers";
 import type { TitleView } from "@/server/titles/types";
@@ -38,7 +38,8 @@ function view(
   input: Partial<TitleInput> & Record<string, unknown> = {},
   average: number | null = null,
 ): TitleView {
-  return { ...makeRecord(input), average };
+  const record = makeRecord(input);
+  return { ...record, summary: titleSummary(record.title), average };
 }
 
 beforeEach(() => {
