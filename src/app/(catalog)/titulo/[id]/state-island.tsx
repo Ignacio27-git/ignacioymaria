@@ -1,24 +1,25 @@
-import { updateTitleFieldAction } from "@/app/_actions/titles";
 import { StatePicker } from "@/components/ui/state-picker";
+import type { Result } from "@/domain";
 import type { WatchState } from "@/domain/watch-state";
-import type { TitleView } from "@/server/titles/types";
+import type { TitleFailure, TitleView } from "@/server/titles/types";
 
 import { FieldIsland } from "./field-island";
 import { useFieldSave } from "./use-field-save";
 
 /** The six legend states; saving one may also set the date on the server (A2). */
 export function StateIsland({
-  id,
   state,
+  save,
   onSaved,
 }: {
-  id: string;
   state: WatchState;
+  /** The write behind the picker: the title's or one season's. */
+  save: (value: WatchState) => Promise<Result<TitleView, TitleFailure>>;
   onSaved: (view: TitleView) => void;
 }) {
   const field = useFieldSave<WatchState>({
     confirmed: state,
-    save: (value) => updateTitleFieldAction(id, { field: "state", value }),
+    save,
     onSaved: (view) => onSaved(view),
   });
 

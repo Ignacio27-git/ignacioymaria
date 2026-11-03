@@ -11,6 +11,8 @@ import { FichaEditor, type FichaEditorProps } from "./ficha-editor";
 
 const actions = vi.hoisted(() => ({
   updateTitleFieldAction: vi.fn(),
+  updateSeasonFieldAction: vi.fn(),
+  addSeasonAction: vi.fn(),
   deleteTitleAction: vi.fn(),
 }));
 
@@ -436,6 +438,166 @@ test("is axe clean with a failed save showing", async () => {
   actions.updateTitleFieldAction.mockResolvedValue(err({ kind: "unavailable" }));
   const { container } = setup();
   await click("9");
+
+  await expectNoAxeViolations(container);
+});
+
+// ---------------------------------------------------------------------------
+// Series: a summary on top, one row per season, an action to add the next one
+// ---------------------------------------------------------------------------
+
+const SEASON_1 = {
+  number: 1,
+  state: "watched",
+  watchDate: { kind: "known", date: "2025-01-10" },
+  scores: { maria: 8, ignacio: 6 },
+};
+const SEASON_2 = {
+  number: 2,
+  state: "pending",
+  scores: { maria: 4 },
+};
+
+function seriesProps(
+  seasons: readonly Record<string, unknown>[],
+  extra: Partial<FichaEditorProps> = {},
+): FichaEditorProps {
+  const shown = view({ kind: "series", seasons });
+  if (shown.title.kind !== "series") throw new Error("not a series");
+  return {
+    ...BASE,
+    series: { seasons: shown.title.seasons, summary: shown.summary },
+    initial: {
+      ...BASE.initial,
+      state: shown.summary.state,
+      watchDate: shown.summary.watchDate,
+      myScore: shown.summary.scores.maria,
+      average: shown.summary.average,
+    },
+    ...extra,
+  };
+}
+
+function seasonNames() {
+  return screen.getAllByText(/^Temporada \d+$/).map((node) => node.textContent);
+}
+
+test("a series with seasons shows the read-only summary and its rows in order", () => {
+  render(<FichaEditor {...seriesProps([SEASON_2, SEASON_1])} />);
+
+  expect(screen.getByRole("heading", { level: 2, name: "Resumen" })).toBeInTheDocument();
+  expect(seasonNames()).toEqual(["Temporada 1", "Temporada 2"]);
+  // The title-level score, state and date editors are not shown: they are derived.
+  expect(screen.queryByRole("heading", { level: 2, name: "Notas" })).not.toBeInTheDocument();
+  // Each season has one score control, its own; the latest starts expanded.
+  expect(screen.getAllByRole("group", { name: "Tu nota" })).toHaveLength(2);
+  expect(document.querySelectorAll("details[open]")).toHaveLength(1);
+});
+
+/** The expanded season: the others are folded away in a real browser. */
+function openSeason() {
+  return within(document.querySelector("details[open]") as HTMLElement);
+}
+
+test("only the latest season starts open", () => {
+  render(<FichaEditor {...seriesProps([SEASON_1, SEASON_2])} />);
+
+  const [first, second] = screen
+    .getAllByText(/^Temporada \d+$/)
+    .map((node) => node.closest("details"));
+  expect(first).not.toHaveAttribute("open");
+  expect(second).toHaveAttribute("open");
+});
+
+test("editing my score in a season saves that season and refreshes the summary", async () => {
+  actions.updateSeasonFieldAction.mockResolvedValue(
+    ok(view({ kind: "series", seasons: [SEASON_1, { ...SEASON_2, scores: { maria: 9 } }] })),
+  );
+  render(<FichaEditor {...seriesProps([SEASON_1, SEASON_2])} />);
+
+  await act(async () => {
+    fireEvent.click(openSeason().getByRole("button", { name: "9" }));
+  });
+
+  expect(actions.updateSeasonFieldAction).toHaveBeenCalledWith(ID, 2, {
+    field: "myScore",
+    value: 9,
+  });
+  expect(actions.updateTitleFieldAction).not.toHaveBeenCalled();
+  // María's mean is now 8,5 (8 and 9), Ignacio's 6: the server's re-derived average.
+  expect(screen.getByRole("img", { name: "Media 7,25" })).toBeInTheDocument();
+});
+
+test("changing a season's state saves that season, not the title", async () => {
+  actions.updateSeasonFieldAction.mockResolvedValue(
+    ok(view({ kind: "series", seasons: [SEASON_1, { ...SEASON_2, state: "watched_awful" }] })),
+  );
+  render(<FichaEditor {...seriesProps([SEASON_1, SEASON_2])} />);
+
+  await act(async () => {
+    fireEvent.click(openSeason().getByRole("radio", { name: "Vista y horrible" }));
+  });
+
+  expect(actions.updateSeasonFieldAction).toHaveBeenCalledWith(ID, 2, {
+    field: "state",
+    value: "watched_awful",
+  });
+  expect(actions.updateTitleFieldAction).not.toHaveBeenCalled();
+  // The summary follows the highest season.
+  const summary = screen.getByRole("heading", { name: "Resumen" }).closest("section");
+  expect(within(summary as HTMLElement).getByText("Vista y horrible")).toBeInTheDocument();
+});
+
+test("add next season shows season 3 as pending and the summary turns pending", async () => {
+  const seasons = [SEASON_1, { ...SEASON_2, state: "watched" }];
+  actions.addSeasonAction.mockResolvedValue(
+    ok(view({ kind: "series", seasons: [...seasons, { number: 3, state: "pending" }] })),
+  );
+  render(<FichaEditor {...seriesProps(seasons)} />);
+
+  await click("Añadir temporada 3");
+
+  expect(actions.addSeasonAction).toHaveBeenCalledWith(ID);
+  expect(seasonNames()).toEqual(["Temporada 1", "Temporada 2", "Temporada 3"]);
+  const summary = screen.getByRole("heading", { name: "Resumen" }).closest("section");
+  expect(within(summary as HTMLElement).getByText("Pendiente")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Añadir temporada 4" })).toBeInTheDocument();
+});
+
+test("a series without seasons keeps the title-level editors and offers season 1", async () => {
+  actions.addSeasonAction.mockResolvedValue(
+    ok(view({ kind: "series", seasons: [{ number: 1, state: "pending" }] })),
+  );
+  render(<FichaEditor {...seriesProps([])} />);
+
+  expect(screen.getByRole("heading", { level: 2, name: "Notas" })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Resumen" })).not.toBeInTheDocument();
+
+  await click("Añadir temporada 1");
+
+  expect(actions.addSeasonAction).toHaveBeenCalledWith(ID);
+  expect(seasonNames()).toEqual(["Temporada 1"]);
+  expect(screen.getByRole("heading", { level: 2, name: "Resumen" })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { level: 2, name: "Notas" })).not.toBeInTheDocument();
+});
+
+test("a movie has no season section and no add-season action", () => {
+  setup();
+
+  expect(screen.queryByRole("heading", { name: "Resumen" })).not.toBeInTheDocument();
+  expect(screen.queryByText(/^Temporada \d+$/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Añadir temporada/ })).not.toBeInTheDocument();
+});
+
+test("observations and delete stay on a series ficha", () => {
+  render(<FichaEditor {...seriesProps([SEASON_1])} />);
+
+  expect(screen.getByRole("textbox", { name: "Observaciones" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Eliminar" })).toBeInTheDocument();
+});
+
+test("a series ficha is axe clean", async () => {
+  const { container } = render(<FichaEditor {...seriesProps([SEASON_1, SEASON_2])} />);
 
   await expectNoAxeViolations(container);
 });

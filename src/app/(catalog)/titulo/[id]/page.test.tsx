@@ -209,6 +209,61 @@ test("links back to the list the title belongs to", async () => {
   );
 });
 
+test("a series hands the editor its seasons and the derived summary", async () => {
+  mocks.getTitle.mockResolvedValue(
+    ok(
+      view({
+        kind: "series",
+        seasons: [
+          { number: 1, state: "watched", scores: { maria: 8 } },
+          { number: 2, state: "pending" },
+        ],
+      }),
+    ),
+  );
+
+  await renderPage();
+
+  const props = editorProps();
+  expect(props.series.seasons.map((s: { number: number }) => s.number)).toEqual([1, 2]);
+  expect(props.series.summary).toMatchObject({ state: "pending", average: 8 });
+});
+
+test("a movie hands the editor no series section", async () => {
+  mocks.getTitle.mockResolvedValue(ok(view({ kind: "movie" })));
+
+  await renderPage();
+
+  expect(editorProps().series).toBeUndefined();
+});
+
+test("a series with no seasons still gets the series section, empty", async () => {
+  mocks.getTitle.mockResolvedValue(ok(view({ kind: "series" })));
+
+  await renderPage();
+
+  expect(editorProps().series.seasons).toEqual([]);
+});
+
+test("the back link follows the derived state of a series, not its title-level state", async () => {
+  mocks.getTitle.mockResolvedValue(
+    ok(
+      view({
+        kind: "series",
+        state: "pending",
+        seasons: [{ number: 1, state: "watched" }],
+      }),
+    ),
+  );
+
+  await renderPage();
+
+  expect(screen.getByRole("link", { name: "Volver a Vistas" })).toHaveAttribute(
+    "href",
+    "/vistas",
+  );
+});
+
 test("an unknown or malformed id renders the not-found page", async () => {
   mocks.getTitle.mockResolvedValue(err({ kind: "not_found" }));
 

@@ -1,10 +1,10 @@
 import { useId } from "react";
 
-import { updateTitleFieldAction } from "@/app/_actions/titles";
 import { Button } from "@/components/ui/button";
+import type { Result } from "@/domain";
 import type { WatchDate } from "@/domain/watch-date";
 import { formatWatchDate } from "@/lib/titles/format-date";
-import type { TitleView } from "@/server/titles/types";
+import type { TitleFailure, TitleView } from "@/server/titles/types";
 
 import { FieldIsland } from "./field-island";
 import { useFieldSave } from "./use-field-save";
@@ -23,20 +23,21 @@ function sameDate(a: WatchDate, b: WatchDate): boolean {
  * comes from the server so the client never reads its own clock.
  */
 export function DateIsland({
-  id,
   watchDate,
   today,
+  save,
   onSaved,
 }: {
-  id: string;
   watchDate: WatchDate;
   today: string;
+  /** The write behind the picker: the title's or one season's. */
+  save: (value: WatchDate) => Promise<Result<TitleView, TitleFailure>>;
   onSaved: (view: TitleView) => void;
 }) {
   const inputId = useId();
   const field = useFieldSave<WatchDate>({
     confirmed: watchDate,
-    save: (value) => updateTitleFieldAction(id, { field: "watchDate", value }),
+    save,
     onSaved: (view) => onSaved(view),
   });
 

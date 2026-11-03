@@ -386,6 +386,166 @@ test.describe("lists keep search, filter and sort in the URL", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Series: ratings per season, derived summary, lists by the latest season
+// ---------------------------------------------------------------------------
+
+test.describe("a series is rated season by season", () => {
+  let dark: string;
+
+  test.beforeAll(async () => {
+    await clearTitles();
+    // The title-level values are stale on purpose: the seasons are the truth.
+    const ids = await seedTitles([
+      {
+        name: "Dark",
+        kind: "series",
+        state: "pending",
+        seasons: [
+          { number: 1, state: "watched", watchDate: "2024-01-05", scoreMaria: 8, scoreIgnacio: 6 },
+          { number: 2, state: "watched_rewatch", watchDate: "2025-03-02", scoreMaria: 6 },
+        ],
+      },
+      {
+        name: "Severance",
+        kind: "series",
+        state: "watched",
+        seasons: [
+          { number: 1, state: "watched", watchDate: "2024-06-01", scoreIgnacio: 9 },
+          { number: 2, state: "pending" },
+        ],
+      },
+    ]);
+    dark = `/titulo/${ids.Dark}`;
+  });
+
+  function summary(page: Page) {
+    return page.getByRole("region", { name: "Resumen" });
+  }
+
+  /** One season's fold: its summary line opens the editors. */
+  function season(page: Page, number: number) {
+    return page.locator("details").filter({ hasText: `Temporada ${number}` });
+  }
+
+  test("lists place a series by its latest season, with the derived values", async ({
+    browser,
+  }) => {
+    const { context, page } = await openPage(browser, { viewport: DESKTOP });
+    await visit(page, "/vistas");
+
+    // Dark: latest season watched; Severance: latest season pending.
+    await expect(rows(page)).toHaveText([/Dark/]);
+    const row = page.getByRole("row").filter({ hasText: "Dark" });
+    await expect(row).toContainText("Vista, repetir");
+    await expect(row).toContainText("2 mar 2025");
+    // María 7 (mean of 8 and 6), Ignacio 6, average 6,5.
+    await expect(row.getByRole("img", { name: "Media 6,5" })).toBeVisible();
+
+    await visit(page, "/pendientes");
+    await expect(rows(page)).toHaveText([/Severance/]);
+    await context.close();
+  });
+
+  test("the ficha shows a read-only summary and one row per season", async ({ browser }) => {
+    const { context, page } = await openPage(browser);
+    await visit(page, dark);
+
+    await expect(summary(page)).toBeVisible();
+    await expect(summary(page).getByRole("img", { name: "Media 6,5" })).toBeVisible();
+    await expect(summary(page).getByRole("button")).toHaveCount(0);
+    await expect(page.locator("details")).toHaveCount(2);
+    await expect(page.locator("details summary").first()).toContainText("Temporada 1");
+    // Only the latest season starts open.
+    await expect(season(page, 2)).toHaveAttribute("open", "");
+    await expect(season(page, 1)).not.toHaveAttribute("open", "");
+    await context.close();
+  });
+
+  test("a person edits only their own score and the summary follows the server", async ({
+    browser,
+  }) => {
+    const { context, page } = await openPage(browser);
+    await visit(page, dark);
+
+    // Ignacio rates season 2: his mean becomes 6,5 and the average 6,75.
+    const two = season(page, 2);
+    await expect(two.getByRole("group", { name: "Tu nota" })).toHaveCount(1);
+    await two.getByRole("button", { name: "7", exact: true }).click();
+    await expect(two.getByText("Tu nota: 7")).toBeAttached();
+    await expectSaved(page);
+    await expect(summary(page).getByRole("img", { name: "Media 6,75" })).toBeVisible();
+
+    // Season 1 starts folded; opening it shows its own editors.
+    await season(page, 1).locator("summary").click();
+    await expect(season(page, 1)).toHaveAttribute("open", "");
+    await season(page, 1).getByRole("button", { name: "Quitar nota" }).click();
+    await expectSaved(page);
+    // Ignacio's season 1 note is gone: his mean is season 2's 7 alone.
+    await expect(summary(page).getByRole("img", { name: "Media 7" })).toBeVisible();
+
+    await page.reload();
+    await expect(summary(page).getByRole("img", { name: "Media 7" })).toBeVisible();
+    await context.close();
+  });
+
+  test("a season's state and date save, and the summary takes the latest season", async ({
+    browser,
+  }) => {
+    const { context, page } = await openPage(browser);
+    await visit(page, dark);
+
+    const two = season(page, 2);
+    await two.locator("fieldset label").filter({ hasText: /^Vista y horrible$/ }).click();
+    await expect(two.getByRole("radio", { name: "Vista y horrible" })).toBeChecked();
+    await expectSaved(page);
+    await expect(summary(page)).toContainText("Vista y horrible");
+
+    await two.getByLabel("Fecha de visionado").fill("2025-04-09");
+    await expect(summary(page)).toContainText("9 abr 2025");
+    await expectSaved(page);
+    await context.close();
+  });
+
+  test("add next season creates a pending one and the series moves to Pendientes", async ({
+    browser,
+  }) => {
+    const { context, page } = await openPage(browser);
+    await visit(page, dark);
+
+    await page.getByRole("button", { name: "Añadir temporada 3" }).click();
+    await expect(
+      page.getByRole("status").filter({ hasText: "Temporada 3 añadida." }),
+    ).toBeVisible();
+    await expect(page.locator("details")).toHaveCount(3);
+    const three = season(page, 3);
+    await expect(three).toHaveAttribute("open", "");
+    await expect(three.getByRole("radio", { name: "Pendiente" })).toBeChecked();
+    await expect(three.getByLabel("Fecha de visionado")).toHaveValue("");
+    await expect(summary(page)).toContainText("Pendiente");
+    await expect(page.getByRole("button", { name: "Añadir temporada 4" })).toBeVisible();
+
+    await visit(page, "/vistas");
+    await expect(rows(page)).toHaveCount(0);
+    await visit(page, "/pendientes");
+    await expect(rows(page)).toHaveCount(2);
+    await expect(page.getByRole("link", { name: /Dark/ })).toBeVisible();
+    await context.close();
+  });
+
+  test("a movie ficha has no season section", async ({ browser }) => {
+    await seedTitles([{ name: "Heat", state: "watched" }]);
+    const { context, page } = await openPage(browser);
+    await visit(page, "/vistas");
+    await page.getByRole("link", { name: /Heat/ }).click();
+
+    await expect(page.getByRole("heading", { level: 1, name: "Heat" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Resumen" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Añadir temporada/ })).toHaveCount(0);
+    await context.close();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Pages: layout, accessibility and hydration at every viewport and theme
 // ---------------------------------------------------------------------------
 
@@ -417,10 +577,21 @@ const HYDRATION = /hydrat|did not match|server rendered html/i;
 
 test.describe("pages at every viewport and theme", () => {
   let ficha: string;
+  let serie: string;
 
   test.beforeAll(async () => {
     await clearTitles();
     const ids = await seedTitles([
+      {
+        name: "Dark",
+        kind: "series",
+        state: "pending",
+        seasons: [
+          { number: 1, state: "watched", watchDate: "2024-01-05", scoreMaria: 8, scoreIgnacio: 6 },
+          { number: 2, state: "watched_rewatch", watchDate: "2025-03-02", scoreMaria: 6 },
+          { number: 3, state: "pending" },
+        ],
+      },
       { name: "Amélie", state: "watched", watchDate: "2024-02-10", scoreIgnacio: 9, scoreMaria: 8 },
       { name: "Matrix", state: "watched_rewatch", watchDate: "2025-06-01", scoreIgnacio: 7 },
       { name: "Dune", state: "watched" },
@@ -428,6 +599,7 @@ test.describe("pages at every viewport and theme", () => {
       { name: "Beta", state: "urgent", createdAt: "2026-09-01T10:00:00Z" },
     ]);
     ficha = `/titulo/${ids["Amélie"]}`;
+    serie = `/titulo/${ids.Dark}`;
   });
 
   for (const { name, size } of VIEWPORTS) {
@@ -447,7 +619,7 @@ test.describe("pages at every viewport and theme", () => {
         });
         page.on("pageerror", (error) => problems.push(error.message));
 
-        for (const path of ["/vistas", "/pendientes", "/anadir", ficha]) {
+        for (const path of ["/vistas", "/pendientes", "/anadir", ficha, serie]) {
           await page.goto(path);
           await page.waitForLoadState("networkidle");
           await page.evaluate(() => document.fonts.ready);
@@ -462,7 +634,8 @@ test.describe("pages at every viewport and theme", () => {
 
           await expectNoAxeViolations(page);
 
-          const slug = path.startsWith("/titulo") ? "titulo" : path.slice(1);
+          const slug =
+            path === serie ? "serie" : path.startsWith("/titulo") ? "titulo" : path.slice(1);
           await page.screenshot({
             path: testInfo.outputPath(`${slug}-${name}-${scheme}.png`),
             fullPage: true,

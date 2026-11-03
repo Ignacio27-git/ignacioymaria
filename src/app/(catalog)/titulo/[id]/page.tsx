@@ -68,7 +68,7 @@ export default async function TitlePage({ params }: PageProps<"/titulo/[id]">) {
   const record = result.value;
   const { title } = record;
   const other: Person = me === "maria" ? "ignacio" : "maria";
-  const list = listOf(title.state);
+  const list = listOf(record.summary.state);
 
   return (
     <main className={MAIN}>
@@ -97,6 +97,11 @@ export default async function TitlePage({ params }: PageProps<"/titulo/[id]">) {
         me={me}
         today={todayIso()}
         otherScore={title.scores[other]}
+        series={
+          title.kind === "series"
+            ? { seasons: title.seasons, summary: record.summary }
+            : undefined
+        }
         initial={{
           state: title.state,
           watchDate: title.watchDate,

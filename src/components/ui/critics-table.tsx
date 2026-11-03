@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { PERSON_LABELS } from "@/domain/person";
-import type { Score } from "@/domain/score";
 import type { WatchState } from "@/domain/watch-state";
 
 import { AverageBox } from "./average-box";
@@ -107,8 +106,9 @@ export function CriticsTableRow({
   name: string;
   year: number | null;
   state: WatchState;
-  maria: Score | null;
-  ignacio: Score | null;
+  /** A domain Score, or a derived series mean (which can leave the 0.25 grid). */
+  maria: number | null;
+  ignacio: number | null;
   average: number | null;
   /** Preformatted date; its presence adds the desktop date column. */
   watchedOn?: string | null;

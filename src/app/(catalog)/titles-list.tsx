@@ -25,10 +25,10 @@ const HEADINGS: Record<TitleList, string> = {
  * The date column: when it was watched in Vistas, when it was added in
  * Pendientes (the same date "fecha" sorts by, A3).
  */
-function dateFor(list: TitleList, { title, createdAt }: TitleView): string {
+function dateFor(list: TitleList, { summary, createdAt }: TitleView): string {
   if (list === "pendientes") return formatAddedDate(createdAt);
-  return title.watchDate.kind === "known"
-    ? formatWatchDate(title.watchDate.date)
+  return summary.watchDate.kind === "known"
+    ? formatWatchDate(summary.watchDate.date)
     : "—";
 }
 
@@ -90,10 +90,10 @@ export async function TitlesList({
               href={`/titulo/${row.id}`}
               name={row.title.name}
               year={row.title.year}
-              state={row.title.state}
-              maria={row.title.scores.maria}
-              ignacio={row.title.scores.ignacio}
-              average={row.average}
+              state={row.summary.state}
+              maria={row.summary.scores.maria}
+              ignacio={row.summary.scores.ignacio}
+              average={row.summary.average}
               watchedOn={dateFor(list, row)}
             />
           ))}

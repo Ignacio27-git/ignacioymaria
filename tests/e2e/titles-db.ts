@@ -1,5 +1,14 @@
 import { withDb } from "./db";
 
+export interface SeedSeason {
+  number: number;
+  state: string;
+  /** ISO day, or omitted for an unknown date. */
+  watchDate?: string;
+  scoreIgnacio?: number;
+  scoreMaria?: number;
+}
+
 export interface SeedTitle {
   name: string;
   kind?: "movie" | "series";
@@ -10,6 +19,8 @@ export interface SeedTitle {
   scoreMaria?: number;
   /** ISO timestamp; the database default (now) when omitted. */
   createdAt?: string;
+  /** Series only: its season rows. Omitted leaves the series without seasons. */
+  seasons?: readonly SeedSeason[];
 }
 
 /**
@@ -43,6 +54,21 @@ export async function seedTitles(
         ],
       );
       ids[title.name] = rows[0].id;
+      for (const season of title.seasons ?? []) {
+        await client.query(
+          `insert into public.title_seasons
+             (title_id, season_number, state, watch_date, score_ignacio, score_maria)
+           values ($1, $2, $3, $4, $5, $6)`,
+          [
+            rows[0].id,
+            season.number,
+            season.state,
+            season.watchDate ?? null,
+            season.scoreIgnacio ?? null,
+            season.scoreMaria ?? null,
+          ],
+        );
+      }
     }
     return ids;
   });

@@ -139,6 +139,70 @@ test("Pendientes shows the date added (A3)", async () => {
   expect(screen.getByText("30 oct 2026")).toBeInTheDocument();
 });
 
+const SEASONS = [
+  {
+    number: 1,
+    state: "watched",
+    watchDate: { kind: "known", date: "2025-01-10" },
+    scores: { maria: 8, ignacio: 6 },
+  },
+  {
+    number: 2,
+    state: "watched_rewatch",
+    watchDate: { kind: "known", date: "2026-03-02" },
+    scores: { maria: 6 },
+  },
+];
+
+test("a series row shows the derived state, date, scores and average, not its title-level ones", async () => {
+  // Title-level values are stale on purpose: the seasons are the truth.
+  mocks.listTitles.mockResolvedValue(
+    ok([
+      view({
+        name: "Dark",
+        kind: "series",
+        state: "pending",
+        scores: { maria: 1, ignacio: 1 },
+        seasons: SEASONS,
+      }),
+    ]),
+  );
+
+  await renderList("vistas");
+
+  const row = screen.getByRole("link", { name: "Dark" }).closest('[role="row"]');
+  const scope = within(row as HTMLElement);
+  expect(scope.getByText("Vista, repetir")).toBeInTheDocument();
+  expect(scope.getByText("2 mar 2026")).toBeInTheDocument();
+  // María: mean of 8 and 6; Ignacio: only season 1; average of both means.
+  const cells = scope.getAllByRole("cell");
+  expect(cells[1]).toHaveTextContent("7");
+  expect(cells[2]).toHaveTextContent("6");
+  expect(scope.getByRole("img", { name: "Media 6,5" })).toBeInTheDocument();
+});
+
+test("a series whose highest season has no date shows a dash even if others have one", async () => {
+  mocks.listTitles.mockResolvedValue(
+    ok([
+      view({
+        name: "Dark",
+        kind: "series",
+        watchDate: { kind: "known", date: "2020-01-01" },
+        seasons: [
+          SEASONS[0],
+          { number: 2, state: "watched", watchDate: { kind: "unknown" } },
+        ],
+      }),
+    ]),
+  );
+
+  await renderList("vistas");
+
+  const row = screen.getByRole("link", { name: "Dark" }).closest('[role="row"]');
+  const cells = within(row as HTMLElement).getAllByRole("cell");
+  expect(cells[cells.length - 1]).toHaveTextContent("—");
+});
+
 test("the add action carries the origin list (A1)", async () => {
   mocks.listTitles.mockResolvedValue(ok([]));
 

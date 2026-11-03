@@ -1,11 +1,11 @@
 import { useId, type ReactNode } from "react";
 
-import { updateTitleFieldAction } from "@/app/_actions/titles";
 import { AverageBox } from "@/components/ui/average-box";
 import { ScoreFigure } from "@/components/ui/score-figure";
 import { ScorePanel } from "@/components/ui/score-panel";
+import type { Result } from "@/domain";
 import { PERSON_LABELS, type Person } from "@/domain/person";
-import type { TitleView } from "@/server/titles/types";
+import type { TitleFailure, TitleView } from "@/server/titles/types";
 
 import { FieldIsland } from "./field-island";
 import { useFieldSave } from "./use-field-save";
@@ -19,26 +19,27 @@ const COLUMNS = ["maria", "ignacio"] as const satisfies readonly Person[];
  * server answers (D-53: the UI never computes it).
  */
 export function ScoreIsland({
-  id,
   me,
   score,
   otherScore,
   average,
+  save,
   onSaved,
 }: {
-  id: string;
   me: Person;
   /** My score as the server last confirmed it. */
   score: number | null;
   /** The other person's score: read-only here. */
   otherScore: number | null;
   average: number | null;
+  /** The write behind the panel; it always targets the caller's own column. */
+  save: (value: number | null) => Promise<Result<TitleView, TitleFailure>>;
   onSaved: (view: TitleView) => void;
 }) {
   const headingId = useId();
   const field = useFieldSave<number | null>({
     confirmed: score,
-    save: (value) => updateTitleFieldAction(id, { field: "myScore", value }),
+    save,
     onSaved: (view) => onSaved(view),
   });
 
