@@ -353,3 +353,43 @@ test("titleAverage delegates to averageScore", () => {
   ).toBe(7.625);
   expect(titleAverage(valueOf(movie))).toBeNull();
 });
+
+// Seasons (ROADMAP 1.8)
+test("a series defaults to no seasons", () => {
+  expect(valueOf(series)).toMatchObject({ kind: "series", seasons: [] });
+});
+
+test("a series keeps its seasons sorted by number", () => {
+  const title = valueOf({
+    ...series,
+    seasons: [
+      { number: 2, state: "watched", scores: { maria: 8 } },
+      { number: 1 },
+    ],
+  });
+  expect(title.kind === "series" && title.seasons.map((s) => s.number)).toEqual([
+    1, 2,
+  ]);
+  expect(title.kind === "series" && title.seasons[1]).toMatchObject({
+    state: "watched",
+    scores: { maria: 8, ignacio: null },
+  });
+});
+
+test("season errors are reported with their index", () => {
+  expect(errorsOf({ ...series, seasons: [{ number: 1 }, { number: 0 }] })).toEqual([
+    { field: "seasons.1.number", code: "not_positive_integer" },
+  ]);
+});
+
+test("rejects duplicated season numbers, non-array seasons and seasons on a movie", () => {
+  expect(errorsOf({ ...series, seasons: [{ number: 1 }, { number: 1 }] })).toEqual([
+    { field: "seasons", code: "duplicate_number" },
+  ]);
+  expect(errorsOf({ ...series, seasons: "x" })).toEqual([
+    { field: "seasons", code: "not_an_array" },
+  ]);
+  expect(errorsOf({ ...movie, seasons: [{ number: 1 }] })).toEqual([
+    { field: "seasons", code: "not_allowed_for_kind" },
+  ]);
+});

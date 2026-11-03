@@ -1,6 +1,7 @@
-import { averageScore } from "./average";
 import { err, ok, type Result } from "./result";
+import { createSeason, type Season, type SeasonError } from "./season";
 import { parseScore, type Score, type ScoreError } from "./score";
+import { titleSummary } from "./summary";
 import {
   parseWatchDate,
   UNKNOWN_WATCH_DATE,
@@ -34,6 +35,8 @@ export type Series = TitleBase & {
   readonly seasonsWatched: number | null;
   /** Seasons TMDB reports; independent of seasonsWatched. */
   readonly seasonsTotal: number | null;
+  /** Per-season rows, ordered by number; empty for legacy series. */
+  readonly seasons: readonly Season[];
 };
 export type Title = Movie | Series;
 
@@ -45,6 +48,7 @@ export type TitleInput = {
   year?: number | null;
   seasonsWatched?: number | null;
   seasonsTotal?: number | null;
+  seasons?: readonly unknown[];
   tmdbId?: number | null;
   posterPath?: string | null;
   actors?: readonly string[];
@@ -61,6 +65,8 @@ export type TitleError =
   | { field: "year"; code: "not_integer" }
   | { field: "seasonsWatched"; code: "not_non_negative_integer" }
   | { field: "seasonsTotal"; code: "not_positive_integer" | "not_allowed_for_kind" }
+  | { field: "seasons"; code: "not_an_array" | "not_allowed_for_kind" | "duplicate_number" }
+  | { field: `seasons.${number}.${SeasonError["field"]}`; code: string }
   | { field: "tmdbId"; code: "not_positive_integer" }
   | { field: "posterPath"; code: "invalid_path" }
   | { field: "actors"; code: "not_an_array" }
@@ -104,6 +110,36 @@ function parseScores(raw: unknown, errors: TitleError[]): Scores {
   return scores;
 }
 
+function parseSeasons(
+  raw: unknown,
+  kind: unknown,
+  errors: TitleError[],
+): readonly Season[] {
+  if (raw === undefined || raw === null) return [];
+  if (kind === "movie") {
+    errors.push({ field: "seasons", code: "not_allowed_for_kind" });
+    return [];
+  }
+  if (!Array.isArray(raw)) {
+    errors.push({ field: "seasons", code: "not_an_array" });
+    return [];
+  }
+  const parsed: Season[] = [];
+  (raw as unknown[]).forEach((item, i) => {
+    const season = createSeason(item);
+    if (season.ok) parsed.push(season.value);
+    else {
+      for (const e of season.error) {
+        errors.push({ field: `seasons.${i}.${e.field}`, code: e.code });
+      }
+    }
+  });
+  if (new Set(parsed.map((s) => s.number)).size !== parsed.length) {
+    errors.push({ field: "seasons", code: "duplicate_number" });
+  }
+  return parsed.sort((a, b) => a.number - b.number);
+}
+
 export function createTitle(
   input: unknown,
 ): Result<Title, readonly TitleError[]> {
@@ -137,10 +173,10 @@ export function createTitle(
   }
 
   let seasonsWatched: number | null = null;
-  const seasons = input.seasonsWatched;
-  if (kind === "series" && seasons !== undefined && seasons !== null) {
-    if (Number.isInteger(seasons) && (seasons as number) >= 0) {
-      seasonsWatched = seasons as number;
+  const watched = input.seasonsWatched;
+  if (kind === "series" && watched !== undefined && watched !== null) {
+    if (Number.isInteger(watched) && (watched as number) >= 0) {
+      seasonsWatched = watched as number;
     } else {
       errors.push({
         field: "seasonsWatched",
@@ -159,6 +195,8 @@ export function createTitle(
       else errors.push({ field: "seasonsTotal", code: "not_positive_integer" });
     }
   }
+
+  const seasons = parseSeasons(input.seasons, kind, errors);
 
   let tmdbId: number | null = null;
   if (input.tmdbId !== undefined && input.tmdbId !== null) {
@@ -220,11 +258,11 @@ export function createTitle(
   };
   return ok(
     kind === "series"
-      ? { ...base, kind: "series", seasonsWatched, seasonsTotal }
+      ? { ...base, kind: "series", seasonsWatched, seasonsTotal, seasons }
       : { ...base, kind: "movie" },
   );
 }
 
 export function titleAverage(title: Title): number | null {
-  return averageScore([title.scores.maria, title.scores.ignacio]);
+  return titleSummary(title).average;
 }

@@ -1,4 +1,5 @@
-import { titleAverage, type Title } from "./title";
+import { titleSummary } from "./summary";
+import type { Title } from "./title";
 
 /** The two catalog lists; each has its own states and default order. */
 export type TitleList = "vistas" | "pendientes";
@@ -45,16 +46,16 @@ function descNullsLast(
   };
 }
 
-const byAverage = descNullsLast((i) => titleAverage(i.title));
+const byAverage = descNullsLast((i) => titleSummary(i.title).average);
 
-const byWatchDate = descNullsLast((i) =>
-  i.title.watchDate.kind === "known"
-    ? Date.parse(i.title.watchDate.date)
-    : null,
-);
+const byWatchDate = descNullsLast((i) => {
+  const { watchDate } = titleSummary(i.title);
+  return watchDate.kind === "known" ? Date.parse(watchDate.date) : null;
+});
 
 const byUrgentFirst: Compare = (a, b) =>
-  Number(b.title.state === "urgent") - Number(a.title.state === "urgent");
+  Number(titleSummary(b.title).state === "urgent") -
+  Number(titleSummary(a.title).state === "urgent");
 
 function primary(order: TitleOrder, list: TitleList): Compare {
   if (order === "nota") return byAverage;

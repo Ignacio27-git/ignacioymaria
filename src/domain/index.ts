@@ -3,6 +3,10 @@ export { err, ok } from "./result";
 export type { Result } from "./result";
 export { MAX_SCORE, MIN_SCORE, parseScore } from "./score";
 export type { Score, ScoreError } from "./score";
+export { createSeason, nextSeasonNumber } from "./season";
+export type { Season, SeasonError } from "./season";
+export { titleSummary } from "./summary";
+export type { TitleSummary } from "./summary";
 export { createTitle, titleAverage } from "./title";
 export type {
   Movie,
