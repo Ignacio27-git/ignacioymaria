@@ -34,6 +34,8 @@ Next.js (App Router) + React + TypeScript estricto · Supabase (Postgres y Auth,
 | `pnpm typecheck` | disponible |
 | `pnpm test` | disponible |
 | `pnpm test:e2e` | disponible |
+| `pnpm test:prod` | disponible (local, solo lectura, contra `PROD_BASE_URL`; nunca en CI; ver `docs/DEPLOY.md`) |
+| `pnpm test:prod:login` | disponible (navegador visible; guarda la sesión de producción en `playwright/.auth/`) |
 | `pnpm db:start` | disponible (requiere Docker) |
 | `pnpm db:stop` | disponible |
 | `pnpm db:reset` | disponible (reaplica las migraciones desde cero) |
@@ -61,4 +63,5 @@ Lo que el agente hizo mal sin darse cuenta lo anotan las personas tras la revisi
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): capas, acceso a Supabase y TMDB.
 - [`docs/DECISIONS.md`](docs/DECISIONS.md): decisiones tomadas y abiertas.
 - [`docs/PROMPTS.md`](docs/PROMPTS.md): registro de prompts.
+- [`docs/DEPLOY.md`](docs/DEPLOY.md): puesta en producción y runbook manual.
 - [`docs/DESIGN-ROADMAP.md`](docs/DESIGN-ROADMAP.md): plan de diseño (pasos `D.n`).

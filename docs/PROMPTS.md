@@ -123,3 +123,11 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** Un recorrido serial `tests/e2e/smoke.spec.ts` con un paso por etapa, el proyecto `smoke` en la cadena `auth -> smoke -> ui -> titles` y el workflow `.github/workflows/ci.yml` con dos jobs (`checks` y `db-e2e`), sin secretos. Decisión D-88.
 
 **Lección:** Un único test serial con pasos nombrados da un fallo claro y barato, y como la tabla `titles` y el buzón de Mailpit son compartidos, hay que fijar el orden de los proyectos en vez de confiar en `fullyParallel`. Los nombres de servicios de la CLI y el comportamiento de la compilación sin base solo se confirman en la primera ejecución en GitHub.
+
+### 2026-11-03 · Paso 2.2 · puesta en producción (SDD `production-deployment`)
+
+**Prompt:** `/gentle-sdd-new production-deployment` — Despliega en Vercel contra un proyecto de Supabase de producción: variables de entorno, migraciones, dominio y comprobación con Playwright contra la URL pública.
+
+**Resultado:** `vercel.json` (solo `main`), el workflow `deploy-migrations.yml`, la comprobación local de solo lectura `tests/prod/**` con `pnpm test:prod` y `pnpm test:prod:login`, tests de contrato y el runbook `docs/DEPLOY.md`. Decisión D-89. Los pasos de paneles (Supabase, Vercel, GitHub) quedan para la persona.
+
+**Lección:** Lo que una plataforma no acepta como código se documenta como runbook ordenado y se vigila con tests de contrato lo que sí es un archivo (sin `pull_request`, `--dry-run` antes del push real, `ci.yml` sin secretos). Una guarda en ejecución es más fiable que prometer que la prueba no escribe.

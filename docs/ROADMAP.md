@@ -376,6 +376,13 @@ migraciones, dominio y comprobación con Playwright contra la URL pública.
 
 **Notas:**
 
+2026-11-03 · Cambio SDD `production-deployment`, con Strict TDD activo y un único PR con excepción de tamaño aceptada. Decisión D-89 en `docs/DECISIONS.md`; procedimiento en `docs/DEPLOY.md`. **Hecho (repositorio):**
+- *Despliegue:* `vercel.json` (solo `main`) y `.github/workflows/deploy-migrations.yml` (entorno `production`, `--dry-run` antes del `db push`, CLI fijado por el lockfile). Test de contrato `scripts/deploy-config.test.ts` (también vigila que `ci.yml` siga sin secretos).
+- *Comprobación en producción:* `playwright.prod.config.ts`, `tests/prod/**` (humo, token fuera del bundle, sonda no permitida, guarda de solo lectura), `scripts/prod-login.ts` y `scripts/prod/env.ts`; `pnpm test:prod` y `pnpm test:prod:login`, solo en local.
+- *Comprobado:* lint, typecheck, `pnpm test` y `playwright test -c playwright.prod.config.ts --list`. No se ejecutó contra una URL real.
+
+**Pendiente (de la persona, runbook de `docs/DEPLOY.md`):** M1 proyecto de Supabase y entorno `production` con 3 secretos; M2 fusionar y confirmar la primera ejecución (¿hace falta `--yes`?; verificar la regla `**` en una rama que no sea `main`); M3 hook Before User Created y permiso EXECUTE; M4 insertar las dos filas de `allowed_emails`; M5 plantillas, URL, SMTP de Brevo y límite de 30/h; M6 variables de Vercel Production (sin `TMDB_TEST_DOUBLE`) y redespliegue; M7 entrada de las dos personas, `pnpm test:prod:login`, `pnpm test:prod` y Authentication > Users = 2; M8 protección de rama.
+
 ---
 
 ## [ ] 2.3 · Importación real y copias de seguridad
@@ -454,3 +461,4 @@ propio ciclo SDD.
 | 2026-11-03 | 1.8 | Un primer `sdd-verify` dio FAIL en `pnpm test:e2e` por un servidor de desarrollo antiguo en el puerto 3000 que Playwright reutilizó | Fallo de entorno, no de código: tras detener ese proceso, `pnpm test:e2e` pasa 67/67 y el veredicto final es PASS con avisos |
 | 2026-11-03 | 1.8 | Reinicio auditado del registro de intentos de gentle-ai para la compuerta de archivo | Aprobado por la persona: la reparación de un fallo de entorno no tiene un candidato de código cambiado |
 | 2026-11-03 | 2.1 | La cadena de proyectos de Playwright cambia a `auth -> smoke -> ui -> titles` (`ui` depende ahora de `smoke`); `--project=ui` y `--project=titles` también ejecutan `smoke` | Con `fullyParallel`, `smoke` en paralelo chocaría con `titles` y con el buzón de Mailpit (D-88) |
+| 2026-11-03 | 2.2 | El CLI de Supabase en `deploy-migrations.yml` se fija con el lockfile (`pnpm exec supabase`) en vez de `supabase/setup-cli` con `version:`, como proponía la propuesta | Una sola fijación y el mismo CLI que en local y en `ci.yml` (D-89) |
