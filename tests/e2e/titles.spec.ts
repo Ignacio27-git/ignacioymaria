@@ -79,6 +79,43 @@ async function expectSaved(page: Page) {
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
 }
 
+// A 1x1 PNG: card covers load from image.tmdb.org, which tests never reach.
+const PIXEL = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+/** Answers every TMDB image request locally and returns the requested URLs. */
+async function fulfilPosters(page: Page): Promise<string[]> {
+  const requested: string[] = [];
+  await page.route("https://image.tmdb.org/**", async (route) => {
+    requested.push(route.request().url());
+    await route.fulfill({ contentType: "image/png", body: PIXEL });
+  });
+  return requested;
+}
+
+type OpenContext = Awaited<ReturnType<typeof openPage>>["context"];
+
+/** Stores the device's list view cookie, as the Server Action would. */
+async function setView(context: OpenContext, value: string) {
+  await context.addCookies([{ name: "list_view", value, url: "http://127.0.0.1:3000" }]);
+}
+
+const setGridView = (context: OpenContext) => setView(context, "grid");
+
+/** The visible option of the view toggle; the radios themselves are sr-only. */
+function viewOption(page: Page, label: "Tabla" | "Tarjetas") {
+  return page
+    .getByRole("radiogroup", { name: "Vista" })
+    .locator("label")
+    .filter({ hasText: new RegExp(`^${label}$`) });
+}
+
+function viewRadio(page: Page, label: "Tabla" | "Tarjetas") {
+  return page.getByRole("radiogroup", { name: "Vista" }).getByRole("radio", { name: label });
+}
+
 // ---------------------------------------------------------------------------
 // Add and ficha
 // ---------------------------------------------------------------------------
@@ -386,6 +423,338 @@ test.describe("lists keep search, filter and sort in the URL", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Card view: a per-device alternative to the table
+// ---------------------------------------------------------------------------
+
+const LONG_TITLE = "Harry Potter y las reliquias de la muerte parte 1 con un subtítulo larguísimo";
+
+test.describe("the card view is a per-device alternative to the table", () => {
+  test.beforeAll(async () => {
+    await clearTitles();
+    await seedTitles([
+      { name: "Amélie", state: "watched", watchDate: "2024-02-10", scoreIgnacio: 9, scoreMaria: 8, posterPath: "/amelie.jpg" },
+      { name: "Matrix", state: "watched_rewatch", watchDate: "2025-06-01", scoreIgnacio: 7 },
+      { name: "Dark", kind: "series", state: "watched_awful", watchDate: "2023-11-20", scoreIgnacio: 2, scoreMaria: 3 },
+      { name: "Dune", state: "watched" },
+      { name: LONG_TITLE, state: "watched", watchDate: "2022-01-01", scoreMaria: 5 },
+      { name: "Zeta", state: "pending", createdAt: "2026-10-01T10:00:00Z" },
+      { name: "Beta", state: "urgent", createdAt: "2026-09-01T10:00:00Z", posterPath: "/beta.jpg" },
+      { name: "Alfa", state: "pending", createdAt: "2026-10-20T10:00:00Z", scoreIgnacio: 6 },
+    ]);
+  });
+
+  test("both lists offer the toggle and switching never changes the URL", async ({
+    browser,
+  }) => {
+    const { context, page } = await openPage(browser, { viewport: DESKTOP });
+    await fulfilPosters(page);
+
+    for (const list of ["vistas", "pendientes"]) {
+      await visit(page, `/${list}?q=a&orden=nota`);
+      await expect(page.getByRole("table")).toBeVisible();
+      await expect(viewRadio(page, "Tabla")).toBeChecked();
+      const before = page.url();
+      const titles = await rows(page).allTextContents();
+
+      await viewOption(page, "Tarjetas").click();
+      await expect(page.getByRole("table")).toHaveCount(0);
+      await expect(page.getByRole("list", { name: /^(Vistas|Pendientes)$/ })).toBeVisible();
+      await expect(viewRadio(page, "Tarjetas")).toBeChecked();
+
+      // Same titles in the same order; the controls keep their state.
+      expect(await rows(page).allTextContents()).toEqual(titles);
+      await expect(page.getByRole("searchbox", { name: "Buscar" })).toHaveValue("a");
+      await expect(page.getByLabel("Ordenar")).toHaveValue("score:desc");
+      expect(page.url()).toBe(before);
+
+      await viewOption(page, "Tabla").click();
+      await expect(page.getByRole("table")).toBeVisible();
+      expect(page.url()).toBe(before);
+    }
+    await context.close();
+  });
+
+  test("the choice survives a reload and is shared by both lists", async ({ browser }) => {
+    const { context, page } = await openPage(browser, { viewport: DESKTOP });
+    await visit(page, "/vistas");
+
+    await viewOption(page, "Tarjetas").click();
+    await expect(page.getByRole("list", { name: "Vistas" })).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByRole("list", { name: "Vistas" })).toBeVisible();
+    await expect(page.getByRole("table")).toHaveCount(0);
+    await expect(viewRadio(page, "Tarjetas")).toBeChecked();
+
+    await visit(page, "/pendientes");
+    await expect(page.getByRole("list", { name: "Pendientes" })).toBeVisible();
+    await expect(viewRadio(page, "Tarjetas")).toBeChecked();
+
+    await viewOption(page, "Tabla").click();
+    await expect(page.getByRole("table", { name: "Pendientes" })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole("table", { name: "Pendientes" })).toBeVisible();
+    await expect(page.getByRole("list", { name: "Pendientes" })).toHaveCount(0);
+    await context.close();
+  });
+
+  test("a browser without the cookie gets the table", async ({ browser }) => {
+    const { context, page } = await openPage(browser, { viewport: DESKTOP });
+    await visit(page, "/vistas");
+
+    await expect(page.getByRole("table", { name: "Vistas" })).toBeVisible();
+    await expect(viewRadio(page, "Tabla")).toBeChecked();
+    await context.close();
+  });
+
+  test("an invalid cookie falls back to the table without an error", async ({ browser }) => {
+    const { context, page } = await openPage(browser, { viewport: DESKTOP });
+    for (const value of ["purple", "Grid", "grid2"]) {
+      await setView(context, value);
+      const response = await page.goto("/vistas");
+      expect(response?.status()).toBe(200);
+      await expect(page.getByRole("table", { name: "Vistas" })).toBeVisible();
+      await expect(viewRadio(page, "Tabla")).toBeChecked();
+    }
+    await context.close();
+  });
+
+  test("the first HTML already holds the cards, not a table (no flash)", async ({
+    browser,
+  }) => {
+    // The raw response, before any script runs: nothing can swap views later.
+    const context = await browser.newContext({ storageState: STATE_FILE });
+    await setGridView(context);
+    for (const list of ["vistas", "pendientes"]) {
+      const html = await (await context.request.get(`/${list}`)).text();
+      expect(html).toMatch(/<ul[^>]*role="list"[^>]*aria-label="(Vistas|Pendientes)"/);
+      expect(html).not.toContain('role="table"');
+      expect(html).toMatch(/<input[^>]*value="grid"[^>]*checked=""|<input[^>]*checked=""[^>]*value="grid"/);
+    }
+
+    await setView(context, "table");
+    const html = await (await context.request.get("/vistas")).text();
+    expect(html).toContain('role="table"');
+    expect(html).not.toMatch(/<ul[^>]*aria-label="Vistas"/);
+    await context.close();
+  });
+
+  test("a click during a pending search keeps the typed text and the new view", async ({
+    browser,
+  }) => {
+    const { context, page } = await openPage(browser, { viewport: DESKTOP });
+    await visit(page, "/vistas");
+
+    const search = page.getByRole("searchbox", { name: "Buscar" });
+    await search.fill("dune");
+    // No wait: the debounce is still pending when the toggle is pressed.
+    await viewOption(page, "Tarjetas").click();
+
+    await expect(page).toHaveURL("/vistas?q=dune");
+    await expect(search).toHaveValue("dune");
+    await expect(page.getByRole("list", { name: "Vistas" })).toBeVisible();
+    await expect(rows(page)).toHaveText([/Dune/]);
+    await expect(viewRadio(page, "Tarjetas")).toBeChecked();
+    await context.close();
+  });
+
+  test("the arrows switch the view from the keyboard and focus stays on the toggle", async ({
+    browser,
+  }) => {
+    const { context, page } = await openPage(browser, { viewport: DESKTOP });
+    await visit(page, "/vistas");
+
+    await viewRadio(page, "Tabla").focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(page.getByRole("list", { name: "Vistas" })).toBeVisible();
+    await expect(viewRadio(page, "Tarjetas")).toBeChecked();
+    await expect(viewRadio(page, "Tarjetas")).toBeFocused();
+
+    await page.keyboard.press("ArrowLeft");
+    await expect(page.getByRole("table", { name: "Vistas" })).toBeVisible();
+    await expect(viewRadio(page, "Tabla")).toBeChecked();
+    await expect(viewRadio(page, "Tabla")).toBeFocused();
+    await context.close();
+  });
+
+  test("a chip, the search and the sort keep the list in cards", async ({ browser }) => {
+    const { context, page } = await openPage(browser, { viewport: DESKTOP });
+    await setGridView(context);
+    await visit(page, "/vistas");
+    const cards = page.getByRole("list", { name: "Vistas" });
+
+    await page.getByRole("button", { name: "Vista y horrible" }).click();
+    await expect(page).toHaveURL("/vistas?estado=watched_awful");
+    await expect(rows(page)).toHaveText([/Dark/]);
+    await expect(cards).toBeVisible();
+
+    await page.getByRole("searchbox", { name: "Buscar" }).fill("dark");
+    await expect(page).toHaveURL(/q=dark/);
+    await expect(cards).toBeVisible();
+
+    await page.getByLabel("Ordenar").selectOption("score:desc");
+    await expect(page).toHaveURL(/orden=nota/);
+    await expect(cards).toBeVisible();
+    await expect(page.getByRole("table")).toHaveCount(0);
+    await context.close();
+  });
+
+  test("the cards show the same dates, state and average as the table", async ({ browser }) => {
+    const { context, page } = await openPage(browser, { viewport: DESKTOP });
+    await fulfilPosters(page);
+    await setGridView(context);
+
+    await visit(page, "/vistas");
+    const amelie = page.getByRole("listitem").filter({ hasText: "Amélie" });
+    await expect(amelie).toContainText("10 feb 2024");
+    await expect(amelie.getByRole("img", { name: "Media 8,5" })).toBeVisible();
+    const dune = page.getByRole("listitem").filter({ hasText: /^Dune/ });
+    await expect(dune.getByRole("img", { name: "Sin media" })).toBeVisible();
+    await expect(dune.locator("p")).toHaveText(/—/);
+    const dark = page.getByRole("listitem").filter({ hasText: "Dark" });
+    await expect(dark).toContainText("Vista y horrible");
+
+    await visit(page, "/pendientes");
+    await expect(page.getByRole("listitem").filter({ hasText: "Alfa" })).toContainText(
+      "20 oct 2026",
+    );
+    await context.close();
+  });
+
+  test("activating the cover or a score opens the ficha", async ({ browser }) => {
+    const { context, page } = await openPage(browser, { viewport: DESKTOP });
+    await fulfilPosters(page);
+    await setGridView(context);
+
+    for (const target of ["cover", "score"]) {
+      await visit(page, "/vistas");
+      const card = page.getByRole("listitem").filter({ hasText: "Amélie" });
+      const area =
+        target === "cover" ? card.locator("img") : card.getByText("Ignacio: 9");
+      const box = (await area.boundingBox())!;
+      // The link is stretched over the card: a real click lands on it.
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      await expect(page).toHaveURL(/\/titulo\//);
+      await expect(page.getByRole("heading", { level: 1, name: "Amélie" })).toBeVisible();
+    }
+    await context.close();
+  });
+
+  test("a card is one tab stop and Enter opens the ficha", async ({ browser }) => {
+    const { context, page } = await openPage(browser, { viewport: DESKTOP });
+    await setGridView(context);
+    await visit(page, "/vistas");
+
+    const card = page.getByRole("listitem").filter({ hasText: "Matrix" });
+    await expect(card.locator("a, button, input, [tabindex]")).toHaveCount(1);
+    await card.getByRole("link", { name: "Matrix" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/titulo\//);
+    await context.close();
+  });
+
+  test("cards are flat and square, share a row height and align their scores", async ({
+    browser,
+  }) => {
+    const { context, page } = await openPage(browser, { viewport: DESKTOP });
+    await fulfilPosters(page);
+    await setGridView(context);
+    await visit(page, "/vistas");
+
+    const style = await page.getByRole("listitem").first().evaluate((li) => {
+      const cs = getComputedStyle(li);
+      const cover = getComputedStyle(li.firstElementChild!);
+      return {
+        radius: [cs.borderTopLeftRadius, cs.borderBottomRightRadius, cover.borderTopLeftRadius],
+        shadow: [cs.boxShadow, cover.boxShadow],
+      };
+    });
+    expect(style.radius).toEqual(["0px", "0px", "0px"]);
+    expect(style.shadow).toEqual(["none", "none"]);
+
+    // Four columns from md: the first row shares one height and one score line.
+    const items = page.getByRole("listitem");
+    const boxes = [];
+    for (let index = 0; index < 4; index += 1) {
+      const item = items.nth(index);
+      boxes.push({
+        item: (await item.boundingBox())!,
+        average: (await item.getByRole("img", { name: /^(Media|Sin media)/ }).boundingBox())!,
+      });
+    }
+    expect(new Set(boxes.map(({ item }) => Math.round(item.y))).size).toBe(1);
+    expect(new Set(boxes.map(({ item }) => Math.round(item.height))).size).toBe(1);
+    expect(new Set(boxes.map(({ average }) => Math.round(average.y))).size).toBe(1);
+    await context.close();
+  });
+
+  test("covers load lazily from TMDB and a missing poster shows the title", async ({
+    browser,
+  }) => {
+    const { context, page } = await openPage(browser, { viewport: MOBILE });
+    const requested = await fulfilPosters(page);
+    await setGridView(context);
+    await visit(page, "/vistas");
+
+    const poster = page.locator("img");
+    await expect(poster).toHaveCount(1);
+    await expect(poster).toHaveAttribute("loading", "lazy");
+    await expect(poster).toHaveAttribute("src", "https://image.tmdb.org/t/p/w342/amelie.jpg");
+    expect(requested.every((url) => url.startsWith("https://image.tmdb.org/"))).toBe(true);
+
+    const dune = page.getByRole("listitem").filter({ hasText: /^Dune/ });
+    await expect(dune.locator("img")).toHaveCount(0);
+    await expect(
+      dune.locator("[aria-hidden='true']").filter({ hasText: "Dune" }),
+    ).toBeVisible();
+    await context.close();
+  });
+
+  for (const { name, size, columns } of [
+    { name: "mobile-390", size: MOBILE, columns: 2 },
+    { name: "desktop-1280", size: DESKTOP, columns: 4 },
+  ]) {
+    test(`at ${name} the grid has ${columns} columns, no overflow, and a long title stays inside its card`, async ({
+      browser,
+    }) => {
+      const { context, page } = await openPage(browser, { viewport: size });
+      await fulfilPosters(page);
+      await setGridView(context);
+
+      for (const path of ["/vistas", "/pendientes"]) {
+        await visit(page, path);
+        const overflow = await page.evaluate(() => ({
+          scroll: document.documentElement.scrollWidth,
+          client: document.documentElement.clientWidth,
+        }));
+        expect(overflow.scroll, `${path} overflows`).toBeLessThanOrEqual(overflow.client);
+
+        const count = await page
+          .getByRole("list", { name: /^(Vistas|Pendientes)$/ })
+          .evaluate((list) => getComputedStyle(list).gridTemplateColumns.split(" ").length);
+        expect(count).toBe(columns);
+      }
+
+      await visit(page, "/vistas");
+      const long = page.getByRole("listitem").filter({ hasText: LONG_TITLE });
+      const li = (await long.boundingBox())!;
+      const text = (await long.getByRole("link").boundingBox())!;
+      expect(text.x + text.width).toBeLessThanOrEqual(li.x + li.width + 1);
+      const cover = long.locator("[aria-hidden='true']").filter({ hasText: LONG_TITLE });
+      const fits = await cover.evaluate((el) => {
+        const inner = el.firstElementChild as HTMLElement;
+        return (
+          inner.scrollHeight <= inner.clientHeight + 1 &&
+          inner.scrollWidth <= inner.clientWidth + 1
+        );
+      });
+      expect(fits).toBe(true);
+      await context.close();
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Series: ratings per season, derived summary, lists by the latest season
 // ---------------------------------------------------------------------------
 
@@ -592,7 +961,7 @@ test.describe("pages at every viewport and theme", () => {
           { number: 3, state: "pending" },
         ],
       },
-      { name: "Amélie", state: "watched", watchDate: "2024-02-10", scoreIgnacio: 9, scoreMaria: 8 },
+      { name: "Amélie", state: "watched", watchDate: "2024-02-10", scoreIgnacio: 9, scoreMaria: 8, posterPath: "/amelie.jpg" },
       { name: "Matrix", state: "watched_rewatch", watchDate: "2025-06-01", scoreIgnacio: 7 },
       { name: "Dune", state: "watched" },
       { name: "Alfa", state: "pending", createdAt: "2026-10-20T10:00:00Z", scoreIgnacio: 6 },
@@ -611,6 +980,7 @@ test.describe("pages at every viewport and theme", () => {
           viewport: size,
           colorScheme: scheme,
         });
+        await fulfilPosters(page);
         const problems: string[] = [];
         page.on("console", (message) => {
           if (["error", "warning"].includes(message.type())) {
@@ -619,7 +989,16 @@ test.describe("pages at every viewport and theme", () => {
         });
         page.on("pageerror", (error) => problems.push(error.message));
 
-        for (const path of ["/vistas", "/pendientes", "/anadir", ficha, serie]) {
+        // The card view comes last: its cookie then stays for the rest of the run.
+        const visits = [
+          ...["/vistas", "/pendientes", "/anadir", ficha, serie].map((path) => ({
+            path,
+            cards: false,
+          })),
+          ...["/vistas", "/pendientes"].map((path) => ({ path, cards: true })),
+        ];
+        for (const { path, cards } of visits) {
+          if (cards) await setGridView(context);
           await page.goto(path);
           await page.waitForLoadState("networkidle");
           await page.evaluate(() => document.fonts.ready);
@@ -637,7 +1016,7 @@ test.describe("pages at every viewport and theme", () => {
           const slug =
             path === serie ? "serie" : path.startsWith("/titulo") ? "titulo" : path.slice(1);
           await page.screenshot({
-            path: testInfo.outputPath(`${slug}-${name}-${scheme}.png`),
+            path: testInfo.outputPath(`${slug}${cards ? "-cards" : ""}-${name}-${scheme}.png`),
             fullPage: true,
             animations: "disabled",
           });

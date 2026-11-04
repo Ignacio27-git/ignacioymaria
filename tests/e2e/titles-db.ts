@@ -19,6 +19,8 @@ export interface SeedTitle {
   scoreMaria?: number;
   /** ISO timestamp; the database default (now) when omitted. */
   createdAt?: string;
+  /** TMDB poster path ("/abc.jpg"); no poster when omitted. */
+  posterPath?: string;
   /** Series only: its season rows. Omitted leaves the series without seasons. */
   seasons?: readonly SeedSeason[];
 }
@@ -40,8 +42,8 @@ export async function seedTitles(
     for (const title of titles) {
       const { rows } = await client.query<{ id: string }>(
         `insert into public.titles
-           (name, kind, state, watch_date, score_ignacio, score_maria, created_at)
-         values ($1, $2, $3, $4, $5, $6, coalesce($7::timestamptz, now()))
+           (name, kind, state, watch_date, score_ignacio, score_maria, created_at, poster_path)
+         values ($1, $2, $3, $4, $5, $6, coalesce($7::timestamptz, now()), $8)
          returning id`,
         [
           title.name,
@@ -51,6 +53,7 @@ export async function seedTitles(
           title.scoreIgnacio ?? null,
           title.scoreMaria ?? null,
           title.createdAt ?? null,
+          title.posterPath ?? null,
         ],
       );
       ids[title.name] = rows[0].id;
