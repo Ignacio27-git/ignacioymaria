@@ -145,14 +145,14 @@ components:
 
 **Creative North Star: "The Critics' Table"**
 
-Every title is a row in a film magazine's critics' panel: one column for María, one for Ignacio, and a verdict box at the right edge. The page is a ruled grid, not a wall of posters and not a stack of cards. Hairline rules carry the structure; a heavier ink rule closes the masthead and opens the table head. Type is one family, Archivo, used at two widths: condensed for titles, mastheads and the critics' names, normal width for everything you operate.
+Every title is, by default, a row in a film magazine's critics' panel: one column for María, one for Ignacio, and a verdict box at the right edge. The page is a ruled grid by default; a card grid with covers is the one allowed alternative view, under every rule below. Hairline rules carry the structure; a heavier ink rule closes the masthead and opens the table head. Type is one family, Archivo, used at two widths: condensed for titles, mastheads and the critics' names, normal width for everything you operate.
 
 The world is restrained and nocturnal. It is built for a phone on a sofa in a dim room, so the dark theme is first-class: a near-black ground (never pure black) with warm off-white ink, mirrored by a light theme on cool paper (never pure white). Colour is reserved for the six watch states, each a small painted square beside its label, a nod to the Excel legend. Hierarchy comes from size contrast and one inversion: the average is the only element reversed out of the ground.
 
 Surfaces are flat and square. There is no radius anywhere, no decorative shadow, no gradient. Motion is limited to quick state feedback (150ms colour and a 0.98 press scale), always switched off under reduced motion.
 
 **Key Characteristics:**
-- Ruled grid of hairlines; heavy 2px ink rules only at the masthead foot and the table head.
+- Ruled grid of hairlines; heavy 2px ink rules only at the masthead foot, the table head and the top of the card grid.
 - Archivo variable: 75% width for titles, mastheads and critic names; normal width for UI; tabular figures for every number.
 - Neutral paper and ink in both themes; colour only in the state swatches.
 - The average box is the single inverted element.
@@ -201,7 +201,8 @@ The dark variants lift lightness so each swatch keeps 3:1 against the night grou
 ### Hierarchy
 - **Display** (800, 2.75rem, line-height 1, condensed, tight tracking): the page masthead ("Vistas", "Sistema"), followed by its count in 1.5rem semibold Faded Ink tabular figures.
 - **Headline** (800, 1.25rem, tabular): the figure inside the average box. The biggest number on a row, by design.
-- **Title** (700, 1.0625rem, line-height 1.2, condensed): title names in rows, truncated to one line. The Añadir action uses condensed bold at 1.125rem.
+- **Title** (700, 1.0625rem, line-height 1.2, condensed): title names in rows, truncated to one line, and in cards, clamped to two.
+- **Typographic cover** (800, 1.5rem, line-height 1.1, condensed): the title name filling the 2:3 cover of a card that has no poster, clamped to six lines. The Añadir action uses condensed bold at 1.125rem.
 - **Body** (400, 1rem): running text and input values; long text capped near 65ch.
 - **Label** (500, 0.875rem): field labels, column labels, chips, state labels, hints. Critic names in the table head step up to condensed bold 1rem in full ink; guide words step down to condensed 0.75rem.
 
@@ -212,7 +213,9 @@ The dark variants lift lightness so each swatch keeps 3:1 against the night grou
 
 ## Layout
 
-Mobile-first, one column. The table is the layout: a ruled grid on one module, centred and capped at 760px (`max-w-table`) on wider screens, with 16px side gutters on phones and 24px from `sm`.
+Mobile-first, one column. By default the table is the layout: a ruled grid on one module, centred and capped at 760px (`max-w-table`) on wider screens, with 16px side gutters on phones and 24px from `sm`.
+
+The card grid is chosen per device with the Vista toggle; the table stays the default and the reference. Inside `max-w-table`: 2 columns on phones, 3 from `sm`, 4 from `md`. A 2px ink rule opens it, a hairline closes each card, and cards in a row share one height. The 2:3 cover shows the poster or, without one, the title in large condensed type.
 
 The critics' table is a CSS grid with ARIA table roles: on phones `title | 44px | 44px | 48px` (title, María, Ignacio, Media); from `md` the score columns widen to 56px and a 96px date column is added. Rows are 60px tall. The table head is sticky at the top, 40px minimum, carrying guide words for the range in view.
 
@@ -251,7 +254,7 @@ The page's single primary action. Same ruled look as the primary button (2px ink
 ### Chips
 - **Style:** 44px, square, 1px Marked Rule border, paper ground, label size; optional state swatch before the label.
 - **Selected:** Pressed Paper ground, ink hairline, semibold, and a check mark. Selection never takes the primary button's heavy rules.
-- The theme toggle (Sistema / Claro / Oscuro) uses the same chip look over native radios.
+- The theme toggle (Sistema / Claro / Oscuro) and the view toggle (Tabla / Tarjetas) use the same chip look over native radios.
 
 ### Inputs / Fields
 - **Style:** 44px, square, 1px Marked Rule border on paper, 12px padding, Faded Ink placeholder. Label sits above in label size.
@@ -289,5 +292,5 @@ Display-size condensed title with its count beside it on the baseline, closed by
 - **Don't** use state hues as text, row or background colour.
 - **Don't** use pure white or pure black.
 - **Don't** round corners or add shadows to anything resting in the page; the floating Añadir is the only shadow.
-- **Don't** replace the ruled table with a poster wall or a card list.
+- **Don't** make cards the default, or drop a card's state, scores or average; cards stay square, flat and never inverted.
 - **Don't** use icons without text; icons are decorative.
