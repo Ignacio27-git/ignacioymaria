@@ -16,6 +16,7 @@ export function Poster({
   path,
   name,
   decorative = false,
+  fallback = "empty",
   className,
 }: {
   /** Stored TMDB poster path, or null for the neutral placeholder. */
@@ -23,6 +24,11 @@ export function Poster({
   name: string;
   /** The name is written next to the poster: hide the image from assistive tech. */
   decorative?: boolean;
+  /**
+   * What fills the box when there is no poster: nothing ("empty", the default
+   * every existing caller keeps) or the title in large condensed type.
+   */
+  fallback?: "empty" | "title";
   className?: string;
 }) {
   const url = posterUrl(path);
@@ -32,10 +38,21 @@ export function Poster({
   );
 
   if (url === null) {
+    const content =
+      fallback === "title" ? (
+        <span className="absolute inset-0 line-clamp-6 p-2 font-condensed text-2xl font-extrabold leading-[1.1] [overflow-wrap:anywhere]">
+          {name}
+        </span>
+      ) : null;
+
     return decorative ? (
-      <span aria-hidden="true" className={box} />
+      <span aria-hidden="true" className={box}>
+        {content}
+      </span>
     ) : (
-      <span role="img" aria-label={`Sin póster de ${name}`} className={box} />
+      <span role="img" aria-label={`Sin póster de ${name}`} className={box}>
+        {content}
+      </span>
     );
   }
 
