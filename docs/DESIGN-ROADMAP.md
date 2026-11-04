@@ -93,11 +93,18 @@ Cambio visual del paso 3.1 de `docs/ROADMAP.md` (cambio SDD `card-view`), fuera 
 - **Sin notas.** Raya visible por persona con «Sin nota» solo para lectores de pantalla y la media vacía («Sin media»), igual que la fila.
 - **Movimiento.** Sin animación nueva: solo el cambio de color de 150 ms ya existente, apagado con `prefers-reduced-motion`. El cambio de vista es una acción repetida y no se anima.
 - **Pruebas.** Componentes con axe (interruptor, portada tipográfica, tarjeta, lista), E2E con imágenes de TMDB simuladas (interruptor en ambas listas, URL intacta, persistencia, cookie inválida, HTML inicial con la cuadrícula, clic con búsqueda pendiente, teclado real, tarjetas planas y de igual altura, carga perezosa, sin desbordamiento a 390 y 1280 px) y el recorrido de axe, desbordamiento e hidratación a 1280, 1440 y 390 px en ambos temas ampliado con las tarjetas.
-- **Pendiente (orquestador, MCP de Playwright).** Comprobación visual a 390 px y 1280 px en claro y oscuro: tarjeta con portada, portada tipográfica, sin notas y título largo; alineación, sin desbordamiento, una sola inversión y tarjetas planas y cuadradas. Sin hacer todavía; la evidencia (viewports, temas, casos, hallazgos y nombres de capturas) y sus correcciones se anotan aquí.
+- **Comprobación con el MCP de Playwright (2026-11-04).** Contra `pnpm dev` y la base local, con títulos de prueba y las imágenes de TMDB simuladas por un degradado, así que no valida carteles reales. Sin correcciones. Las capturas están en `.playwright-mcp/card-view/`, carpeta ignorada por git.
 
   | Viewport | Tema | Caso | Hallazgo | Captura |
   |---|---|---|---|---|
-  | _pendiente_ | _pendiente_ | _pendiente_ | _pendiente_ | _pendiente_ |
+  | 390 px | Claro | `/vistas`: portada, portada tipográfica, sin notas, sin fecha, título largo | Dos columnas de 173 px y seis tarjetas de 441 px de alto; sin desbordamiento; interruptor de 44 px | `vistas-390-light.png` |
+  | 390 px | Oscuro | `/pendientes`: portada, portada tipográfica, título largo, fecha de alta | Tres tarjetas de 430 px de alto; sin desbordamiento; el título de 73 caracteres cabe en la portada | `pendientes-390-dark.png` |
+  | 1280 px | Claro | `/vistas`: los mismos casos | Cuatro columnas de 166 px y seis tarjetas de 431 px de alto; sin desbordamiento; notas, media y fecha alineadas | `vistas-1280-light.png` |
+  | 1280 px | Oscuro | `/vistas`: los mismos casos | Mismo reparto; la media es el único elemento invertido | `vistas-1280-dark.png` |
+
+  - **Interacción, a 390 px.** Las flechas cambian de vista, conservan el foco en el interruptor y dejan la URL intacta. Pulsar la portada abre la ficha. La vista se conserva al recargar.
+  - **Límites.** Chromium de escritorio con barra de desplazamiento clásica: a 390 px quedan 375 px útiles. No es un teléfono real, así que la respuesta al toque sigue sin comprobar. Las series no se revisaron a ojo; solo las cubren las pruebas de componentes.
+  - **Observaciones sin corregir.** «6,88» ocupa 44 de los 48 px de la caja de la media: cabe, con 2 px por lado, pero queda justo. En desarrollo, Next avisa de que la primera portada con carga perezosa es el LCP; la especificación pide carga perezosa, y cargarla antes sería una mejora aparte.
 
 ---
 
