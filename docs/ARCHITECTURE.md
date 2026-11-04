@@ -97,6 +97,21 @@ Flujo: hoja `Pelis` -> `RawRow[]` -> `prepareRow` -> `groupSeasons` (una fila po
 
 Los proyectos de Playwright se encadenan `auth -> smoke -> ui -> titles`: `smoke` (`tests/e2e/smoke.spec.ts`) es el recorrido crítico y es dueño de la tabla `titles` y del buzón mientras corre. Seleccionar `ui` o `titles` ejecuta también `auth` y `smoke`.
 
+## Datos locales y E2E
+
+`pnpm test:e2e` no debe destruir los datos locales de `titles` y `title_seasons`. El código vive en `scripts/e2e/` (sin dependencias de la aplicación) y el cableado en `tests/e2e/`:
+
+- `local-db-guard.ts`: `openLocalDb(url)` solo abre conexiones a `127.0.0.1`, `localhost` o `[::1]` (D-101). Todo acceso a la base de los tests y del arranque pasa por aquí (`tests/e2e/db.ts`).
+- `local-data.ts`: estado, copia, restauración, `atomically` (bloqueo de ambas tablas y `lock_timeout`) y la puerta `SNAPSHOT_GATE` que llevan las ayudantes destructivas (D-103).
+- `run-lifecycle.ts`: `createLifecycle`, con `begin` (guarda, candado, lista permitida, recuperación y copia en una transacción) y `end` (restaura lo que esta ejecución copió y libera el candado). `tests/e2e/lifecycle.ts` crea la única instancia; `global-setup.ts` llama a `begin` y `global-teardown.ts` a `end` (D-100, D-102).
+- `rollback-only.ts` y `tests/e2e-data/`: pruebas de integración dentro de una transacción que se revierte (D-106). `data-check.ts`, `playwright.failing.config.ts` y `tests/e2e-data/failing/`: la comprobación de CI (D-107).
+
+**Qué cubre y qué no.** La guarda de dirección protege las conexiones de los tests y del arranque. **No cubre la aplicación bajo prueba**: `pnpm dev` lee su propia configuración (`.env.local`) y podría apuntar a otra base. Durante la ejecución la aplicación local no sirve para uso normal, porque comparte la tabla con los tests.
+
+**Carrera residual conocida (D-108).** Un test `smoke` rezagado cuyo `beforeAll` pasó antes de que la restauración confirmara puede añadir «Dune» por el servidor de desarrollo y valorarla. No puede borrar datos ni cambiar una fila real. La puerta de las ayudantes cierra el resto de los casos tardíos.
+
+**Comprobaciones manuales en Windows.** Ctrl+C una vez durante `auth`, cierre del terminal y segunda ejecución concurrente rechazada: pendientes de la persona; sus resultados se anotan en el ROADMAP.
+
 ## Despliegue y comprobación en producción (paso 2.2)
 
 Vercel despliega solo `main` (`vercel.json`). `.github/workflows/deploy-migrations.yml` aplica las migraciones al Supabase alojado con el CLI fijado por el lockfile, en el entorno `production` de GitHub (los únicos secretos del repositorio viven ahí; `ci.yml` sigue sin ninguno, D-88 y D-89). Vercel y las migraciones corren en paralelo: las migraciones son aditivas.
@@ -143,7 +158,9 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | `supabase/templates/` | Plantilla del correo de acceso (`sign-in.html`) |
 | `supabase/tests/database/` | Tests pgTAP (`pnpm test:db`): `titles_constraints`, `access_control`, `couple_auth`, `tmdb_fields`, `title_search_unique`, `titles_import_key` y `title_seasons`; solo en local |
 | `supabase/config.toml` | Configuración de la CLI de Supabase (proyecto `ignacioymaria`, sin semilla) |
-| `tests/e2e/` | Pruebas E2E (Playwright): `auth.spec.ts` con ayudantes de Mailpit y `pg`, `design-system.spec.ts` (`/sistema` en ambos temas y anchos) `titles.spec.ts` con `titles-db.ts` (gestión de títulos con el doble de TMDB) y `session.ts` (ayudantes de sesión compartidos); `globalSetup` inserta las dos cuentas de prueba |
+| `tests/e2e/` | Pruebas E2E (Playwright): `auth.spec.ts` con ayudantes de Mailpit y `pg`, `design-system.spec.ts` (`/sistema` en ambos temas y anchos) `titles.spec.ts` con `titles-db.ts` (gestión de títulos con el doble de TMDB) y `session.ts` (ayudantes de sesión compartidos); `global-setup.ts` y `global-teardown.ts` abren y cierran la copia de los datos locales y dan de alta las dos cuentas de prueba (ver «Datos locales y E2E») |
+| `scripts/e2e/` | Conservación de datos locales en los E2E: guarda de dirección, copia y restauración, ciclo de vida y comprobación de CI, con sus tests (`pnpm test`) |
+| `tests/e2e-data/` | Integración contra la base local dentro de una transacción que se revierte (`pnpm test:e2e-data`) y la prueba que falla a propósito de CI (`playwright.failing.config.ts`) |
 | `vitest.config.mts` | Configuración de Vitest (jsdom, solo `src/**/*.test.{ts,tsx}`) |
 | `playwright.config.ts` | Configuración de Playwright (chromium, arranca `pnpm dev`; proyecto `auth` antes que `ui`, D-57) |
 

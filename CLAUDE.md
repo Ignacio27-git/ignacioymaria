@@ -33,7 +33,8 @@ Next.js (App Router) + React + TypeScript estricto · Supabase (Postgres y Auth,
 | `pnpm lint` | disponible |
 | `pnpm typecheck` | disponible |
 | `pnpm test` | disponible |
-| `pnpm test:e2e` | disponible |
+| `pnpm test:e2e` | disponible (conserva `titles` y `title_seasons` locales: copia, restaura y recupera una copia pendiente; la app no sirve durante la ejecución, para el servidor antes y solo una ejecución a la vez; ver `docs/DEPLOY.md`) |
+| `pnpm test:e2e-data` | disponible (integración de la copia y restauración contra la base LOCAL, todo dentro de una transacción que se revierte; requiere `pnpm db:start`; no entra en `pnpm test`; corre en CI) |
 | `pnpm test:prod` | disponible (local, solo lectura, contra `PROD_BASE_URL`; nunca en CI; ver `docs/DEPLOY.md`) |
 | `pnpm test:prod:login` | disponible (navegador visible; guarda la sesión de producción en `playwright/.auth/`) |
 | `pnpm db:start` | disponible (requiere Docker) |
