@@ -331,6 +331,20 @@ describe("card view", () => {
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 
+  test("each card carries María's and Ignacio's own score", async () => {
+    mocks.listTitles.mockResolvedValue(
+      ok([view({ name: "Dune", state: "watched", scores: { maria: 9, ignacio: 6 } }, 7.5)]),
+    );
+
+    await renderList("vistas");
+
+    const card = within(screen.getByRole("listitem"));
+    const figure = (text: string) =>
+      card.getByText((_, el) => el?.tagName === "SPAN" && el.textContent === text && el.classList.contains("tabular-nums"));
+    expect(figure("María: 9")).toBeInTheDocument();
+    expect(figure("Ignacio: 6")).toBeInTheDocument();
+  });
+
   test("the toggle and the controls are present and the toggle marks the view", async () => {
     mocks.listTitles.mockResolvedValue(ok([view({ name: "Dune", state: "watched" })]));
 

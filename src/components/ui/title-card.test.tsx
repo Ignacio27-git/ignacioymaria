@@ -116,6 +116,14 @@ test("without scores each person shows a dash with Sin nota for screen readers o
   expect(container).not.toHaveTextContent(/NaN|undefined/);
 });
 
+test("the visible person labels and the Media label are hidden from assistive tech", () => {
+  renderCard();
+
+  for (const label of ["María", "Ignacio", "Media"]) {
+    expect(screen.getByText(label)).toHaveAttribute("aria-hidden", "true");
+  }
+});
+
 test("with one score the average equals it", () => {
   renderCard({ maria: 8, ignacio: null, average: 8 });
 
@@ -194,4 +202,5 @@ test("the grid is a labelled list with the cards in the given order", () => {
   ).toEqual(["Uno", "Dos", "Tres"]);
   expect(list).toHaveClass("grid-cols-2", "sm:grid-cols-3", "md:grid-cols-4");
   expect(list).toHaveClass("border-t-2", "border-ink");
+  expect(list.className).not.toMatch(/rounded|shadow/);
 });

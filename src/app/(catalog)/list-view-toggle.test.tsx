@@ -37,6 +37,8 @@ test("offers Tabla and Tarjetas as native radios sharing one name", () => {
   expect(new Set(names).size).toBe(1);
   expect(names[0]).toBeTruthy();
   for (const radio of radios) expect(radio).toHaveAttribute("type", "radio");
+  // The native radio is visually hidden; the chip label is the visible control.
+  for (const radio of radios) expect(radio).toHaveClass("sr-only");
 });
 
 test.each([
