@@ -6,6 +6,7 @@ import { saveSignedInState } from "./session";
 import {
   clearTitles,
   countTitles,
+  requireSnapshot,
   seedTitles,
   todayInMadrid,
 } from "./titles-db";
@@ -29,6 +30,8 @@ test.describe.configure({ mode: "serial" });
 
 test.beforeAll(async ({ browser }) => {
   test.setTimeout(90_000);
+  // Fail before any destructive helper if the run has no pending snapshot.
+  await requireSnapshot();
   await saveSignedInState(browser, ignacio.email, STATE_FILE);
 });
 

@@ -1,4 +1,13 @@
+import {
+  CLEAR_TITLES_SQL,
+  SEED_SEASON_SQL,
+  SEED_TITLE_SQL,
+  requireLiveSnapshot,
+} from "../../scripts/e2e/local-data";
 import { withDb } from "./db";
+
+const REFUSED =
+  "No local-data snapshot is pending: refusing to seed the titles table. Run the E2E suite through `pnpm test:e2e`.";
 
 export interface SeedSeason {
   number: number;
@@ -26,55 +35,61 @@ export interface SeedTitle {
 }
 
 /**
- * Empties the titles table. The E2E suite owns the local database: every
- * titles spec starts from nothing so counts and orders are exact.
+ * Empties the titles table. The E2E suite owns the local database for the run:
+ * every titles spec starts from nothing so counts and orders are exact. The
+ * delete carries the snapshot gate inside the statement, so without a pending
+ * snapshot (a stray worker after the restore, or tests run without setup) it
+ * deletes nothing and this throws.
  */
 export async function clearTitles(): Promise<void> {
-  await withDb((client) => client.query("delete from public.titles"));
+  await withDb(async (client) => {
+    const result = await client.query(CLEAR_TITLES_SQL);
+    // Zero rows is also a legitimate empty table: tell the two apart.
+    if (!result.rowCount) await requireLiveSnapshot(client);
+  });
 }
 
-/** Inserts titles straight into the database and returns their ids by name. */
+/**
+ * Inserts titles straight into the database and returns their ids by name.
+ * Every insert is gated on a pending snapshot; a refused insert throws.
+ */
 export async function seedTitles(
   titles: readonly SeedTitle[],
 ): Promise<Record<string, string>> {
   return withDb(async (client) => {
     const ids: Record<string, string> = {};
     for (const title of titles) {
-      const { rows } = await client.query<{ id: string }>(
-        `insert into public.titles
-           (name, kind, state, watch_date, score_ignacio, score_maria, created_at, poster_path)
-         values ($1, $2, $3, $4, $5, $6, coalesce($7::timestamptz, now()), $8)
-         returning id`,
-        [
-          title.name,
-          title.kind ?? "movie",
-          title.state,
-          title.watchDate ?? null,
-          title.scoreIgnacio ?? null,
-          title.scoreMaria ?? null,
-          title.createdAt ?? null,
-          title.posterPath ?? null,
-        ],
-      );
+      const { rows } = await client.query<{ id: string }>(SEED_TITLE_SQL, [
+        title.name,
+        title.kind ?? "movie",
+        title.state,
+        title.watchDate ?? null,
+        title.scoreIgnacio ?? null,
+        title.scoreMaria ?? null,
+        title.createdAt ?? null,
+        title.posterPath ?? null,
+      ]);
+      if (rows.length === 0) throw new Error(REFUSED);
       ids[title.name] = rows[0].id;
       for (const season of title.seasons ?? []) {
-        await client.query(
-          `insert into public.title_seasons
-             (title_id, season_number, state, watch_date, score_ignacio, score_maria)
-           values ($1, $2, $3, $4, $5, $6)`,
-          [
-            rows[0].id,
-            season.number,
-            season.state,
-            season.watchDate ?? null,
-            season.scoreIgnacio ?? null,
-            season.scoreMaria ?? null,
-          ],
-        );
+        const inserted = await client.query(SEED_SEASON_SQL, [
+          rows[0].id,
+          season.number,
+          season.state,
+          season.watchDate ?? null,
+          season.scoreIgnacio ?? null,
+          season.scoreMaria ?? null,
+        ]);
+        if (!inserted.rowCount) throw new Error(REFUSED);
       }
     }
     return ids;
   });
+}
+
+/** Throws unless a snapshot is pending: the titles specs call it before touching anything. */
+export async function requireSnapshot(): Promise<void> {
+  await withDb((client) => requireLiveSnapshot(client));
 }
 
 /** How many titles carry this name (an exact match). */
