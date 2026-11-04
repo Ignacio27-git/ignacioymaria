@@ -1,6 +1,7 @@
 import { expect, test, vi } from "vitest";
 
 vi.mock("@/server/titles/list", () => ({ listTitles: vi.fn() }));
+vi.mock("@/server/list-view/read-preference", () => ({ readListView: vi.fn() }));
 
 import { TitlesList } from "../titles-list";
 import PendientesPage, { metadata } from "./page";
