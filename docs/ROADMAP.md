@@ -419,15 +419,39 @@ Cierre (2026-11-03): importación real en producción hecha por la persona. El e
 
 # Fase 3 — Funcionalidades divertidas
 
-Lista de candidatas sin orden. Se priorizan después del lanzamiento y cada una pasa por su
-propio ciclo SDD.
+Cada funcionalidad pasa por su propio ciclo SDD. Al priorizarla, la candidata se convierte en
+un paso numerado.
+
+## [ ] 3.1 · Vista de tarjetas
+
+**Objetivo.** En la lista, poder alternar entre el listado actual y una cuadrícula de tarjetas.
+
+```text
+/gentle-sdd-new card-view
+
+En la lista, permite alternar entre el listado actual y una cuadrícula de tarjetas con la
+portada, el título, las notas y la fecha de visualización. Usa las skills de diseño y
+compruébalo con el MCP de Playwright, también en móvil. Antes de decidir en qué listas está
+disponible, si se recuerda la vista elegida o qué muestra una tarjeta sin portada o sin notas,
+pregunta.
+```
+
+**Revisar.** Que el cambio de vista no altera la búsqueda ni el orden, que los títulos sin
+portada, nota o fecha se ven bien y que la cuadrícula funciona en móvil.
+
+**Notas:**
+
+---
+
+## Candidatas
+
+Lista sin orden. Se priorizan después del lanzamiento.
 
 - [ ] **¿Qué vemos esta noche?** Ruleta animada entre los pendientes, con filtros por duración o género.
 - [ ] **Estadísticas de pareja.** Quién puntúa más duro, en qué películas discrepáis más, géneros favoritos.
 - [ ] **Resumen anual.** Un *Wrapped* con lo visto en el año.
 - [ ] **Dónde verla.** Plataformas disponibles en España según TMDB.
 - [ ] **Cronología.** Vuestra historia en películas, desde *El exorcista*.
-- [ ] **Vista de tarjetas.** En la lista, alternar entre el listado actual y una cuadrícula de tarjetas con la portada, el título, las notas y la fecha de visualización.
 
 ---
 
@@ -490,3 +514,4 @@ propio ciclo SDD.
 | 2026-11-03 | 2.3 | La restauración usa tres ejecuciones de `psql` vía `docker exec` en lugar de `--single-transaction` (D-90); los volcados van cifrados con `age` porque el repositorio es público (D-91) | El paso de roles debe tolerar roles ya existentes y no puede ser atómico; los artifacts de un repositorio público son legibles |
 | 2026-11-03 | 2.3 | El volcado de datos se limita al esquema `public` (`-s public`); D-91 decía que `auth` quedaba fuera y no era cierto | El ensayo de restauración mostró que `supabase db dump --data-only` (CLI 2.122.0) incluía los datos de `auth.*` y `storage.*`; cifrados, sin exposición (D-92) |
 | 2026-11-03 | 2.3 | Los comandos de restauración de `docs/DEPLOY.md` se ejecutan en Git Bash; `pnpm test:db` corre sobre una restauración sin datos | PowerShell no admite la redirección `<`; los tests de pgTAP suponen `allowed_emails` vacía (D-92) |
+| 2026-11-04 | 3.1 | La candidata «Vista de tarjetas» pasa a ser el paso 3.1 y la lista de candidatas queda en su propia sección | La persona la prioriza como primera funcionalidad de la fase 3 |
