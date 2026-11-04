@@ -147,3 +147,11 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** `-s public` en el volcado de datos con su test de contrato (rojo, luego verde), D-92, runbook corregido y paso 2.3 cerrado en `docs/ROADMAP.md`.
 
 **Lección:** Un ensayo de restauración real encuentra lo que la revisión no ve: el volcado de datos arrastraba `auth` y `storage` pese a la decisión escrita. Una decisión de exclusión se vigila con un test sobre la línea de comando que la implementa.
+
+### 2026-11-04 · Paso 3.1 · vista de tarjetas (SDD `card-view`)
+
+**Prompt:** `/gentle-sdd-new card-view` — En la lista, permite alternar entre el listado actual y una cuadrícula de tarjetas con la portada, el título, las notas y la fecha de visualización. Usa las skills de diseño y compruébalo con el MCP de Playwright, también en móvil. Antes de decidir en qué listas está disponible, si se recuerda la vista elegida o qué muestra una tarjeta sin portada o sin notas, pregunta.
+
+**Resultado:** Interruptor `Tabla` / `Tarjetas` en `/vistas` y `/pendientes` con cookie `list_view` compartida (D-93 a D-98), `TitleCard` y `TitleCardGrid`, `Poster` con portada tipográfica, tests unitarios y E2E, y `DESIGN.md` enmendado (D-99). La comprobación visual con el MCP de Playwright queda pendiente para el orquestador.
+
+**Lección:** Cuando un documento de diseño prohíbe lo que el producto necesita, se enmienda en el mismo cambio y con su decisión registrada. Con Partial Prerender, el HTML inicial de la lista llega en streaming: la ausencia de parpadeo se comprueba sobre la respuesta cruda (`context.request`), no con JavaScript desactivado, que deja el contenido sin mostrar.

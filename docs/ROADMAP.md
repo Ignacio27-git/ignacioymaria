@@ -422,7 +422,7 @@ Cierre (2026-11-03): importación real en producción hecha por la persona. El e
 Cada funcionalidad pasa por su propio ciclo SDD. Al priorizarla, la candidata se convierte en
 un paso numerado.
 
-## [ ] 3.1 · Vista de tarjetas
+## [~] 3.1 · Vista de tarjetas
 
 **Objetivo.** En la lista, poder alternar entre el listado actual y una cuadrícula de tarjetas.
 
@@ -439,7 +439,9 @@ pregunta.
 **Revisar.** Que el cambio de vista no altera la búsqueda ni el orden, que los títulos sin
 portada, nota o fecha se ven bien y que la cuadrícula funciona en móvil.
 
-**Notas:**
+**Notas:** 2026-11-04 · Implementado en el cambio SDD `card-view` (un solo PR con excepción de tamaño). Decisiones de la persona antes de la propuesta: el interruptor está en ambas listas; la vista se recuerda por dispositivo en una sola cookie compartida, sin parámetro de URL; sin portada se escribe el título en tipografía condensada grande dentro de la caja 2:3; sin notas se ve una raya por persona con «Sin nota» solo para lectores de pantalla y la media vacía, como la fila; las observaciones no salen en la tarjeta; el estado va compacto; el año va junto al título; la fecha es la de la tabla (añadida en Pendientes, de visionado o raya en Vistas); la tabla sigue por defecto; las series usan el resumen derivado, sin indicador de temporada.
+- **Hecho.** Cookie `list_view` y su lectura y acción (D-93), `ListViewToggle` (D-94), `Poster` con `fallback="title"` (D-95), `TitleCard` y `TitleCardGrid` (D-96), integración en `TitlesList`, E2E (83/83 en `pnpm test:e2e`) y enmienda de `DESIGN.md` (D-99). Sin migraciones y sin cambios en la consulta de la lista.
+- **Pendiente.** Comprobación visual con el MCP de Playwright a 390 y 1280 px en claro y oscuro (registrada en `docs/DESIGN-ROADMAP.md`), que hace el orquestador; el paso pasa a `[x]` cuando se haga y la persona revise.
 
 ---
 
@@ -515,3 +517,7 @@ Lista sin orden. Se priorizan después del lanzamiento.
 | 2026-11-03 | 2.3 | El volcado de datos se limita al esquema `public` (`-s public`); D-91 decía que `auth` quedaba fuera y no era cierto | El ensayo de restauración mostró que `supabase db dump --data-only` (CLI 2.122.0) incluía los datos de `auth.*` y `storage.*`; cifrados, sin exposición (D-92) |
 | 2026-11-03 | 2.3 | Los comandos de restauración de `docs/DEPLOY.md` se ejecutan en Git Bash; `pnpm test:db` corre sobre una restauración sin datos | PowerShell no admite la redirección `<`; los tests de pgTAP suponen `allowed_emails` vacía (D-92) |
 | 2026-11-04 | 3.1 | La candidata «Vista de tarjetas» pasa a ser el paso 3.1 y la lista de candidatas queda en su propia sección | La persona la prioriza como primera funcionalidad de la fase 3 |
+| 2026-11-04 | 3.1 | El interruptor de vista usa radios nativos con el aspecto del selector de tema y no `FilterChip` ni el token `filter-chip-selected` | `aria-pressed` describe mal una elección excluyente y el token invierte el fondo, contra la regla de una sola inversión (D-94) |
+| 2026-11-04 | 3.1 | `DESIGN.md` se enmienda para permitir la vista de tarjetas como alternativa a la tabla | El documento la prohibía expresamente; la persona decidió permitirla antes de la propuesta (D-99) |
+| 2026-11-04 | 3.1 | La ausencia de parpadeo se comprueba sobre la respuesta HTTP cruda y no con JavaScript desactivado | Con Partial Prerender el contenido de la lista llega en streaming y, sin JavaScript, el navegador no lo muestra; el HTML ya trae la cuadrícula y no una tabla |
+| 2026-11-04 | 3.1 | Un solo PR de unas 1550 líneas con excepción de tamaño | Aceptado por la persona (`size:exception`); más de la mitad son tests y documentación |

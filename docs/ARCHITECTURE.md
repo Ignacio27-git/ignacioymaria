@@ -57,6 +57,12 @@ Excepción: el script local `scripts/import-excel.ts` (paso 1.7, D-71) habla por
 - Tema: `src/lib/theme/preference.ts` define los valores (`system`, `light`, `dark`) y su lectura segura; `src/server/theme/read-preference.ts` lee la cookie `theme` en el servidor y `src/app/_actions/theme.ts` (`setThemeAction`) la escribe. `RootLayout` envuelve `ThemedDocument` en `Suspense` para pintar `data-theme` desde el servidor (D-50 y D-51).
 - `/sistema`: muestrario vivo del sistema, protegido por sesión como el resto de rutas. Sus datos de muestra salen de `src/server/specimen/sample.ts` (`server-only`), que construye notas y medias con funciones del dominio (D-53).
 
+## Vista de tarjetas (paso 3.1)
+
+- La vista de las listas (`table` o `grid`) es una preferencia del dispositivo, no estado de la lista: vive en la cookie `list_view`, igual que el tema. `src/lib/list-view/preference.ts` define los valores y su lectura segura (`parseListView`), `src/server/list-view/read-preference.ts` (`server-only`) la lee en el servidor y `src/app/_actions/list-view.ts` (`setListViewAction`) la escribe solo con valores permitidos. No hay parámetro de URL ni cambio de datos o migraciones (D-93).
+- `TitlesList` (`src/app/(catalog)/titles-list.tsx`) lee la vista tras los `searchParams` y antes de `listTitles`, dentro del `Suspense` de `CatalogLayout`, y elige entre `CriticsTable` y `TitleCardGrid` sobre las mismas filas. La fecha de ambas vistas sale de `dateFor`.
+- `ListViewToggle` (`src/app/(catalog)/list-view-toggle.tsx`) es una isla de cliente fuera de `ListControls`; al escribir la cookie, Next vuelve a renderizar la ruta actual (D-94 y D-97). `TitleCard` y `TitleCardGrid` (`src/components/ui/title-card.tsx`) son componentes de presentación sin cliente; `Poster` gana la prop `fallback` (D-95).
+
 ## Gestión de títulos (paso 1.6)
 
 - Dominio (puro): `search.ts` (`foldSearch`, `escapeLike`), `title-order.ts` (`sortTitles`) y `today.ts` (`todayIso`, día de Europe/Madrid); todos exportados desde `@/domain`.
@@ -117,7 +123,7 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | `src/server/auth/` | Casos de uso de acceso: `sendMagicLink`, `signOut`, `getCurrentPerson` y `scoreColumnFor` |
 | `src/server/tmdb/` | Integración con TMDB: `env`, `client`, `mappers`, `lookup` y `types` (paso 1.5) |
 | `src/lib/tmdb/` | `posterUrl`: construye la URL del póster; pura y segura para el cliente |
-| `src/app/_actions/` | Server Actions de la interfaz (`requestMagicLinkAction`, `signOutAction`, `searchTmdbAction`, `getTmdbDetailsAction`, `setThemeAction`) y `titles.ts` (paso 1.6), envoltorios finos |
+| `src/app/_actions/` | Server Actions de la interfaz (`requestMagicLinkAction`, `signOutAction`, `searchTmdbAction`, `getTmdbDetailsAction`, `setThemeAction`, `setListViewAction`) y `titles.ts` (paso 1.6), envoltorios finos |
 | `src/server/titles/` | Repositorio y casos de uso de títulos (paso 1.6) |
 | `src/lib/titles/` | Parámetros de lista, origen de «Añadir» y formato de fecha; puro y seguro para el cliente |
 | `src/app/(catalog)/` | Rutas con sesión: `/vistas`, `/pendientes`, `/anadir`, `/titulo/[id]` y su cabecera |
@@ -125,7 +131,9 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | `src/components/ui/` | Componentes de presentación del sistema de diseño (paso D.2): `Button`, `TextField`, `StateCell`, `ScoreFigure`, `AverageBox`, `FilterChip`, `SortControl`, `CriticsTable`, `Masthead`, `ThemeToggle` y `AddAction`, más `cx` e `icons` |
 | `src/lib/design/` | Tokens de color (`tokens.ts`, fuente única) y cálculo de contraste (`contrast.ts`) |
 | `src/lib/theme/` | Preferencia de tema: valores admitidos y lectura segura |
+| `src/lib/list-view/` | Preferencia de vista de las listas (`table` o `grid`): valores admitidos y lectura segura (paso 3.1) |
 | `src/server/theme/` | Lectura de la cookie `theme` en el servidor |
+| `src/server/list-view/` | Lectura de la cookie `list_view` en el servidor (paso 3.1) |
 | `src/server/specimen/` | Datos de muestra de `/sistema` (`server-only`) |
 | `src/test/` | Ayudantes de tests unitarios (`axe.ts` con `expectNoAxeViolations`, `score.ts`) |
 | `src/import/` | Reglas puras del importador del Excel (paso 1.7): `color`, `sheet-date`, `season`, `group`, `aired`, `score`, `tmdb-search`, `match`, `row`, `env`, `db-error`, `report` y `types` |
