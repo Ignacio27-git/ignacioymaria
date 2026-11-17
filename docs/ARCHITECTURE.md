@@ -110,7 +110,7 @@ Los proyectos de Playwright se encadenan `auth -> smoke -> ui -> titles`: `smoke
 
 **Carrera residual conocida (D-108).** Un test `smoke` rezagado cuyo `beforeAll` pasó antes de que la restauración confirmara puede añadir «Dune» por el servidor de desarrollo y valorarla. No puede borrar datos ni cambiar una fila real. La puerta de las ayudantes cierra el resto de los casos tardíos.
 
-**Comprobaciones manuales en Windows.** Ctrl+C una vez durante `auth`, cierre del terminal y segunda ejecución concurrente rechazada: pendientes de la persona; sus resultados se anotan en el ROADMAP.
+**Comprobaciones manuales en Windows (2026-11-17).** Hechas con datos reales: Ctrl+C una vez durante `auth`, cierre de la ventana, corte real de la ejecución y segunda ejecución concurrente rechazada. Resultados y límites en `docs/ROADMAP.md` (paso 3.1).
 
 ## Despliegue y comprobación en producción (paso 2.2)
 
