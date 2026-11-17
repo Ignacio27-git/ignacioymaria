@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   // the cookie host (see docs/DECISIONS.md).
   allowedDevOrigins: ["127.0.0.1"],
   cacheComponents: true,
+  experimental: {
+    agentUpgrade: "security",
+  },
   // Narrow on purpose: only w342 posters can go through the image optimizer
   // (see posterUrl in src/lib/tmdb/poster-url.ts).
   images: {
