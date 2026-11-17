@@ -449,6 +449,34 @@ portada, nota o fecha se ven bien y que la cuadrícula funciona en móvil.
 
 ---
 
+## [ ] 3.2 · Vincular un título con TMDB
+
+**Objetivo.** Desde la ficha, buscar en TMDB y vincular un título que no casó (por ejemplo,
+«No te preocupes querida», que en TMDB es «No te preocupes cariño») o que quedó vinculado a una
+ficha equivocada, sin perder lo que ya tenemos registrado.
+
+```text
+/gentle-sdd-new tmdb-relink
+
+En la ficha de un título, permite buscar en TMDB y vincularlo a un resultado, tanto si el
+título se guardó a mano como si está vinculado a una ficha equivocada. Al vincular se
+actualizan los datos técnicos que vienen de TMDB (póster, año, reparto, tipo y temporadas) y se
+conservan siempre los nuestros: las dos notas, el estado, la fecha vista, las observaciones y
+las notas por temporada. Usa las skills de diseño y compruébalo con el MCP de Playwright,
+también en móvil. Antes de decidir si el nombre guardado se sustituye por el de TMDB, qué pasa
+si el resultado ya está en la lista como otro título, si se permite cambiar de película a serie
+(o al revés) con notas por temporada, si se puede deshacer o desvincular y si la búsqueda parte
+del nombre actual, pregunta.
+```
+
+**Revisar.** Que tras vincular «No te preocupes querida» la ficha muestra el póster y los datos
+de TMDB y conserva notas, estado, fecha y observaciones; que un resultado ya presente en la lista
+no crea un duplicado; y que funciona en móvil.
+
+**Notas:**
+
+---
+
 ## Candidatas
 
 Lista sin orden. Se priorizan después del lanzamiento.
@@ -531,3 +559,4 @@ Lista sin orden. Se priorizan después del lanzamiento.
 | 2026-11-04 | 3.1 | `pnpm db:reset` con una copia pendiente se razona a partir de las migraciones y no se ejecuta | Habría borrado los datos reales de la base local |
 | 2026-11-04 | 3.1 | Los pasos de CI de `db-e2e` quedan sin comprobar en esta sesión; las comprobaciones manuales de Windows se hicieron el 2026-11-17 (ver notas del paso) | Los de CI solo se pueden probar en GitHub; las manuales las hicieron la persona y el orquestador |
 | 2026-11-17 | — | Actualización de seguridad de Next.js 16.4.3 → 16.4.6 fuera de un paso y sin ciclo SDD, en su propia rama `chore/next-16.4.6` (D-109) | Parche de seguridad pedido por la persona con instrucciones propias; no cambia comportamiento ni pertenece a ningún paso |
+| 2026-11-17 | 3.2 | Nuevo paso «Vincular un título con TMDB», añadido directamente a la fase 3 sin pasar por candidatas | Pedido por la persona: hay títulos importados que no casan con TMDB por diferencias de nombre («No te preocupes querida» frente a «No te preocupes cariño») |
