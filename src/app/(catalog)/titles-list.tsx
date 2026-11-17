@@ -8,13 +8,16 @@ import {
   CriticsTableRow,
 } from "@/components/ui/critics-table";
 import { Masthead } from "@/components/ui/masthead";
+import { TitleCard, TitleCardGrid } from "@/components/ui/title-card";
 import type { TitleList } from "@/domain/title-order";
 import { formatAddedDate, formatWatchDate } from "@/lib/titles/format-date";
 import { parseListParams, type RawSearchParams } from "@/lib/titles/list-params";
+import { readListView } from "@/server/list-view/read-preference";
 import { listTitles } from "@/server/titles/list";
 import type { TitleView } from "@/server/titles/types";
 
 import { ListControls } from "./list-controls";
+import { ListViewToggle } from "./list-view-toggle";
 
 const HEADINGS: Record<TitleList, string> = {
   vistas: "Vistas",
@@ -34,8 +37,9 @@ function dateFor(list: TitleList, { summary, createdAt }: TitleView): string {
 
 /**
  * One catalog list, shared by /vistas and /pendientes: reads the URL state,
- * asks the use case for the filtered and sorted titles, and renders the
- * critics' table. Rows carry no posters.
+ * asks the use case for the filtered and sorted titles, and renders them as
+ * the critics' table (rows carry no posters) or as the card grid, per the
+ * device's stored view.
  */
 export async function TitlesList({
   list,
@@ -46,6 +50,7 @@ export async function TitlesList({
 }) {
   const raw = await searchParams;
   const { q, selectedStates, order } = parseListParams(list, raw);
+  const view = await readListView();
   const result = await listTitles(list, raw);
 
   if (!result.ok && result.error.kind === "unauthorized") {
@@ -59,12 +64,15 @@ export async function TitlesList({
   return (
     <main className="mx-auto flex w-full max-w-table flex-1 flex-col gap-5 px-4 pb-28 pt-6 sm:px-6">
       <Masthead title={heading} count={rows.length} as="h1" />
-      <ListControls
-        list={list}
-        q={q}
-        selectedStates={selectedStates}
-        order={order}
-      />
+      <div className="flex flex-col gap-3">
+        <ListControls
+          list={list}
+          q={q}
+          selectedStates={selectedStates}
+          order={order}
+        />
+        <ListViewToggle value={view} />
+      </div>
 
       {!result.ok ? (
         <p role="alert" className="border border-rule-strong p-4">
@@ -81,6 +89,23 @@ export async function TitlesList({
             </Link>
           )}
         </div>
+      ) : view === "grid" ? (
+        <TitleCardGrid label={heading}>
+          {rows.map((row) => (
+            <TitleCard
+              key={row.id}
+              href={`/titulo/${row.id}`}
+              name={row.title.name}
+              year={row.title.year}
+              posterPath={row.title.posterPath ?? null}
+              state={row.summary.state}
+              maria={row.summary.scores.maria}
+              ignacio={row.summary.scores.ignacio}
+              average={row.summary.average}
+              watchedOn={dateFor(list, row)}
+            />
+          ))}
+        </TitleCardGrid>
       ) : (
         <CriticsTable label={heading}>
           <CriticsTableHeader showDate />

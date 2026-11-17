@@ -81,6 +81,33 @@ Cambio visual del paso 1.8 de `docs/ROADMAP.md` (cambio SDD `season-ratings`), f
 
 ---
 
+## [~] Vista de tarjetas (paso 3.1)
+
+Cambio visual del paso 3.1 de `docs/ROADMAP.md` (cambio SDD `card-view`), fuera de la numeración `D.n`: es una vista alternativa de las listas de 1.6. `DESIGN.md` se enmienda para permitirla (D-99).
+
+**Notas:** 2026-11-04 · Construido con el lenguaje visual existente (reglas, sin radio ni sombra, estado como cuadrado pintado, una única inversión: la media) y con las skills `impeccable`, `emil-design-eng` y `mobile-native`.
+- **Interruptor de vista.** `Vista` con dos opciones, `Tabla` y `Tarjetas`, en el aspecto de chip del selector de tema sobre radios nativos (flechas y espacio sin código propio), 44 px de alto, marca de verificación en la elegida y sin fondo invertido. Va debajo de los controles de la lista y no toca la URL.
+- **Tarjeta.** Portada 2:3, título (condensada, dos líneas como máximo) con el año a la derecha, `StateCell`, columnas María / Ignacio / Media (`1fr 1fr 3rem`) con `ScoreFigure` y `AverageBox`, y la fecha como en la tabla. Plana y cuadrada, cerrada por una línea fina; el enlace del título se extiende por toda la tarjeta (una parada de tabulador, el nombre se anuncia una vez). El gris de pulsación y el aro de foco interior son los de la fila de la tabla.
+- **Cuadrícula.** 2 columnas en móvil, 3 desde `sm` y 4 desde `md`, dentro de `max-w-table`, abierta por una regla de tinta de 2 px. Las tarjetas de una fila comparten altura y alinean notas, media y fecha (`mt-auto`).
+- **Sin portada.** El título en condensada `text-2xl` extrabold ocupa la caja 2:3 (seis líneas como máximo, `overflow-wrap:anywhere`), sin imagen. Con portada, la imagen carga perezosa desde TMDB (w342).
+- **Sin notas.** Raya visible por persona con «Sin nota» solo para lectores de pantalla y la media vacía («Sin media»), igual que la fila.
+- **Movimiento.** Sin animación nueva: solo el cambio de color de 150 ms ya existente, apagado con `prefers-reduced-motion`. El cambio de vista es una acción repetida y no se anima.
+- **Pruebas.** Componentes con axe (interruptor, portada tipográfica, tarjeta, lista), E2E con imágenes de TMDB simuladas (interruptor en ambas listas, URL intacta, persistencia, cookie inválida, HTML inicial con la cuadrícula, clic con búsqueda pendiente, teclado real, tarjetas planas y de igual altura, carga perezosa, sin desbordamiento a 390 y 1280 px) y el recorrido de axe, desbordamiento e hidratación a 1280, 1440 y 390 px en ambos temas ampliado con las tarjetas.
+- **Comprobación con el MCP de Playwright (2026-11-04).** Contra `pnpm dev` y la base local, con títulos de prueba y las imágenes de TMDB simuladas por un degradado, así que no valida carteles reales. Sin correcciones. Las capturas están en `.playwright-mcp/card-view/`, carpeta ignorada por git.
+
+  | Viewport | Tema | Caso | Hallazgo | Captura |
+  |---|---|---|---|---|
+  | 390 px | Claro | `/vistas`: portada, portada tipográfica, sin notas, sin fecha, título largo | Dos columnas de 173 px y seis tarjetas de 441 px de alto; sin desbordamiento; interruptor de 44 px | `vistas-390-light.png` |
+  | 390 px | Oscuro | `/pendientes`: portada, portada tipográfica, título largo, fecha de alta | Tres tarjetas de 430 px de alto; sin desbordamiento; el título de 73 caracteres cabe en la portada | `pendientes-390-dark.png` |
+  | 1280 px | Claro | `/vistas`: los mismos casos | Cuatro columnas de 166 px y seis tarjetas de 431 px de alto; sin desbordamiento; notas, media y fecha alineadas | `vistas-1280-light.png` |
+  | 1280 px | Oscuro | `/vistas`: los mismos casos | Mismo reparto; la media es el único elemento invertido | `vistas-1280-dark.png` |
+
+  - **Interacción, a 390 px.** Las flechas cambian de vista, conservan el foco en el interruptor y dejan la URL intacta. Pulsar la portada abre la ficha. La vista se conserva al recargar.
+  - **Límites.** Chromium de escritorio con barra de desplazamiento clásica: a 390 px quedan 375 px útiles. No es un teléfono real, así que la respuesta al toque sigue sin comprobar. Las series no se revisaron a ojo; solo las cubren las pruebas de componentes.
+  - **Observaciones sin corregir.** «6,88» ocupa 44 de los 48 px de la caja de la media: cabe, con 2 px por lado, pero queda justo. En desarrollo, Next avisa de que la primera portada con carga perezosa es el LCP; la especificación pide carga perezosa, y cargarla antes sería una mejora aparte.
+
+---
+
 # Registro de desviaciones
 
 | Fecha | Paso | Qué cambió | Por qué |
@@ -93,3 +120,5 @@ Cambio visual del paso 1.8 de `docs/ROADMAP.md` (cambio SDD `season-ratings`), f
 | 2026-11-03 | 1.8 | Entrada propia «Ficha de serie y listas por temporada» fuera de la numeración `D.n`, y la comprobación con el MCP de Playwright queda para el orquestador | Es una ampliación visual de la ficha y las listas de 1.6; el agente de implementación no tiene herramientas de navegador |
 | 2026-11-03 | 1.8 | `CriticsTableRow` acepta `number \| null` en las notas (antes `Score`), como ya hacía `ScoreFigure` | La media de las notas de temporada puede salirse de la rejilla de 0,25 (D-82) |
 | 2026-11-03 | 1.8 | Las filas de temporada son `<details>` plegables con la última abierta, en lugar de una lista de editores siempre visibles | Una serie de ocho temporadas con seis estados, fecha y panel de nota por temporada serían miles de píxeles de ficha; la línea plegada conserva estado, fecha y notas a la vista |
+| 2026-11-04 | 3.1 | Entrada propia «Vista de tarjetas» fuera de la numeración `D.n`, y la comprobación con el MCP de Playwright queda pendiente para el orquestador | Es una vista alternativa de las listas de 1.6; el agente de implementación no tiene herramientas de navegador |
+| 2026-11-04 | 3.1 | El interruptor de vista copia el aspecto de chip del selector de tema, no el token `filter-chip-selected` de `DESIGN.md` | Ese token invierte el fondo y rompería la regla de una sola inversión (R4); el selector de tema ya usa Pressed Paper |

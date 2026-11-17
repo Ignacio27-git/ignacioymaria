@@ -1,18 +1,11 @@
-import { withDb } from "./db";
+import { lifecycle } from "./lifecycle";
 
-export const E2E_PEOPLE = [
-  { email: "e2e-ignacio@example.test", person: "ignacio" },
-  { email: "e2e-maria@example.test", person: "maria" },
-] as const;
+export { E2E_PEOPLE } from "./people";
 
-/** Allowlists the two E2E accounts. A seed file would break AC-1.2. */
+/**
+ * Takes the run lock, allowlists the two E2E accounts and snapshots the local
+ * titles. A seed file would break AC-1.2. `global-teardown.ts` gives the data back.
+ */
 export default async function globalSetup() {
-  await withDb(async (client) => {
-    for (const { email, person } of E2E_PEOPLE) {
-      await client.query(
-        "insert into public.allowed_emails (email, person) values ($1, $2) on conflict do nothing",
-        [email, person],
-      );
-    }
-  });
+  await lifecycle.begin();
 }

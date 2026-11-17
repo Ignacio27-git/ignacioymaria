@@ -57,6 +57,12 @@ Excepción: el script local `scripts/import-excel.ts` (paso 1.7, D-71) habla por
 - Tema: `src/lib/theme/preference.ts` define los valores (`system`, `light`, `dark`) y su lectura segura; `src/server/theme/read-preference.ts` lee la cookie `theme` en el servidor y `src/app/_actions/theme.ts` (`setThemeAction`) la escribe. `RootLayout` envuelve `ThemedDocument` en `Suspense` para pintar `data-theme` desde el servidor (D-50 y D-51).
 - `/sistema`: muestrario vivo del sistema, protegido por sesión como el resto de rutas. Sus datos de muestra salen de `src/server/specimen/sample.ts` (`server-only`), que construye notas y medias con funciones del dominio (D-53).
 
+## Vista de tarjetas (paso 3.1)
+
+- La vista de las listas (`table` o `grid`) es una preferencia del dispositivo, no estado de la lista: vive en la cookie `list_view`, igual que el tema. `src/lib/list-view/preference.ts` define los valores y su lectura segura (`parseListView`), `src/server/list-view/read-preference.ts` (`server-only`) la lee en el servidor y `src/app/_actions/list-view.ts` (`setListViewAction`) la escribe solo con valores permitidos. No hay parámetro de URL ni cambio de datos o migraciones (D-93).
+- `TitlesList` (`src/app/(catalog)/titles-list.tsx`) lee la vista tras los `searchParams` y antes de `listTitles`, dentro del `Suspense` de `CatalogLayout`, y elige entre `CriticsTable` y `TitleCardGrid` sobre las mismas filas. La fecha de ambas vistas sale de `dateFor`.
+- `ListViewToggle` (`src/app/(catalog)/list-view-toggle.tsx`) es una isla de cliente fuera de `ListControls`; al escribir la cookie, Next vuelve a renderizar la ruta actual (D-94 y D-97). `TitleCard` y `TitleCardGrid` (`src/components/ui/title-card.tsx`) son componentes de presentación sin cliente; `Poster` gana la prop `fallback` (D-95).
+
 ## Gestión de títulos (paso 1.6)
 
 - Dominio (puro): `search.ts` (`foldSearch`, `escapeLike`), `title-order.ts` (`sortTitles`) y `today.ts` (`todayIso`, día de Europe/Madrid); todos exportados desde `@/domain`.
@@ -91,6 +97,21 @@ Flujo: hoja `Pelis` -> `RawRow[]` -> `prepareRow` -> `groupSeasons` (una fila po
 
 Los proyectos de Playwright se encadenan `auth -> smoke -> ui -> titles`: `smoke` (`tests/e2e/smoke.spec.ts`) es el recorrido crítico y es dueño de la tabla `titles` y del buzón mientras corre. Seleccionar `ui` o `titles` ejecuta también `auth` y `smoke`.
 
+## Datos locales y E2E
+
+`pnpm test:e2e` no debe destruir los datos locales de `titles` y `title_seasons`. El código vive en `scripts/e2e/` (sin dependencias de la aplicación) y el cableado en `tests/e2e/`:
+
+- `local-db-guard.ts`: `openLocalDb(url)` solo abre conexiones a `127.0.0.1`, `localhost` o `[::1]` (D-101). Todo acceso a la base de los tests y del arranque pasa por aquí (`tests/e2e/db.ts`).
+- `local-data.ts`: estado, copia, restauración, `atomically` (bloqueo de ambas tablas y `lock_timeout`) y la puerta `SNAPSHOT_GATE` que llevan las ayudantes destructivas (D-103).
+- `run-lifecycle.ts`: `createLifecycle`, con `begin` (guarda, candado, lista permitida, recuperación y copia en una transacción) y `end` (restaura lo que esta ejecución copió y libera el candado). `tests/e2e/lifecycle.ts` crea la única instancia; `global-setup.ts` llama a `begin` y `global-teardown.ts` a `end` (D-100, D-102).
+- `rollback-only.ts` y `tests/e2e-data/`: pruebas de integración dentro de una transacción que se revierte (D-106). `data-check.ts`, `playwright.failing.config.ts` y `tests/e2e-data/failing/`: la comprobación de CI (D-107).
+
+**Qué cubre y qué no.** La guarda de dirección protege las conexiones de los tests y del arranque. **No cubre la aplicación bajo prueba**: `pnpm dev` lee su propia configuración (`.env.local`) y podría apuntar a otra base. Durante la ejecución la aplicación local no sirve para uso normal, porque comparte la tabla con los tests.
+
+**Carrera residual conocida (D-108).** Un test `smoke` rezagado cuyo `beforeAll` pasó antes de que la restauración confirmara puede añadir «Dune» por el servidor de desarrollo y valorarla. No puede borrar datos ni cambiar una fila real. La puerta de las ayudantes cierra el resto de los casos tardíos.
+
+**Comprobaciones manuales en Windows (2026-11-17).** Hechas con datos reales: Ctrl+C una vez durante `auth`, cierre de la ventana, corte real de la ejecución y segunda ejecución concurrente rechazada. Resultados y límites en `docs/ROADMAP.md` (paso 3.1).
+
 ## Despliegue y comprobación en producción (paso 2.2)
 
 Vercel despliega solo `main` (`vercel.json`). `.github/workflows/deploy-migrations.yml` aplica las migraciones al Supabase alojado con el CLI fijado por el lockfile, en el entorno `production` de GitHub (los únicos secretos del repositorio viven ahí; `ci.yml` sigue sin ninguno, D-88 y D-89). Vercel y las migraciones corren en paralelo: las migraciones son aditivas.
@@ -117,7 +138,7 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | `src/server/auth/` | Casos de uso de acceso: `sendMagicLink`, `signOut`, `getCurrentPerson` y `scoreColumnFor` |
 | `src/server/tmdb/` | Integración con TMDB: `env`, `client`, `mappers`, `lookup` y `types` (paso 1.5) |
 | `src/lib/tmdb/` | `posterUrl`: construye la URL del póster; pura y segura para el cliente |
-| `src/app/_actions/` | Server Actions de la interfaz (`requestMagicLinkAction`, `signOutAction`, `searchTmdbAction`, `getTmdbDetailsAction`, `setThemeAction`) y `titles.ts` (paso 1.6), envoltorios finos |
+| `src/app/_actions/` | Server Actions de la interfaz (`requestMagicLinkAction`, `signOutAction`, `searchTmdbAction`, `getTmdbDetailsAction`, `setThemeAction`, `setListViewAction`) y `titles.ts` (paso 1.6), envoltorios finos |
 | `src/server/titles/` | Repositorio y casos de uso de títulos (paso 1.6) |
 | `src/lib/titles/` | Parámetros de lista, origen de «Añadir» y formato de fecha; puro y seguro para el cliente |
 | `src/app/(catalog)/` | Rutas con sesión: `/vistas`, `/pendientes`, `/anadir`, `/titulo/[id]` y su cabecera |
@@ -125,7 +146,9 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | `src/components/ui/` | Componentes de presentación del sistema de diseño (paso D.2): `Button`, `TextField`, `StateCell`, `ScoreFigure`, `AverageBox`, `FilterChip`, `SortControl`, `CriticsTable`, `Masthead`, `ThemeToggle` y `AddAction`, más `cx` e `icons` |
 | `src/lib/design/` | Tokens de color (`tokens.ts`, fuente única) y cálculo de contraste (`contrast.ts`) |
 | `src/lib/theme/` | Preferencia de tema: valores admitidos y lectura segura |
+| `src/lib/list-view/` | Preferencia de vista de las listas (`table` o `grid`): valores admitidos y lectura segura (paso 3.1) |
 | `src/server/theme/` | Lectura de la cookie `theme` en el servidor |
+| `src/server/list-view/` | Lectura de la cookie `list_view` en el servidor (paso 3.1) |
 | `src/server/specimen/` | Datos de muestra de `/sistema` (`server-only`) |
 | `src/test/` | Ayudantes de tests unitarios (`axe.ts` con `expectNoAxeViolations`, `score.ts`) |
 | `src/import/` | Reglas puras del importador del Excel (paso 1.7): `color`, `sheet-date`, `season`, `group`, `aired`, `score`, `tmdb-search`, `match`, `row`, `env`, `db-error`, `report` y `types` |
@@ -135,7 +158,9 @@ Estructura creada en el paso 1.1. Las reglas de dependencia de arriba la gobiern
 | `supabase/templates/` | Plantilla del correo de acceso (`sign-in.html`) |
 | `supabase/tests/database/` | Tests pgTAP (`pnpm test:db`): `titles_constraints`, `access_control`, `couple_auth`, `tmdb_fields`, `title_search_unique`, `titles_import_key` y `title_seasons`; solo en local |
 | `supabase/config.toml` | Configuración de la CLI de Supabase (proyecto `ignacioymaria`, sin semilla) |
-| `tests/e2e/` | Pruebas E2E (Playwright): `auth.spec.ts` con ayudantes de Mailpit y `pg`, `design-system.spec.ts` (`/sistema` en ambos temas y anchos) `titles.spec.ts` con `titles-db.ts` (gestión de títulos con el doble de TMDB) y `session.ts` (ayudantes de sesión compartidos); `globalSetup` inserta las dos cuentas de prueba |
+| `tests/e2e/` | Pruebas E2E (Playwright): `auth.spec.ts` con ayudantes de Mailpit y `pg`, `design-system.spec.ts` (`/sistema` en ambos temas y anchos) `titles.spec.ts` con `titles-db.ts` (gestión de títulos con el doble de TMDB) y `session.ts` (ayudantes de sesión compartidos); `global-setup.ts` y `global-teardown.ts` abren y cierran la copia de los datos locales y dan de alta las dos cuentas de prueba (ver «Datos locales y E2E») |
+| `scripts/e2e/` | Conservación de datos locales en los E2E: guarda de dirección, copia y restauración, ciclo de vida y comprobación de CI, con sus tests (`pnpm test`) |
+| `tests/e2e-data/` | Integración contra la base local dentro de una transacción que se revierte (`pnpm test:e2e-data`) y la prueba que falla a propósito de CI (`playwright.failing.config.ts`) |
 | `vitest.config.mts` | Configuración de Vitest (jsdom, solo `src/**/*.test.{ts,tsx}`) |
 | `playwright.config.ts` | Configuración de Playwright (chromium, arranca `pnpm dev`; proyecto `auth` antes que `ui`, D-57) |
 

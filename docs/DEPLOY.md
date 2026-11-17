@@ -118,6 +118,31 @@ Requiere Docker, `pnpm db:start` y la identidad privada (`age`). `psql` no está
 - `data.sql` no incluye el esquema `supabase_migrations` (solo `COPY` de `auth`, `public` y `storage` en la copia previa a la corrección).
 - Tras `drop schema public`, no se pierde nada: el volcado de esquema contiene `GRANT USAGE ON SCHEMA public` y `ALTER DEFAULT PRIVILEGES`, y los permisos y políticas se restauran.
 
+## Datos locales tras un E2E interrumpido
+
+`pnpm test:e2e` copia `public.titles` y `public.title_seasons` al esquema `e2e_local_snapshot` antes de los tests y los devuelve al terminar (D-100 a D-107). Si el proceso muere sin llegar al final (cierre del terminal, corte de luz, fallo de la base), la copia queda como marca y **la siguiente ejecución la recupera sola**: restaura primero, avisa en voz alta (`E2E: a snapshot left by an interrupted run was restored first`) y toma una copia nueva. No hay que hacer nada a mano en el caso normal.
+
+Durante una ejecución la aplicación no sirve para uso normal: la tabla `titles` se vacía y se rellena con datos de prueba, y las dos cuentas `e2e-*@example.test` quedan en `allowed_emails` y `auth.users` (se quedan a propósito). Parad vuestro servidor de desarrollo antes de lanzar los E2E (Playwright reutilizaría el que esté en el puerto 3000) y no lo uséis mientras corren. Solo puede haber una ejecución a la vez.
+
+**Solo recuperar, sin correr los tests.** `pnpm test:e2e --grep zzz-sin-coincidencias`. Playwright ejecuta igualmente el arranque y el cierre global: recupera la copia y devuelve los datos, y acaba con `Error: No tests found` y código de salida 1 (es lo esperado). Comprobado en real el 2026-11-04 con una copia pendiente: se restauraron 269 títulos y 33 temporadas, el esquema desapareció y los hashes quedaron idénticos.
+
+**La recuperación se niega a restaurar.** Tras una migración que cambie las columnas de `titles` o `title_seasons`, la copia vieja ya no encaja y el arranque falla con `The columns of public.titles changed since the snapshot ...`, sin tocar nada (la copia y las tablas siguen intactas). Se arregla adaptando la copia a mano, en `psql` contra la base local, y repitiendo el comando de solo recuperar:
+
+- Columna **añadida** (nullable): `alter table e2e_local_snapshot.titles add column <nombre> <tipo>;`
+- Columna añadida **`not null`** (con o sin valor por defecto): igual que la anterior y después `update e2e_local_snapshot.titles set <nombre> = <valor válido>;`. Hace falta el `update` porque la restauración inserta la columna de forma explícita: no aplica el valor por defecto de la tabla y una copia con `null` violaría la restricción.
+- Columna **eliminada**: `alter table e2e_local_snapshot.titles drop column <nombre>;`
+- Columna **renombrada**: `alter table e2e_local_snapshot.titles rename column <viejo> to <nuevo>;`
+
+Lo mismo con `title_seasons`. Las columnas generadas no se copian y no hay que tocarlas. Si la copia está incompleta (esquema sin `marker`), el arranque también se niega: borrad el esquema solo después de comprobar que `public.titles` tiene vuestros datos, porque en ese estado la copia es la única referencia.
+
+**`pnpm db:reset` con una copia pendiente.** Recrea la base local desde las migraciones y se lleva por delante todo lo que haya, también el esquema `e2e_local_snapshot` y los datos que guardaba. Es lo esperado cuando se quiere empezar de cero, pero si la copia contenía vuestros datos reales se pierden con ella: recuperad antes (comando de arriba). *Razonado a partir de las migraciones y del comportamiento de `supabase db reset`, no ejecutado: lo habría vaciado todo.* Después del reset no hay copia, así que la siguiente ejecución parte de tablas vacías y las devuelve vacías.
+
+**Ejecuciones rechazadas.** Una segunda ejecución a la vez se detiene antes de leer o escribir nada con `Another E2E run is in progress (or a stale database backend still holds the run lock)`. Si no hay otra ejecución, un proceso de base de datos huérfano puede conservar el candado: se libera solo al cerrarse esa sesión; si no ocurre, reiniciad la base (`pnpm db:stop` y `pnpm db:start`) y volved a lanzar. Un rechazo por dirección (`Refusing to connect: the database host must be 127.0.0.1, localhost or [::1]`) significa que `SUPABASE_DB_URL` apunta a otro sitio: los E2E no se ejecutan contra una base que no sea local.
+
+**Lo que esta protección no cubre.** La guarda de dirección solo vigila las conexiones de los tests y del arranque. La aplicación que se prueba (`pnpm dev`) usa sus propias variables de `.env.local`: antes de lanzar los E2E, comprobad que `NEXT_PUBLIC_SUPABASE_URL` apunta a la base local y no a Supabase alojado. Tampoco hay protección si la conexión del candado se pierde en mitad de la ejecución: no se restaura, se avisa en voz alta y la siguiente ejecución recupera la copia.
+
+**Comprobación en CI.** El job `db-e2e` siembra una fila, ejecuta una prueba que falla a propósito (`playwright.failing.config.ts`, con informe JSON que debe contar exactamente un fallo) y compara un hash de ambas tablas; después ejecuta los E2E y vuelve a comparar. Solo se puede comprobar en GitHub Actions.
+
 ## Reversión
 
 - Importación y copias: ver «Importación en producción» (reversión previa al cambio a producción) y «Copias de seguridad»; para pausar las copias, desactivar el workflow `backup` (Actions > Disable).

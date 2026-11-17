@@ -89,9 +89,34 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
 
+      # Integration tests of the data-preservation machinery: every write is rolled back.
+      # Before the seed below, because they refuse to run while a snapshot exists.
+      - name: E2E data preservation (integration, rolled back)
+        run: pnpm test:e2e-data
+
+      # S6.1: prove the data comes back, not only that an empty CI database stays empty.
+      - name: Seed a row to preserve
+        id: seed
+        run: pnpm exec tsx scripts/e2e/data-check.ts seed
+
+      - name: E2E data restore after a failing test
+        run: |
+          set -uo pipefail
+          if pnpm exec playwright test --config playwright.failing.config.ts; then
+            echo "The failing config passed: it must fail." >&2
+            exit 1
+          fi
+          # A non-zero exit alone would also come from a load error: check the report.
+          pnpm exec tsx scripts/e2e/data-check.ts expect-failure test-results/failing-report.json
+          pnpm exec tsx scripts/e2e/data-check.ts compare
+
       # TMDB_TEST_DOUBLE is set by playwright.config.ts: no TMDB key is needed.
       - name: E2E tests
         run: pnpm test:e2e
+
+      - name: Local data unchanged after E2E
+        if: always() && steps.seed.outcome == 'success'
+        run: pnpm exec tsx scripts/e2e/data-check.ts compare
 
       - name: Upload the Playwright report
         if: failure()

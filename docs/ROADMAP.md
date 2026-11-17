@@ -419,8 +419,39 @@ Cierre (2026-11-03): importación real en producción hecha por la persona. El e
 
 # Fase 3 — Funcionalidades divertidas
 
-Lista de candidatas sin orden. Se priorizan después del lanzamiento y cada una pasa por su
-propio ciclo SDD.
+Cada funcionalidad pasa por su propio ciclo SDD. Al priorizarla, la candidata se convierte en
+un paso numerado.
+
+## [~] 3.1 · Vista de tarjetas
+
+**Objetivo.** En la lista, poder alternar entre el listado actual y una cuadrícula de tarjetas.
+
+```text
+/gentle-sdd-new card-view
+
+En la lista, permite alternar entre el listado actual y una cuadrícula de tarjetas con la
+portada, el título, las notas y la fecha de visualización. Usa las skills de diseño y
+compruébalo con el MCP de Playwright, también en móvil. Antes de decidir en qué listas está
+disponible, si se recuerda la vista elegida o qué muestra una tarjeta sin portada o sin notas,
+pregunta.
+```
+
+**Revisar.** Que el cambio de vista no altera la búsqueda ni el orden, que los títulos sin
+portada, nota o fecha se ven bien y que la cuadrícula funciona en móvil.
+
+**Notas:** 2026-11-04 · Implementado en el cambio SDD `card-view` (un solo PR con excepción de tamaño). Decisiones de la persona antes de la propuesta: el interruptor está en ambas listas; la vista se recuerda por dispositivo en una sola cookie compartida, sin parámetro de URL; sin portada se escribe el título en tipografía condensada grande dentro de la caja 2:3; sin notas se ve una raya por persona con «Sin nota» solo para lectores de pantalla y la media vacía, como la fila; las observaciones no salen en la tarjeta; el estado va compacto; el año va junto al título; la fecha es la de la tabla (añadida en Pendientes, de visionado o raya en Vistas); la tabla sigue por defecto; las series usan el resumen derivado, sin indicador de temporada.
+- **Hecho.** Cookie `list_view` y su lectura y acción (D-93), `ListViewToggle` (D-94), `Poster` con `fallback="title"` (D-95), `TitleCard` y `TitleCardGrid` (D-96), integración en `TitlesList`, E2E (83/83 en `pnpm test:e2e`) y enmienda de `DESIGN.md` (D-99). Sin migraciones y sin cambios en la consulta de la lista.
+- **Comprobación visual.** Hecha con el MCP de Playwright a 390 y 1280 px en claro y oscuro, sin correcciones (evidencia y límites en `docs/DESIGN-ROADMAP.md`). Verificación SDD: PASS con avisos y sin críticos; `pnpm test` 1323 pruebas y `pnpm test:e2e` 83 de 83. Avisos: la tecla espacio del interruptor sin prueba propia y la ausencia de parpadeo probada sobre el HTML inicial. **Strict TDD:** U1 (preferencia, lectura y acción), U2 (interruptor) y U4 (tarjeta y cuadrícula) escribieron tests y código juntos, así que no hubo un RED original y el orden real no se puede recuperar; U3 y U5 tampoco conservan un RED verificado. El RED se reprodujo después por mutación (82 mutaciones puntuales de la implementación, una a una, sin tocar tests ni confirmar ninguna): 76 hicieron fallar al menos un test y 6 sobrevivieron. Esto prueba que los tests detectan el comportamiento roto, no el orden en que se escribieron. **Tests débiles, cerrados después:** 5 de los 6 supervivientes se corrigieron solo con tests, sin tocar la aplicación (notas de María e Ignacio por separado en la tarjeta de la lista, con valores distintos para que un intercambio falle; `aria-hidden` en las etiquetas de persona y de Media; cuadrícula sin sombra ni radio; clase `sr-only` en los radios), y cada mutación original ahora hace fallar su test nuevo (`pnpm test`: 1323 pruebas). Queda un único superviviente, la guarda `next === selected` de `ListViewToggle`, que se deja como equivalente: un radio ya marcado no emite `onChange`, así que quitarla no cambia nada observable. Resultado final: 81 de 82 mutaciones detectadas.
+- **Conservación de datos locales en los E2E (cambio SDD `e2e-preserve-local-data`, D-100 a D-108).** `pnpm test:e2e` copia `titles` y `title_seasons` a `e2e_local_snapshot` y las restaura al acabar; recupera sola una copia que dejó una ejecución interrumpida. Guarda de dirección local, candado de una sola ejecución, puerta en `clearTitles` y `seedTitles`, y pruebas de integración dentro de una transacción que se revierte (`pnpm test:e2e-data`). Runbook en `docs/DEPLOY.md`; el residuo conocido está en `docs/ARCHITECTURE.md` y D-108.
+- **Resultados reales (2026-11-04, base local con 269 títulos y 33 temporadas, hash md5 de `titles` `5c77887d...` y de `title_seasons` `a9808dc3...`).** Primer `pnpm test:e2e`: 83 de 83, restauró 269 y 33, hashes idénticos, esquema borrado y candado libre. Solo recuperar (`pnpm test:e2e --grep zzz-sin-coincidencias`): con la base limpia y con una copia pendiente creada a mano, recuperó y restauró, hashes idénticos (sale con `No tests found` y código 1, esperado). `playwright.failing.config.ts` contra los datos reales: vació la tabla, falló una vez a propósito y los hashes volvieron idénticos. `pnpm test:e2e-data` 19 de 19 sobre la base real, hash intacto antes y después. `pnpm test` 1456 pruebas, `lint`, `typecheck` y `build` en verde. Se comprobó con el ejecutor real que `globalSetup` y `globalTeardown` comparten una sola instancia del módulo y que el cierre corre aunque el arranque lance.
+- **Comprobaciones manuales en Windows (2026-11-17), hechas con datos reales.** (1) Ctrl+C una vez durante `auth`: estado `interrupted`, datos idénticos (mismos hashes), sin copia pendiente ni bloqueo; no llegó a vaciarse la tabla, así que no ejercita una restauración, solo que no deja nada roto. (2) Cerrar la ventana con la ejecución en marcha: en esta máquina no mata los procesos; la ejecución terminó sola unos 3 minutos después, vació y restauró la tabla y dejó los datos idénticos. (3) Corte real, con `taskkill` sobre el árbol de procesos a mitad de ejecución: las tablas quedaron vacías, la copia pendiente íntegra (269 títulos y 33 temporadas) y el bloqueo liberado; `pnpm test:e2e --grep zzz-sin-coincidencias` recuperó los datos con hashes idénticos. (4) Segunda ejecución concurrente: rechazada al instante con `Another E2E run is in progress`, sin leer ni cambiar nada; la primera terminó en verde. Límites: el corte se hizo con `taskkill` y no con un apagón; los pasos de `ci.yml` (`db-e2e`) solo se pueden comprobar en GitHub Actions al subir la rama; `pnpm db:reset` con una copia pendiente está razonado, no ejecutado. Desde la terminal de un agente `next dev` no arranca y la E2E falla al instante, así que estas pruebas las lanza la persona.
+- **Pendiente de la persona.** Revisar el paso, que pasa a `[x]` tras esa revisión, y probarlo con carteles reales y en un teléfono. Los E2E ya no vacían la base local: conservan `titles` y `title_seasons` (cambio SDD `e2e-preserve-local-data`, ver abajo), pero durante una ejecución la aplicación no sirve y hay que parar antes el servidor de desarrollo.
+
+---
+
+## Candidatas
+
+Lista sin orden. Se priorizan después del lanzamiento.
 
 - [ ] **¿Qué vemos esta noche?** Ruleta animada entre los pendientes, con filtros por duración o género.
 - [ ] **Estadísticas de pareja.** Quién puntúa más duro, en qué películas discrepáis más, géneros favoritos.
@@ -489,3 +520,14 @@ propio ciclo SDD.
 | 2026-11-03 | 2.3 | La restauración usa tres ejecuciones de `psql` vía `docker exec` en lugar de `--single-transaction` (D-90); los volcados van cifrados con `age` porque el repositorio es público (D-91) | El paso de roles debe tolerar roles ya existentes y no puede ser atómico; los artifacts de un repositorio público son legibles |
 | 2026-11-03 | 2.3 | El volcado de datos se limita al esquema `public` (`-s public`); D-91 decía que `auth` quedaba fuera y no era cierto | El ensayo de restauración mostró que `supabase db dump --data-only` (CLI 2.122.0) incluía los datos de `auth.*` y `storage.*`; cifrados, sin exposición (D-92) |
 | 2026-11-03 | 2.3 | Los comandos de restauración de `docs/DEPLOY.md` se ejecutan en Git Bash; `pnpm test:db` corre sobre una restauración sin datos | PowerShell no admite la redirección `<`; los tests de pgTAP suponen `allowed_emails` vacía (D-92) |
+| 2026-11-04 | 3.1 | La candidata «Vista de tarjetas» pasa a ser el paso 3.1 y la lista de candidatas queda en su propia sección | La persona la prioriza como primera funcionalidad de la fase 3 |
+| 2026-11-04 | 3.1 | El interruptor de vista usa radios nativos con el aspecto del selector de tema y no `FilterChip` ni el token `filter-chip-selected` | `aria-pressed` describe mal una elección excluyente y el token invierte el fondo, contra la regla de una sola inversión (D-94) |
+| 2026-11-04 | 3.1 | `DESIGN.md` se enmienda para permitir la vista de tarjetas como alternativa a la tabla | El documento la prohibía expresamente; la persona decidió permitirla antes de la propuesta (D-99) |
+| 2026-11-04 | 3.1 | La ausencia de parpadeo se comprueba sobre la respuesta HTTP cruda y no con JavaScript desactivado | Con Partial Prerender el contenido de la lista llega en streaming y, sin JavaScript, el navegador no lo muestra; el HTML ya trae la cuadrícula y no una tabla |
+| 2026-11-04 | 3.1 | Un solo PR de unas 1550 líneas (+1521, -26 al verificar) con excepción de tamaño | Aceptado por la persona (`size:exception`); más de la mitad son tests y documentación |
+| 2026-11-04 | 3.1 | Se añade a este paso, en la misma rama, el cambio `e2e-preserve-local-data` (los E2E conservan los datos locales) | Los E2E vaciaban la base local y hacía falta reimportar el Excel tras cada ejecución; la persona lo pidió y aceptó el coste de tamaño |
+| 2026-11-04 | 3.1 | El cambio `e2e-preserve-local-data` crece de «poco código» a unas 2280 líneas en total (+2227, -54 frente al commit anterior al cambio; unas 640 de maquinaria, unas 70 de documentación y el resto pruebas y CI), sobre un único PR con excepción de tamaño | La validación halló una carrera de pérdida de datos con Ctrl+C y cinco avisos; corregirlos (candado, puerta en las ayudantes, recuperación atómica, integración con reversión) multiplicó el diseño original. La persona volvió a decidir con la estimación delante |
+| 2026-11-04 | 3.1 | La carrera residual del `smoke` rezagado (D-108) se acepta y no se cierra | Solo puede añadir «Dune», no borrar ni cambiar una fila real; cerrarla exigiría que la aplicación conociera la copia |
+| 2026-11-04 | 3.1 | `pnpm db:reset` con una copia pendiente se razona a partir de las migraciones y no se ejecuta | Habría borrado los datos reales de la base local |
+| 2026-11-04 | 3.1 | Los pasos de CI de `db-e2e` quedan sin comprobar en esta sesión; las comprobaciones manuales de Windows se hicieron el 2026-11-17 (ver notas del paso) | Los de CI solo se pueden probar en GitHub; las manuales las hicieron la persona y el orquestador |
+| 2026-11-17 | — | Actualización de seguridad de Next.js 16.4.3 → 16.4.6 fuera de un paso y sin ciclo SDD, en su propia rama `chore/next-16.4.6` (D-109) | Parche de seguridad pedido por la persona con instrucciones propias; no cambia comportamiento ni pertenece a ningún paso |
