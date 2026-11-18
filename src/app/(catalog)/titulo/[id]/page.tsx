@@ -11,6 +11,7 @@ import { getTitle } from "@/server/titles/get";
 import type { TitleView } from "@/server/titles/types";
 
 import { FichaEditor } from "./ficha-editor";
+import { RelinkIsland } from "./relink-island";
 
 export const metadata: Metadata = { title: "Ficha · Ignacio y María" };
 
@@ -91,7 +92,22 @@ export default async function TitlePage({ params }: PageProps<"/titulo/[id]">) {
         </div>
       </header>
 
+      <RelinkIsland
+        id={record.id}
+        current={{
+          name: title.name,
+          year: title.year,
+          kind: title.kind,
+          posterPath: title.posterPath,
+          tmdbId: title.tmdbId,
+        }}
+        seasonCount={title.kind === "series" ? title.seasons.length : 0}
+      />
+
+      {/* Keyed by kind and link: a relink can turn a movie into a series, and
+          the editor seeds its state from props only once (D-111). */}
       <FichaEditor
+        key={`${title.kind}:${title.tmdbId ?? "manual"}`}
         id={record.id}
         name={title.name}
         me={me}

@@ -121,3 +121,25 @@ test("has no accessibility violations", async () => {
 
   await expectNoAxeViolations(container);
 });
+
+test("children render inside the dialog, between the description and the buttons", () => {
+  setup({
+    children: <div data-testid="before-after">Ahora / Pasará a ser</div>,
+  });
+
+  const dialog = screen.getByRole("dialog");
+  const extra = screen.getByTestId("before-after");
+  expect(dialog).toContainElement(extra);
+  expect(extra).toHaveTextContent("Ahora / Pasará a ser");
+  const confirm = screen.getByRole("button", { name: "Eliminar" });
+  expect(
+    extra.compareDocumentPosition(confirm) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+});
+
+test("without children the dialog renders no extra block", () => {
+  setup();
+
+  expect(screen.queryByTestId("before-after")).not.toBeInTheDocument();
+  expect(screen.getByText("No se puede deshacer.")).toBeInTheDocument();
+});
