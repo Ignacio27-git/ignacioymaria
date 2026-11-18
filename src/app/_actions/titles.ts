@@ -8,6 +8,8 @@ import { searchAddCandidates, type AddCandidate } from "@/server/titles/add-cand
 import { addSeason } from "@/server/titles/add-season";
 import { addTitle } from "@/server/titles/create";
 import { deleteTitle } from "@/server/titles/delete";
+import { relinkTitle, type RelinkFailure } from "@/server/titles/relink";
+import { isUuid } from "@/server/titles/shared";
 import type {
   Failure,
   ManualAddState,
@@ -66,6 +68,26 @@ export async function searchAddCandidatesAction(
   query: string,
 ): Promise<Result<AddCandidate[], TmdbFailure>> {
   return searchAddCandidates(query);
+}
+
+/**
+ * Search for the relink panel: like the add flow, but the title being relinked
+ * is never reported as its own duplicate.
+ */
+export async function searchRelinkCandidatesAction(
+  titleId: string,
+  query: string,
+): Promise<Result<AddCandidate[], TmdbFailure>> {
+  return searchAddCandidates(query, isUuid(titleId) ? { excludeId: titleId } : {});
+}
+
+/** Ids only: the server fetches the TMDB details itself (RL-9). */
+export async function relinkTitleAction(
+  id: string,
+  kind: TmdbKind,
+  tmdbId: number,
+): Promise<Result<TitleView, RelinkFailure>> {
+  return relinkTitle(id, kind, tmdbId);
 }
 
 /** Re-fetches the details on the server: the client never supplies the data. */

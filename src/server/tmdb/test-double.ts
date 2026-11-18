@@ -48,6 +48,15 @@ const CATALOG: readonly TmdbDetails[] = [
     seasons: [],
   },
   {
+    // The relink target of the E2E suite (manual title "No te preocupes querida").
+    tmdbId: 646380,
+    kind: "movie",
+    name: "No te preocupes cariño",
+    year: 2022,
+    posterPath: "/darling.jpg",
+    actors: ["Florence Pugh", "Harry Styles"],
+  },
+  {
     tmdbId: 603,
     kind: "movie",
     name: "Matrix",

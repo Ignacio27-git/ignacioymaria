@@ -26,7 +26,16 @@ type Call = [method: string, ...args: unknown[]];
 function stubClient(...replies: Reply[]) {
   const queue = [...replies];
   const queries: { table: string; calls: Call[] }[] = [];
+  const rpcCalls: { fn: string; args: unknown }[] = [];
   const client = {
+    rpc(fn: string, args: unknown) {
+      rpcCalls.push({ fn, args });
+      const reply = queue.shift() ?? { data: null, error: null };
+      return Promise.resolve({
+        data: reply.data ?? null,
+        error: reply.error ?? null,
+      });
+    },
     from(table: string) {
       const calls: Call[] = [];
       queries.push({ table, calls });
@@ -66,7 +75,7 @@ function stubClient(...replies: Reply[]) {
       return builder;
     },
   };
-  return { client: client as never, queries };
+  return { client: client as never, queries, rpcCalls };
 }
 
 const row: TitleRow = {
@@ -286,6 +295,132 @@ describe("update", () => {
     expect(
       await createTitlesRepository(client).update(row.id, { state: "pending" }),
     ).toEqual({ ok: false, error: { kind } });
+  });
+});
+
+describe("update with a TMDB pair", () => {
+  const relinkPatch = { kind: "series" as const, tmdb_id: 4242 };
+
+  test("23505 resolves the id of the title holding the pair", async () => {
+    const { client, queries } = stubClient(
+      { error: { code: "23505" } },
+      { data: { id: "holder-id" } },
+    );
+
+    const result = await createTitlesRepository(client).update(
+      row.id,
+      relinkPatch,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: { kind: "duplicate", existingId: "holder-id" },
+    });
+    expect(queries[1]?.calls).toEqual([
+      ["select", "id"],
+      ["eq", "kind", "series"],
+      ["eq", "tmdb_id", 4242],
+      ["maybeSingle"],
+    ]);
+  });
+
+  test("23505 keeps existingId null when the holder lookup fails", async () => {
+    const { client } = stubClient(
+      { error: { code: "23505" } },
+      { error: { code: "XX000" } },
+    );
+
+    expect(
+      await createTitlesRepository(client).update(row.id, relinkPatch),
+    ).toEqual({ ok: false, error: { kind: "duplicate", existingId: null } });
+  });
+
+  test("23505 on a patch without tmdb_id falls through without a lookup", async () => {
+    const { client, queries } = stubClient({ error: { code: "23505" } });
+
+    const result = await createTitlesRepository(client).update(row.id, {
+      state: "pending",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      error: { kind: "duplicate", existingId: null },
+    });
+    expect(queries).toHaveLength(1);
+  });
+});
+
+describe("relinkSeriesToMovie", () => {
+  const args = {
+    tmdbId: 500,
+    name: "No te preocupes cariño",
+    year: 2025,
+    actors: ["Ana"],
+    posterPath: "/p.jpg",
+  };
+
+  test("calls the RPC with the p_ arguments and returns null", async () => {
+    const { client, rpcCalls } = stubClient({});
+
+    const result = await createTitlesRepository(client).relinkSeriesToMovie(
+      row.id,
+      args,
+    );
+
+    expect(rpcCalls).toEqual([
+      {
+        fn: "relink_series_to_movie",
+        args: {
+          p_title_id: row.id,
+          p_tmdb_id: 500,
+          p_name: "No te preocupes cariño",
+          p_year: 2025,
+          p_actors: ["Ana"],
+          p_poster_path: "/p.jpg",
+        },
+      },
+    ]);
+    expect(result).toEqual({ ok: true, value: null });
+  });
+
+  test("23505 resolves the holder of (movie, tmdb_id)", async () => {
+    const { client, queries } = stubClient(
+      { error: { code: "23505" } },
+      { data: { id: "holder-id" } },
+    );
+
+    expect(
+      await createTitlesRepository(client).relinkSeriesToMovie(row.id, args),
+    ).toEqual({
+      ok: false,
+      error: { kind: "duplicate", existingId: "holder-id" },
+    });
+    expect(queries[0]?.calls).toEqual([
+      ["select", "id"],
+      ["eq", "kind", "movie"],
+      ["eq", "tmdb_id", 500],
+      ["maybeSingle"],
+    ]);
+  });
+
+  test.each([
+    [
+      "P0003",
+      {
+        kind: "invalid_input",
+        errors: [{ field: "kind", code: "series_has_seasons" }],
+      },
+    ],
+    ["P0002", { kind: "not_found" }],
+    ["42501", { kind: "forbidden" }],
+    ["22023", { kind: "unavailable" }],
+    ["PGRST202", { kind: "unavailable" }],
+  ])("%s maps to its failure", async (code, error) => {
+    const { client } = stubClient({ error: { code } });
+
+    expect(
+      await createTitlesRepository(client).relinkSeriesToMovie(row.id, args),
+    ).toEqual({ ok: false, error });
   });
 });
 
