@@ -143,6 +143,23 @@ Lo mismo con `title_seasons`. Las columnas generadas no se copian y no hay que t
 
 **Comprobación en CI.** El job `db-e2e` siembra una fila, ejecuta una prueba que falla a propósito (`playwright.failing.config.ts`, con informe JSON que debe contar exactamente un fallo) y compara un hash de ambas tablas; después ejecuta los E2E y vuelve a comparar. Solo se puede comprobar en GitHub Actions.
 
+## Migración del paso 3.2
+
+La migración `20261118120000_relink_series_to_movie.sql` solo añade la función `public.relink_series_to_movie`; no cambia tablas ni datos. La aplica el workflow `deploy-migrations` al fusionar.
+
+1. **Antes de fusionar:** ejecutar el workflow `backup` (ver «Copias de seguridad»).
+2. **Después de fusionar:** comprobar que la función existe y que solo `authenticated` puede ejecutarla:
+
+```sql
+select p.proname, p.prosecdef, p.proconfig, p.proacl
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and p.proname = 'relink_series_to_movie';
+```
+
+   `prosecdef` debe ser `true`, `proconfig` debe llevar `search_path=""` y `proacl` no debe incluir `anon` ni `PUBLIC`.
+3. **Mientras la migración no esté aplicada**, pasar una serie de una temporada a película falla como `unavailable` y no escribe nada; el resto del relink no depende de ella.
+4. **Reversión:** una migración nueva hacia delante con `drop function public.relink_series_to_movie(uuid, integer, text, integer, text[], text);`. Los datos ya plegados siguen siendo válidos.
+
 ## Reversión
 
 - Importación y copias: ver «Importación en producción» (reversión previa al cambio a producción) y «Copias de seguridad»; para pausar las copias, desactivar el workflow `backup` (Actions > Disable).

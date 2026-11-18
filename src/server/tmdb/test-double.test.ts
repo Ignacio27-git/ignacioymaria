@@ -107,6 +107,32 @@ describe("deterministic data", () => {
     });
   });
 
+  test("a movie with an accent in its name is found by its unaccented words (relink)", async () => {
+    const found = await client().search("no te preocupes carino");
+    const details = await client().details("movie", 646380);
+
+    expect(found).toMatchObject({
+      ok: true,
+      value: [{ tmdbId: 646380, kind: "movie", name: "No te preocupes cariño" }],
+    });
+    expect(details).toMatchObject({
+      ok: true,
+      value: { name: "No te preocupes cariño", year: 2022, posterPath: "/darling.jpg" },
+    });
+  });
+
+  test("Dark is a series candidate and a lookup of its movie kind misses", async () => {
+    const found = await client().search("dark");
+
+    expect(found.ok && found.value).toEqual([
+      { tmdbId: 70523, kind: "series", name: "Dark", year: 2017, posterPath: "/dark.jpg" },
+    ]);
+    expect(await client().details("movie", 70523)).toEqual({
+      ok: false,
+      error: { kind: "not_found" },
+    });
+  });
+
   test("details of an unknown id, or of the wrong kind, are not_found", async () => {
     expect(await client().details("movie", 999999999)).toEqual({
       ok: false,

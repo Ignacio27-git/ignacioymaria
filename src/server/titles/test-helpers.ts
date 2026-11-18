@@ -16,6 +16,7 @@ export function fakeRepository() {
     findIdsByTmdb: vi.fn(),
     insertSeason: vi.fn(),
     updateSeason: vi.fn(),
+    relinkSeriesToMovie: vi.fn(),
   } satisfies Record<keyof TitlesRepository, unknown>;
 }
 

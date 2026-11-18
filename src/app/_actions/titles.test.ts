@@ -8,6 +8,7 @@ import { searchAddCandidates } from "@/server/titles/add-candidates";
 import { addSeason } from "@/server/titles/add-season";
 import { addTitle } from "@/server/titles/create";
 import { deleteTitle } from "@/server/titles/delete";
+import { relinkTitle } from "@/server/titles/relink";
 import { updateTitleField } from "@/server/titles/update-field";
 import { updateSeasonField } from "@/server/titles/update-season";
 import { getTmdbDetails } from "@/server/tmdb/lookup";
@@ -17,7 +18,9 @@ import {
   addSeasonAction,
   addManualAction,
   deleteTitleAction,
+  relinkTitleAction,
   searchAddCandidatesAction,
+  searchRelinkCandidatesAction,
   updateSeasonFieldAction,
   updateTitleFieldAction,
 } from "./titles";
@@ -34,6 +37,7 @@ vi.mock("@/server/titles/add-season", () => ({ addSeason: vi.fn() }));
 vi.mock("@/server/titles/update-season", () => ({ updateSeasonField: vi.fn() }));
 vi.mock("@/server/titles/create", () => ({ addTitle: vi.fn() }));
 vi.mock("@/server/titles/delete", () => ({ deleteTitle: vi.fn() }));
+vi.mock("@/server/titles/relink", () => ({ relinkTitle: vi.fn() }));
 vi.mock("@/server/titles/update-field", () => ({ updateTitleField: vi.fn() }));
 vi.mock("@/server/tmdb/lookup", () => ({ getTmdbDetails: vi.fn() }));
 
@@ -337,6 +341,59 @@ describe("season actions (R5.2, R5.3)", () => {
     expect(await addSeasonAction(ID)).toEqual({
       ok: false,
       error: { kind: "not_found" },
+    });
+  });
+});
+
+describe("relink actions (RL-9, RL-10)", () => {
+  test("relinkTitleAction forwards exactly id, kind and tmdbId and returns the result unchanged", async () => {
+    const result = { ok: true, value: view } as never;
+    vi.mocked(relinkTitle).mockResolvedValue(result);
+    const forged = relinkTitleAction as unknown as (
+      ...args: unknown[]
+    ) => ReturnType<typeof relinkTitleAction>;
+
+    expect(await forged(ID, "movie", 500, { name: "Hacked" })).toBe(result);
+    expect(relinkTitle).toHaveBeenCalledWith(ID, "movie", 500);
+  });
+
+  test("relinkTitleAction returns an unauthorized refusal as it is", async () => {
+    vi.mocked(relinkTitle).mockResolvedValue({
+      ok: false,
+      error: { kind: "unauthorized" },
+    });
+
+    expect(await relinkTitleAction(ID, "series", 7)).toEqual({
+      ok: false,
+      error: { kind: "unauthorized" },
+    });
+  });
+
+  test("searchRelinkCandidatesAction excludes the current title when the id is a uuid", async () => {
+    vi.mocked(searchAddCandidates).mockResolvedValue({ ok: true, value: [] });
+
+    await searchRelinkCandidatesAction(ID, "dune");
+
+    expect(searchAddCandidates).toHaveBeenCalledWith("dune", { excludeId: ID });
+  });
+
+  test("searchRelinkCandidatesAction drops a malformed id instead of forwarding it", async () => {
+    vi.mocked(searchAddCandidates).mockResolvedValue({ ok: true, value: [] });
+
+    await searchRelinkCandidatesAction("not-a-uuid", "dune");
+
+    expect(searchAddCandidates).toHaveBeenCalledWith("dune", {});
+  });
+
+  test("searchRelinkCandidatesAction returns a refusal as it is", async () => {
+    vi.mocked(searchAddCandidates).mockResolvedValue({
+      ok: false,
+      error: { kind: "unauthorized" },
+    });
+
+    expect(await searchRelinkCandidatesAction(ID, "dune")).toEqual({
+      ok: false,
+      error: { kind: "unauthorized" },
     });
   });
 });

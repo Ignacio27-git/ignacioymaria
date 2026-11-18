@@ -57,20 +57,28 @@ export function createTitlesRepository(client: SupabaseClient) {
     return rowToRecord(response.data);
   }
 
+  /** The id of the title holding the (kind, tmdb_id) pair, or null when unknown. */
+  async function existingIdFor(
+    kind: string,
+    tmdbId: number,
+  ): Promise<string | null> {
+    const existing = await titles()
+      .select("id")
+      .eq("kind", kind)
+      .eq("tmdb_id", tmdbId)
+      .maybeSingle();
+    const id = (existing.data as { id?: unknown } | null)?.id;
+    return typeof id === "string" ? id : null;
+  }
+
   return {
     async insert(row: TitleInsert): Promise<Result<TitleRecord, TitleFailure>> {
       const response = await titles().insert(row).select(TITLE_SELECT).single();
       if (response.error?.code === "23505" && row.tmdb_id !== null) {
         // The pair already exists: tell the caller which row holds it.
-        const existing = await titles()
-          .select("id")
-          .eq("kind", row.kind)
-          .eq("tmdb_id", row.tmdb_id)
-          .maybeSingle();
-        const id = (existing.data as { id?: unknown } | null)?.id;
         return err({
           kind: "duplicate",
-          existingId: typeof id === "string" ? id : null,
+          existingId: await existingIdFor(row.kind, row.tmdb_id),
         });
       }
       return toRecord(response);
@@ -109,13 +117,64 @@ export function createTitlesRepository(client: SupabaseClient) {
       id: string,
       patch: TitlePatch,
     ): Promise<Result<TitleRecord, TitleFailure>> {
-      return toRecord(
-        await titles()
-          .update(patch)
-          .eq("id", id)
-          .select(TITLE_SELECT)
-          .single(),
-      );
+      const response = await titles()
+        .update(patch)
+        .eq("id", id)
+        .select(TITLE_SELECT)
+        .single();
+      if (
+        response.error?.code === "23505" &&
+        patch.kind !== undefined &&
+        typeof patch.tmdb_id === "number"
+      ) {
+        // A relink onto a pair another title holds: say which one.
+        return err({
+          kind: "duplicate",
+          existingId: await existingIdFor(patch.kind, patch.tmdb_id),
+        });
+      }
+      return toRecord(response);
+    },
+
+    /**
+     * Folds a one-season series into a movie through the security-definer RPC
+     * (one transaction). The caller re-reads the title afterwards.
+     */
+    async relinkSeriesToMovie(
+      id: string,
+      args: {
+        tmdbId: number;
+        name: string;
+        year: number | null;
+        actors: readonly string[];
+        posterPath: string | null;
+      },
+    ): Promise<Result<null, TitleFailure>> {
+      const response = await client.rpc("relink_series_to_movie", {
+        p_title_id: id,
+        p_tmdb_id: args.tmdbId,
+        p_name: args.name,
+        p_year: args.year,
+        p_actors: [...args.actors],
+        p_poster_path: args.posterPath,
+      });
+      if (!response.error) return ok(null);
+      switch (response.error.code) {
+        case "23505":
+          return err({
+            kind: "duplicate",
+            existingId: await existingIdFor("movie", args.tmdbId),
+          });
+        case "P0003":
+          return err({
+            kind: "invalid_input",
+            errors: [{ field: "kind", code: "series_has_seasons" }],
+          });
+        case "P0002":
+          return err({ kind: "not_found" });
+        default:
+          return err(mapPostgrestError(response.error));
+      }
     },
 
     /** Inserts one season; the caller re-reads the title for the new state. */

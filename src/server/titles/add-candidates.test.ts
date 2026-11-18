@@ -92,3 +92,34 @@ test("if the duplicate lookup fails, candidates still show (the unique index gua
     null,
   ]);
 });
+
+test("excludeId drops the current title from the annotation, keeping the others", async () => {
+  repo.findIdsByTmdb.mockResolvedValue({
+    ok: true,
+    value: new Map([
+      [tmdbKey("movie", 438631), "current-title"],
+      [tmdbKey("series", 70523), "other-title"],
+    ]),
+  });
+
+  const result = await searchAddCandidates("dune", { excludeId: "current-title" });
+
+  expect(result).toEqual({
+    ok: true,
+    value: [
+      { ...dune, existingId: null },
+      { ...dark, existingId: "other-title" },
+    ],
+  });
+});
+
+test("without excludeId the same holder stays annotated", async () => {
+  repo.findIdsByTmdb.mockResolvedValue({
+    ok: true,
+    value: new Map([[tmdbKey("movie", 438631), "current-title"]]),
+  });
+
+  const result = await searchAddCandidates("dune");
+
+  expect(result.ok && result.value[0]?.existingId).toBe("current-title");
+});

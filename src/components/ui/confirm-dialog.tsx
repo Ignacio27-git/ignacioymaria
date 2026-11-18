@@ -9,6 +9,8 @@ export interface ConfirmDialogProps {
   open: boolean;
   title: string;
   description?: ReactNode;
+  /** Extra content between the description and the buttons (a before/after, say). */
+  children?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm: () => void;
@@ -28,6 +30,7 @@ export function ConfirmDialog({
   open,
   title,
   description,
+  children,
   confirmLabel = "Eliminar",
   cancelLabel = "Cancelar",
   onConfirm,
@@ -75,6 +78,7 @@ export function ConfirmDialog({
         {title}
       </h2>
       {description && <p className="mt-2 text-ink-muted">{description}</p>}
+      {children}
       <div className="mt-6 flex flex-wrap justify-end gap-3">
         <Button
           ref={cancelRef}

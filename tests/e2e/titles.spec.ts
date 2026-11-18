@@ -1071,3 +1071,217 @@ test.describe("pages at every viewport and theme", () => {
     await context.close();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Relink a title with TMDB (ROADMAP 3.2)
+// ---------------------------------------------------------------------------
+
+test.describe("a title is relinked with TMDB", () => {
+  let ids: Record<string, string>;
+
+  test.beforeAll(async () => {
+    await clearTitles();
+    ids = await seedTitles([
+      {
+        name: "No te preocupes querida",
+        state: "watched",
+        watchDate: "2024-05-05",
+        scoreIgnacio: 9,
+        scoreMaria: 8,
+      },
+      { name: "Mi peli rara", state: "watched", watchDate: "2023-03-03", scoreIgnacio: 7 },
+      {
+        name: "Mi serie corta",
+        kind: "series",
+        state: "pending",
+        seasons: [
+          { number: 1, state: "watched", watchDate: "2024-01-05", scoreMaria: 8, scoreIgnacio: 6 },
+        ],
+      },
+      {
+        name: "Mi serie larga",
+        kind: "series",
+        state: "pending",
+        seasons: [
+          { number: 1, state: "watched", watchDate: "2024-01-05", scoreMaria: 8 },
+          { number: 2, state: "pending" },
+        ],
+      },
+      { name: "Otra peli", state: "pending" },
+    ]);
+  });
+
+  /** Opens the panel of a ficha and returns the search field. */
+  async function openPanel(page: Page, label: string) {
+    await page.getByRole("button", { name: label }).click();
+    const field = page.getByLabel("Buscar película o serie");
+    await expect(field).toBeVisible();
+    return field;
+  }
+
+  async function overflowOf(page: Page) {
+    return page.evaluate(() => ({
+      scroll: document.documentElement.scrollWidth,
+      client: document.documentElement.clientWidth,
+    }));
+  }
+
+  test("a manual title keeps its data and takes the TMDB ficha", async ({ browser }) => {
+    const { context, page } = await openPage(browser);
+    await fulfilPosters(page);
+    await visit(page, `/titulo/${ids["No te preocupes querida"]}`);
+
+    const field = await openPanel(page, "Vincular con TMDB");
+    // The prefilled name finds nothing in the double: the panel says so.
+    await expect(field).toHaveValue("No te preocupes querida");
+    await expect(page.getByText("Sin resultados")).toBeVisible();
+
+    await field.fill("No te preocupes");
+    await page.getByRole("button", { name: /^No te preocupes cariño/ }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("group", { name: "Ahora" })).toContainText(
+      "No te preocupes querida",
+    );
+    await expect(dialog.getByRole("group", { name: "Pasará a ser" })).toContainText(
+      "2022 · Película",
+    );
+    await expect(dialog).toContainText("Se conservan las notas");
+    // Nothing is written until the person confirms.
+    expect(await countTitles("No te preocupes cariño")).toBe(0);
+
+    await dialog.getByRole("button", { name: "Vincular" }).click();
+
+    await expect(
+      page.getByRole("heading", { level: 1, name: "No te preocupes cariño" }),
+    ).toBeVisible();
+    await expect(page.getByText("Ficha actualizada.")).toBeVisible();
+    await expect(page.getByText("Película · 2022")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Cambiar ficha de TMDB" })).toBeVisible();
+    // Our data stayed.
+    await expect(dateInput(page)).toHaveValue("2024-05-05");
+    await expect(stateOption(page, "Vista").locator("input")).toBeChecked();
+    await expect(page.getByRole("img", { name: "Media 8,5" })).toBeVisible();
+    expect(await countTitles("No te preocupes querida")).toBe(0);
+    expect(await countTitles("No te preocupes cariño")).toBe(1);
+    await context.close();
+  });
+
+  test("a result already in the list is labelled and cannot be picked", async ({ browser }) => {
+    const { context, page } = await openPage(browser);
+    await fulfilPosters(page);
+    await visit(page, `/titulo/${ids["Otra peli"]}`);
+
+    const field = await openPanel(page, "Vincular con TMDB");
+    await field.fill("No te preocupes");
+
+    const held = page.getByRole("listitem").filter({ hasText: "No te preocupes cariño" });
+    await expect(held.getByText("Ya está en la lista")).toBeVisible();
+    await expect(held.getByRole("button")).toHaveCount(0);
+    await held.getByRole("link", { name: "Abrir ficha" }).click();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "No te preocupes cariño" }),
+    ).toBeVisible();
+    await context.close();
+  });
+
+  test("a movie can become a series and keeps its data", async ({ browser }) => {
+    const { context, page } = await openPage(browser);
+    await fulfilPosters(page);
+    await visit(page, `/titulo/${ids["Mi peli rara"]}`);
+
+    const field = await openPanel(page, "Vincular con TMDB");
+    await field.fill("Dark");
+    await page.getByRole("button", { name: /^Dark 2017/ }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Vincular" }).click();
+
+    await expect(page.getByRole("heading", { level: 1, name: "Dark" })).toBeVisible();
+    await expect(page.getByText("Serie · 2017 · 3 temporadas")).toBeVisible();
+    await expect(page.getByText("Ficha actualizada.")).toBeVisible();
+    await expect(dateInput(page)).toHaveValue("2023-03-03");
+    expect(await countTitles("Mi peli rara")).toBe(0);
+    await context.close();
+  });
+
+  test("a series with one season folds into a movie and loses its season section", async ({
+    browser,
+  }) => {
+    const { context, page } = await openPage(browser);
+    await fulfilPosters(page);
+    await visit(page, `/titulo/${ids["Mi serie corta"]}`);
+    await expect(page.locator('[aria-label="Temporadas"]')).toHaveCount(1);
+
+    const field = await openPanel(page, "Vincular con TMDB");
+    await field.fill("Matrix");
+    await page.getByRole("button", { name: /^Matrix 1999/ }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toContainText("La serie tiene una sola temporada");
+    await dialog.getByRole("button", { name: "Vincular" }).click();
+
+    await expect(page.getByRole("heading", { level: 1, name: "Matrix" })).toBeVisible();
+    await expect(page.getByText("Película · 1999")).toBeVisible();
+    await expect(page.locator('[aria-label="Temporadas"]')).toHaveCount(0);
+    // The season's data moved onto the title.
+    await expect(dateInput(page)).toHaveValue("2024-01-05");
+    await expect(stateOption(page, "Vista").locator("input")).toBeChecked();
+    await expect(page.getByRole("img", { name: "Media 7" })).toBeVisible();
+    await context.close();
+  });
+
+  test("a series with two seasons cannot become a movie", async ({ browser }) => {
+    const { context, page } = await openPage(browser);
+    await fulfilPosters(page);
+    await visit(page, `/titulo/${ids["Mi serie larga"]}`);
+
+    const field = await openPanel(page, "Vincular con TMDB");
+    await field.fill("Amélie");
+    await page.getByRole("button", { name: /^Amélie 2001/ }).click();
+
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(
+      page.getByRole("region", { name: "Ficha de TMDB" }).getByRole("alert"),
+    ).toContainText(
+      "Esta serie tiene varias temporadas registradas y no puede pasar a ser una película.",
+    );
+    expect(await countTitles("Mi serie larga")).toBe(1);
+    await context.close();
+  });
+
+  test("at 390px the panel and the dialog fit with 44px targets", async ({ browser }) => {
+    const { context, page } = await openPage(browser, { viewport: MOBILE });
+    await fulfilPosters(page);
+    await visit(page, `/titulo/${ids["Mi serie larga"]}`);
+
+    const field = await openPanel(page, "Vincular con TMDB");
+    await field.fill("Dune");
+    const series = page.getByRole("button", { name: /^Dune: Prophecy/ });
+    await expect(series).toBeVisible();
+
+    let overflow = await overflowOf(page);
+    expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
+    for (const control of [
+      page.getByRole("button", { name: "Vincular con TMDB" }),
+      page.getByRole("button", { name: "Cerrar", exact: true }),
+      series,
+    ]) {
+      expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    }
+
+    await series.click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    overflow = await overflowOf(page);
+    expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
+    const box = (await dialog.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(MOBILE.width);
+    for (const name of ["Cancelar", "Vincular"]) {
+      const button = (await dialog.getByRole("button", { name }).boundingBox())!;
+      expect(button.height).toBeGreaterThanOrEqual(44);
+      expect(button.y + button.height).toBeLessThanOrEqual(MOBILE.height);
+    }
+    await expectNoAxeViolations(page);
+    await context.close();
+  });
+});

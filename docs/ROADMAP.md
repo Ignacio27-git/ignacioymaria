@@ -422,7 +422,7 @@ Cierre (2026-11-03): importación real en producción hecha por la persona. El e
 Cada funcionalidad pasa por su propio ciclo SDD. Al priorizarla, la candidata se convierte en
 un paso numerado.
 
-## [~] 3.1 · Vista de tarjetas
+## [x] 3.1 · Vista de tarjetas
 
 **Objetivo.** En la lista, poder alternar entre el listado actual y una cuadrícula de tarjetas.
 
@@ -445,7 +445,39 @@ portada, nota o fecha se ven bien y que la cuadrícula funciona en móvil.
 - **Conservación de datos locales en los E2E (cambio SDD `e2e-preserve-local-data`, D-100 a D-108).** `pnpm test:e2e` copia `titles` y `title_seasons` a `e2e_local_snapshot` y las restaura al acabar; recupera sola una copia que dejó una ejecución interrumpida. Guarda de dirección local, candado de una sola ejecución, puerta en `clearTitles` y `seedTitles`, y pruebas de integración dentro de una transacción que se revierte (`pnpm test:e2e-data`). Runbook en `docs/DEPLOY.md`; el residuo conocido está en `docs/ARCHITECTURE.md` y D-108.
 - **Resultados reales (2026-11-04, base local con 269 títulos y 33 temporadas, hash md5 de `titles` `5c77887d...` y de `title_seasons` `a9808dc3...`).** Primer `pnpm test:e2e`: 83 de 83, restauró 269 y 33, hashes idénticos, esquema borrado y candado libre. Solo recuperar (`pnpm test:e2e --grep zzz-sin-coincidencias`): con la base limpia y con una copia pendiente creada a mano, recuperó y restauró, hashes idénticos (sale con `No tests found` y código 1, esperado). `playwright.failing.config.ts` contra los datos reales: vació la tabla, falló una vez a propósito y los hashes volvieron idénticos. `pnpm test:e2e-data` 19 de 19 sobre la base real, hash intacto antes y después. `pnpm test` 1456 pruebas, `lint`, `typecheck` y `build` en verde. Se comprobó con el ejecutor real que `globalSetup` y `globalTeardown` comparten una sola instancia del módulo y que el cierre corre aunque el arranque lance.
 - **Comprobaciones manuales en Windows (2026-11-17), hechas con datos reales.** (1) Ctrl+C una vez durante `auth`: estado `interrupted`, datos idénticos (mismos hashes), sin copia pendiente ni bloqueo; no llegó a vaciarse la tabla, así que no ejercita una restauración, solo que no deja nada roto. (2) Cerrar la ventana con la ejecución en marcha: en esta máquina no mata los procesos; la ejecución terminó sola unos 3 minutos después, vació y restauró la tabla y dejó los datos idénticos. (3) Corte real, con `taskkill` sobre el árbol de procesos a mitad de ejecución: las tablas quedaron vacías, la copia pendiente íntegra (269 títulos y 33 temporadas) y el bloqueo liberado; `pnpm test:e2e --grep zzz-sin-coincidencias` recuperó los datos con hashes idénticos. (4) Segunda ejecución concurrente: rechazada al instante con `Another E2E run is in progress`, sin leer ni cambiar nada; la primera terminó en verde. Límites: el corte se hizo con `taskkill` y no con un apagón; los pasos de `ci.yml` (`db-e2e`) solo se pueden comprobar en GitHub Actions al subir la rama; `pnpm db:reset` con una copia pendiente está razonado, no ejecutado. Desde la terminal de un agente `next dev` no arranca y la E2E falla al instante, así que estas pruebas las lanza la persona.
-- **Pendiente de la persona.** Revisar el paso, que pasa a `[x]` tras esa revisión, y probarlo con carteles reales y en un teléfono. Los E2E ya no vacían la base local: conservan `titles` y `title_seasons` (cambio SDD `e2e-preserve-local-data`, ver abajo), pero durante una ejecución la aplicación no sirve y hay que parar antes el servidor de desarrollo.
+- **Cierre (2026-11-18).** La persona probó la aplicación en local con sus datos importados y marcó el paso como finalizado. No consta una revisión con carteles reales en un teléfono. Los E2E ya no vacían la base local: conservan `titles` y `title_seasons` (cambio SDD `e2e-preserve-local-data`, ver abajo), pero durante una ejecución la aplicación no sirve y hay que parar antes el servidor de desarrollo.
+
+---
+
+## [x] 3.2 · Vincular un título con TMDB
+
+**Objetivo.** Desde la ficha, buscar en TMDB y vincular un título que no casó (por ejemplo,
+«No te preocupes querida», que en TMDB es «No te preocupes cariño») o que quedó vinculado a una
+ficha equivocada, sin perder lo que ya tenemos registrado.
+
+```text
+/gentle-sdd-new tmdb-relink
+
+En la ficha de un título, permite buscar en TMDB y vincularlo a un resultado, tanto si el
+título se guardó a mano como si está vinculado a una ficha equivocada. Al vincular se
+actualizan los datos técnicos que vienen de TMDB (póster, año, reparto, tipo y temporadas) y se
+conservan siempre los nuestros: las dos notas, el estado, la fecha vista, las observaciones y
+las notas por temporada. Usa las skills de diseño y compruébalo con el MCP de Playwright,
+también en móvil. Antes de decidir si el nombre guardado se sustituye por el de TMDB, qué pasa
+si el resultado ya está en la lista como otro título, si se permite cambiar de película a serie
+(o al revés) con notas por temporada, si se puede deshacer o desvincular y si la búsqueda parte
+del nombre actual, pregunta.
+```
+
+**Revisar.** Que tras vincular «No te preocupes querida» la ficha muestra el póster y los datos
+de TMDB y conserva notas, estado, fecha y observaciones; que un resultado ya presente en la lista
+no crea un duplicado; y que funciona en móvil.
+
+**Notas:** 2026-11-18 · Implementado en el cambio SDD `tmdb-relink` (un solo PR con excepción de tamaño, aceptada por la persona). Decisiones antes de la propuesta: el nombre guardado se sustituye por el de TMDB y los campos de TMDB que faltan se vacían; un resultado ya presente en la lista se bloquea con enlace y sin fusión; película a serie se permite siempre; serie a película se permite con 0 temporadas (actualización simple) o con exactamente 1 (pliegue: estado, fecha y las dos notas de la temporada pasan al título y la fila se elimina); con 2 o más se bloquea; no hay deshacer ni desvincular; la búsqueda parte del nombre actual y se lanza al abrir.
+- **Hecho.** Función `relink_series_to_movie` y su prueba pgTAP (D-112), caso de uso `relinkTitle` con acciones de búsqueda y vinculación (D-110), `excludeId` en la anotación de candidatas, `CandidateRow` movida a `src/components/ui` con nota opcional, `ConfirmDialog` con ranura `children`, `RelinkIsland` en la ficha (D-111) y E2E con el doble de TMDB (película «No te preocupes cariño», id 646380).
+- **Estrictamente con tests primero.** pgTAP (28 pruebas) antes de la migración; Vitest antes de cada módulo de servidor y de interfaz.
+- **Comprobación visual.** Capturas a 1280 y 390 px en claro y oscuro (panel, diálogo, pliegue, bloqueo y estado cerrado) sin correcciones. Ver `docs/DESIGN-ROADMAP.md` para el método y sus límites.
+- **Despliegue.** Migración aditiva: ver «Migración del paso 3.2» en `docs/DEPLOY.md` (copia de seguridad antes).
 
 ---
 
@@ -531,3 +563,7 @@ Lista sin orden. Se priorizan después del lanzamiento.
 | 2026-11-04 | 3.1 | `pnpm db:reset` con una copia pendiente se razona a partir de las migraciones y no se ejecuta | Habría borrado los datos reales de la base local |
 | 2026-11-04 | 3.1 | Los pasos de CI de `db-e2e` quedan sin comprobar en esta sesión; las comprobaciones manuales de Windows se hicieron el 2026-11-17 (ver notas del paso) | Los de CI solo se pueden probar en GitHub; las manuales las hicieron la persona y el orquestador |
 | 2026-11-17 | — | Actualización de seguridad de Next.js 16.4.3 → 16.4.6 fuera de un paso y sin ciclo SDD, en su propia rama `chore/next-16.4.6` (D-109) | Parche de seguridad pedido por la persona con instrucciones propias; no cambia comportamiento ni pertenece a ningún paso |
+| 2026-11-17 | 3.2 | Nuevo paso «Vincular un título con TMDB», añadido directamente a la fase 3 sin pasar por candidatas | Pedido por la persona: hay títulos importados que no casan con TMDB por diferencias de nombre («No te preocupes querida» frente a «No te preocupes cariño») |
+| 2026-11-18 | 3.2 | El pliegue de una serie con una sola temporada se añade al alcance (la propuesta original solo bloqueaba series con temporadas) mediante una función de base de datos `security definer` | La persona prefirió conservar las notas de la temporada al pasar a película; copiar la nota ajena exige saltarse el disparador de propiedad solo dentro de la función (D-112) |
+| 2026-11-18 | 3.2 | La comprobación visual se hizo con capturas de Playwright (E2E temporal, retirado) leídas a ojo y no con el MCP de Playwright | El agente de implementación no dispone de las herramientas del MCP; el orquestador puede repetirla |
+| 2026-11-18 | 3.2 | Un solo PR de unas 1600 líneas con excepción de tamaño | Aceptado por la persona (`size:exception`); más de la mitad son tests y documentación |

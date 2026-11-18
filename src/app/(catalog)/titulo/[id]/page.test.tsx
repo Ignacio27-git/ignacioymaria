@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { useEffect } from "react";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import { err, ok, titleSummary } from "@/domain";
@@ -10,6 +11,7 @@ import { expectNoAxeViolations } from "@/test/axe";
 const mocks = vi.hoisted(() => ({
   getTitle: vi.fn(),
   getCurrentPerson: vi.fn(),
+  editorMounts: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
   }),
@@ -27,8 +29,15 @@ vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));
 vi.mock("./ficha-editor", () => ({
-  FichaEditor: (props: object) => (
-    <div data-testid="editor" data-props={JSON.stringify(props)} />
+  FichaEditor: (props: object) => {
+    // Counts mounts: a change of key remounts the editor and resets its state.
+    useEffect(() => mocks.editorMounts(), []);
+    return <div data-testid="editor" data-props={JSON.stringify(props)} />;
+  },
+}));
+vi.mock("./relink-island", () => ({
+  RelinkIsland: (props: object) => (
+    <div data-testid="relink" data-props={JSON.stringify(props)} />
   ),
 }));
 
@@ -312,4 +321,100 @@ test("is axe clean", async () => {
 
 test("has its own title", () => {
   expect(metadata.title).toBe("Ficha · Ignacio y María");
+});
+
+function relinkProps() {
+  return JSON.parse(
+    screen.getByTestId("relink").getAttribute("data-props") ?? "{}",
+  );
+}
+
+test("renders the relink island with the current ficha and the season count", async () => {
+  mocks.getTitle.mockResolvedValue(
+    ok(
+      view({
+        name: "Dark",
+        kind: "series",
+        year: 2017,
+        posterPath: "/dark.jpg",
+        tmdbId: 70523,
+        seasons: [
+          { number: 1, state: "watched" },
+          { number: 2, state: "pending" },
+        ],
+      }),
+    ),
+  );
+
+  await renderPage();
+
+  expect(relinkProps()).toEqual({
+    id: TITLE_ID,
+    current: {
+      name: "Dark",
+      year: 2017,
+      kind: "series",
+      posterPath: "/dark.jpg",
+      tmdbId: 70523,
+    },
+    seasonCount: 2,
+  });
+});
+
+test("a manual movie reaches the island unlinked with no seasons", async () => {
+  mocks.getTitle.mockResolvedValue(ok(view({ name: "Mi peli" })));
+
+  await renderPage();
+
+  expect(relinkProps()).toEqual({
+    id: TITLE_ID,
+    current: {
+      name: "Mi peli",
+      year: null,
+      kind: "movie",
+      posterPath: null,
+      tmdbId: null,
+    },
+    seasonCount: 0,
+  });
+});
+
+test("the island sits right after the header, before the editor", async () => {
+  mocks.getTitle.mockResolvedValue(ok(view({})));
+
+  await renderPage();
+
+  const island = screen.getByTestId("relink");
+  const editor = screen.getByTestId("editor");
+  expect(
+    island.compareDocumentPosition(editor) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+});
+
+test("the editor is remounted when the kind or the TMDB link changes, and only then", async () => {
+  mocks.getTitle.mockResolvedValue(ok(view({ name: "Mi peli" })));
+  const first = await renderPage();
+  expect(mocks.editorMounts).toHaveBeenCalledTimes(1);
+
+  // Same kind and link, other name: the editor keeps its state.
+  mocks.getTitle.mockResolvedValue(ok(view({ name: "Mi peli 2" })));
+  first.rerender(
+    await TitlePage({
+      params: Promise.resolve({ id: TITLE_ID }),
+      searchParams: Promise.resolve({}),
+    }),
+  );
+  expect(mocks.editorMounts).toHaveBeenCalledTimes(1);
+
+  // Now linked to a series: new key, new mount.
+  mocks.getTitle.mockResolvedValue(
+    ok(view({ name: "Dark", kind: "series", tmdbId: 70523 })),
+  );
+  first.rerender(
+    await TitlePage({
+      params: Promise.resolve({ id: TITLE_ID }),
+      searchParams: Promise.resolve({}),
+    }),
+  );
+  expect(mocks.editorMounts).toHaveBeenCalledTimes(2);
 });

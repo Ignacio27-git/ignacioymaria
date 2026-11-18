@@ -13,9 +13,12 @@ export type AddCandidate = TmdbCandidate & { existingId: string | null };
  * TMDB search for the add flow, annotated so the UI can warn before the tap.
  * Identity and input validation happen in `searchTmdb`. If the duplicate
  * lookup fails the candidates still show: the unique index is the guarantee.
+ * `excludeId` is the title being relinked: it is never reported as its own
+ * duplicate.
  */
 export async function searchAddCandidates(
   query: unknown,
+  options: { excludeId?: string } = {},
 ): Promise<Result<AddCandidate[], TmdbFailure>> {
   const found = await searchTmdb(query);
   if (!found.ok) return err(found.error);
@@ -29,7 +32,17 @@ export async function searchAddCandidates(
   return ok(
     found.value.map((candidate) => ({
       ...candidate,
-      existingId: ids.get(tmdbKey(candidate.kind, candidate.tmdbId)) ?? null,
+      existingId: existingIdOf(
+        ids.get(tmdbKey(candidate.kind, candidate.tmdbId)),
+        options.excludeId,
+      ),
     })),
   );
+}
+
+function existingIdOf(
+  id: string | undefined,
+  excludeId: string | undefined,
+): string | null {
+  return id === undefined || id === excludeId ? null : id;
 }

@@ -91,6 +91,12 @@ Excepción: el script local `scripts/import-excel.ts` (paso 1.7, D-71) habla por
 
 Flujo: hoja `Pelis` -> `RawRow[]` -> `prepareRow` -> `groupSeasons` (una fila por temporada, duplicados, D-85; sustituye a la fusión de D-79) -> `search/multi` -> `decideMatch` -> detalles -> `planSeasons` (temporadas emitidas) -> `buildImportRow` (pasa por `createTitle`) -> una transacción de solo inserción (padre e hijas) -> informe en `import-reports/`.
 
+## Vincular con TMDB (paso 3.2)
+
+- `relinkTitle` (`src/server/titles/relink.ts`) es el único caso de uso que cambia los campos de TMDB de un título existente: recibe ids, vuelve a pedir los detalles en el servidor y escribe solo una lista cerrada de columnas (D-110). `searchRelinkCandidatesAction` reutiliza `searchAddCandidates` con `excludeId`.
+- La función `public.relink_series_to_movie` es el **único camino de escritura `security definer`** de la aplicación: pliega una serie con una sola temporada a película en una transacción y comprueba por sí misma la lista permitida (D-112). El repositorio la llama con `client.rpc` y traduce sus errores (`23505`, `P0003`, `P0002`, `42501`).
+- `RelinkIsland` (`src/app/(catalog)/titulo/[id]/relink-island.tsx`) es una isla de cliente bajo la cabecera de la ficha. `CandidateRow` vive ahora en `src/components/ui/candidate-row.tsx` y se comparte con el formulario de añadir; `ConfirmDialog` acepta `children`.
+
 ## Integración continua (paso 2.1)
 
 `.github/workflows/ci.yml` corre en cada `pull_request` y en cada `push` a `main`, sin secretos (D-88). Dos jobs en paralelo: `checks` (lint, typecheck, Vitest y build) y `db-e2e` (Supabase local, `pnpm test:db` y después los E2E con Chromium). El servidor de los E2E usa el doble de TMDB (`TMDB_TEST_DOUBLE=1`), así que no sale ninguna petición a TMDB.

@@ -15,9 +15,13 @@ import {
   searchAddCandidatesAction,
 } from "@/app/_actions/titles";
 import { Button } from "@/components/ui/button";
+import {
+  CandidateRow,
+  KIND_LABELS,
+  OPEN_FICHA,
+} from "@/components/ui/candidate-row";
 import { cx } from "@/components/ui/cx";
 import { CheckMark } from "@/components/ui/icons";
-import { Poster } from "@/components/ui/poster";
 import { TextField } from "@/components/ui/text-field";
 import { TmdbAttribution } from "@/components/ui/tmdb-attribution";
 import type { AddOrigin } from "@/lib/titles/add-origin";
@@ -26,8 +30,6 @@ import type { TitleFailure } from "@/server/titles/types";
 import type { TmdbFailure } from "@/server/tmdb/types";
 
 export const SEARCH_DEBOUNCE_MS = 250;
-
-const KIND_LABELS = { movie: "Película", series: "Serie" } as const;
 
 type Search =
   | { status: "idle" }
@@ -44,9 +46,6 @@ const NOTICE_TEXT = {
   tmdb: "No se pudo cargar la ficha de TMDB. Inténtalo de nuevo.",
   generic: "No se pudo añadir. Inténtalo de nuevo.",
 } as const;
-
-const OPEN_FICHA =
-  "inline-flex min-h-11 items-center underline underline-offset-4";
 
 /**
  * The add flow: TMDB search as you type, a pick that creates the title on the
@@ -225,65 +224,6 @@ function NoticeBox({
         Cerrar aviso
       </Button>
     </div>
-  );
-}
-
-function CandidateRow({
-  candidate,
-  busy,
-  disabled,
-  onChoose,
-}: {
-  candidate: AddCandidate;
-  busy: boolean;
-  disabled: boolean;
-  onChoose: () => void;
-}) {
-  const { name, year, kind, posterPath, existingId } = candidate;
-  const body = (
-    <>
-      <Poster path={posterPath} name={name} decorative className="w-12" />
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="font-condensed text-title font-bold">{name}</span>
-        <span className="text-sm text-ink-muted tabular-nums">
-          {year === null ? KIND_LABELS[kind] : `${year} · ${KIND_LABELS[kind]}`}
-        </span>
-      </span>
-    </>
-  );
-  const row = "flex min-h-[4.5rem] w-full items-center gap-3 border-b border-rule py-2";
-
-  if (existingId !== null) {
-    return (
-      <li className={cx(row, "flex-wrap")}>
-        {body}
-        <span className="flex flex-col items-end text-sm">
-          <span>Ya está en la lista</span>
-          <Link href={`/titulo/${existingId}`} className={OPEN_FICHA}>
-            Abrir ficha
-          </Link>
-        </span>
-      </li>
-    );
-  }
-
-  return (
-    <li>
-      <button
-        type="button"
-        disabled={disabled}
-        aria-busy={busy || undefined}
-        onClick={onChoose}
-        className={cx(
-          row,
-          "pr-3 text-left transition-colors duration-150 motion-reduce:transition-none",
-          "hover:bg-surface disabled:text-ink-muted disabled:hover:bg-paper",
-        )}
-      >
-        {body}
-        {busy && <span className="text-sm">Añadiendo…</span>}
-      </button>
-    </li>
   );
 }
 
