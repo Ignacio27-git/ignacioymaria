@@ -155,3 +155,11 @@ Prompts que funcionaron o enseñaron algo y que merece la pena reutilizar. Se ac
 **Resultado:** Interruptor `Tabla` / `Tarjetas` en `/vistas` y `/pendientes` con cookie `list_view` compartida (D-93 a D-98), `TitleCard` y `TitleCardGrid`, `Poster` con portada tipográfica, tests unitarios y E2E, y `DESIGN.md` enmendado (D-99). La comprobación visual con el MCP de Playwright queda pendiente para el orquestador.
 
 **Lección:** Cuando un documento de diseño prohíbe lo que el producto necesita, se enmienda en el mismo cambio y con su decisión registrada. Con Partial Prerender, el HTML inicial de la lista llega en streaming: la ausencia de parpadeo se comprueba sobre la respuesta cruda (`context.request`), no con JavaScript desactivado, que deja el contenido sin mostrar.
+
+### 2026-11-18 · Paso 3.2 · vincular un título con TMDB (SDD `tmdb-relink`)
+
+**Prompt:** `/gentle-sdd-new tmdb-relink` — En la ficha de un título, permite buscar en TMDB y vincularlo a un resultado, tanto si el título se guardó a mano como si está vinculado a una ficha equivocada. Al vincular se actualizan los datos técnicos que vienen de TMDB y se conservan siempre los nuestros. Usa las skills de diseño y compruébalo, también en móvil. Antes de decidir nombre, duplicados, cambio de tipo, deshacer y punto de partida de la búsqueda, pregunta.
+
+**Resultado:** Función `relink_series_to_movie` (pliegue atómico de una serie con una temporada), caso de uso `relinkTitle`, isla `RelinkIsland` con confirmación antes y después, `CandidateRow` compartida y E2E a 390 px (D-110 a D-112).
+
+**Lección:** Cuando una regla de seguridad (la propiedad de cada nota) impide una operación legítima, se acota la excepción a una función con su propia comprobación y se prueba en pgTAP que el cliente directo sigue bloqueado.

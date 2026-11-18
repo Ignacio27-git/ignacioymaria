@@ -106,6 +106,16 @@ Cambio visual del paso 3.1 de `docs/ROADMAP.md` (cambio SDD `card-view`), fuera 
   - **Límites.** Chromium de escritorio con barra de desplazamiento clásica: a 390 px quedan 375 px útiles. No es un teléfono real, así que la respuesta al toque sigue sin comprobar. Las series no se revisaron a ojo; solo las cubren las pruebas de componentes.
   - **Observaciones sin corregir.** «6,88» ocupa 44 de los 48 px de la caja de la media: cabe, con 2 px por lado, pero queda justo. En desarrollo, Next avisa de que la primera portada con carga perezosa es el LCP; la especificación pide carga perezosa, y cargarla antes sería una mejora aparte.
 
+## [~] Vincular con TMDB (paso 3.2)
+
+Cambio visual del paso 3.2 de `docs/ROADMAP.md` (cambio SDD `tmdb-relink`), fuera de la numeración `D.n`. Modo Operate de `impeccable`, con el sistema visual existente y sin rediseño; también `emil-design-eng` y `mobile-native`.
+
+**Notas:** 2026-11-18
+- **Entrada.** Botón secundario bajo la cabecera de la ficha con `aria-expanded`: «Vincular con TMDB» o «Cambiar ficha de TMDB». El panel se abre en línea (sin modal) y el foco va a su título, para que el teclado no se abra en móvil.
+- **Resultados.** `CandidateRow` compartida con el formulario de añadir; la ficha actual lleva la nota «Ficha actual» y las ya presentes en la lista, «Ya está en la lista» con enlace.
+- **Confirmación.** `ConfirmDialog` con ranura `children`: «Ahora» y «Pasará a ser» apilados (póster, nombre, año · tipo) y el aviso del pliegue cuando corresponde. Sin animación nueva (acción ocasional; se mantiene el color de 150 ms existente).
+- **Comprobación.** Capturas de Playwright a 1280 y 390 px en claro y oscuro (panel, diálogo, pliegue, bloqueo, cerrado), leídas a ojo; sin correcciones. Objetivos de 44 px y sin desbordamiento comprobados en E2E a 390 px. **Límites:** no se usó el MCP de Playwright (el agente no lo tiene) ni un teléfono real; los pósters son un degradado simulado.
+
 ---
 
 # Registro de desviaciones
@@ -122,3 +132,4 @@ Cambio visual del paso 3.1 de `docs/ROADMAP.md` (cambio SDD `card-view`), fuera 
 | 2026-11-03 | 1.8 | Las filas de temporada son `<details>` plegables con la última abierta, en lugar de una lista de editores siempre visibles | Una serie de ocho temporadas con seis estados, fecha y panel de nota por temporada serían miles de píxeles de ficha; la línea plegada conserva estado, fecha y notas a la vista |
 | 2026-11-04 | 3.1 | Entrada propia «Vista de tarjetas» fuera de la numeración `D.n`, y la comprobación con el MCP de Playwright queda pendiente para el orquestador | Es una vista alternativa de las listas de 1.6; el agente de implementación no tiene herramientas de navegador |
 | 2026-11-04 | 3.1 | El interruptor de vista copia el aspecto de chip del selector de tema, no el token `filter-chip-selected` de `DESIGN.md` | Ese token invierte el fondo y rompería la regla de una sola inversión (R4); el selector de tema ya usa Pressed Paper |
+| 2026-11-18 | 3.2 | Entrada propia «Vincular con TMDB» fuera de la numeración `D.n`; la comprobación visual se hizo con capturas de Playwright y no con el MCP | Es una ampliación de la ficha de 1.6; el agente de implementación no tiene las herramientas del MCP |
